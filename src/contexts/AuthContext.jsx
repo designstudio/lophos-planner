@@ -1,14 +1,6 @@
-import React, {useContext, useEffect, useState} from 'react';
-import {auth, googleProvider} from "../scripts/firebase.js";
-import {signInWithEmailAndPassword,
-    signOut,
-    updatePassword,
-    updateEmail,
-    sendPasswordResetEmail,
-    createUserWithEmailAndPassword,
-    signInWithPopup,
-} from "firebase/auth"
-import { createUser, getCurrentUser, updateUserData } from "../scripts/api.js";
+import React from 'react';
+import { supabase } from '../scripts/supabase.js';
+import { createUser, getCurrentUser, updateUserData } from '../scripts/api.js';
 
 const AuthContext = React.createContext();
 
@@ -21,90 +13,68 @@ function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
 
     React.useEffect(() => {
-        return auth.onAuthStateChanged(async user => {
-            setCurrentUser(await getCurrentUser(user.uid));
-            localStorage.isLoggedIn = user ? "true" : "false";
-        })
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                const profile = await getCurrentUser(session.user.id);
+                setCurrentUser(profile);
+                localStorage.isLoggedIn = 'true';
+            } else {
+                setCurrentUser(null);
+                localStorage.isLoggedIn = 'false';
+            }
+        });
+        return () => subscription.unsubscribe();
     }, []);
 
     async function signup({ email, password, name }) {
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
-            localStorage.isLoggedIn = "true";
-            return await createUser(auth.currentUser.uid, {email, name});
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) throw error;
+            localStorage.isLoggedIn = 'true';
+            return await createUser(data.user.id, { email, name });
         } catch (err) {
-            return {
-                type: "error",
-                errorMessage: err.message,
-            };
+            return { type: 'error', errorMessage: err.message };
         }
     }
 
     async function login(email, password) {
         try {
-            localStorage.isLoggedIn = "true";
-            return await signInWithEmailAndPassword(auth, email, password);
+            localStorage.isLoggedIn = 'true';
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            return data;
         } catch (err) {
-            return {
-                type: "error",
-                errorMessage: err.message,
-            };
-        }
-    }
-
-    async function googleSignIn() {
-        try {
-            const res = await signInWithPopup(auth, googleProvider);
-            const {displayName:name, email, } = res.user;
-            const user = await getCurrentUser(res.user.uid);
-            localStorage.theme = user.darkMode ? "dark" : "light";
-            return res.user;
-        } catch (err) {
-            return {
-                type: "error",
-                errorMessage: err.message,
-            };
-        }
-    }
-
-    async function googleSignUp() {
-        try {
-            const res = await signInWithPopup(auth, googleProvider);
-            const {uid, displayName:name, email, } = res.user;
-            return await createUser(uid, {email, name});
-        } catch (err) {
-            return {
-                type: "error",
-                errorMessage: err.message,
-            };
+            return { type: 'error', errorMessage: err.message };
         }
     }
 
     async function logout() {
-        await signOut(auth);
-        localStorage.isLoggedIn = "false";
-        localStorage.theme = "light";
+        await supabase.auth.signOut();
+        localStorage.isLoggedIn = 'false';
+        localStorage.theme = 'light';
         return window.location.reload();
     }
 
     async function updateUser(email, password, data) {
         try {
-            if (email !== currentUser.email) {
-                await updateEmail(auth.currentUser, email);
-            }
-            if (password) {
-                await updatePassword(auth.currentUser, password);
+            const updates = {};
+            if (email !== currentUser.email) updates.email = email;
+            if (password) updates.password = password;
+            if (Object.keys(updates).length > 0) {
+                const { error } = await supabase.auth.updateUser(updates);
+                if (error) throw error;
             }
             await updateUserData(currentUser.uid, data);
-            return setCurrentUser(await getCurrentUser(currentUser.uid));
-        } catch(err) {
+            setCurrentUser(await getCurrentUser(currentUser.uid));
+        } catch (err) {
             return err.message;
         }
     }
 
     async function resetPassword(email) {
         try {
-            await sendPasswordResetEmail(auth, email);
+            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            if (error) throw error;
             return 'Check your inbox';
         } catch (err) {
             return err.message;
@@ -115,16 +85,14 @@ function AuthProvider({ children }) {
         currentUser,
         signup,
         login,
-        googleSignIn,
-        googleSignUp,
         logout,
         resetPassword,
         updateUser,
-    }
+    };
 
     return (
         <AuthContext.Provider value={value}>
-            { children }
+            {children}
         </AuthContext.Provider>
     );
 }

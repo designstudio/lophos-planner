@@ -10,9 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
     "easymde": "^2.18.0",
-    "firebase": "^10.4.0",
-    "firebaseui": "^6.1.0",
     "js-levenshtein": "^1.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
