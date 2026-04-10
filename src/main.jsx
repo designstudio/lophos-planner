@@ -1,16 +1,14 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import HomePage from './HomePage'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import HomePage from './HomePage';
 import NotFound from "./components/NotFound";
-import './index.css'
-import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
+import './index.css';
+import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
 import TaskMenuContext from "./contexts/TaskMenuContext";
 import { action as signupAction } from "./components/forms/SignUpForm";
 import { action as resetPasswordAction } from "./components/forms/ResetPasswordForm";
 import { action as updateUserAction } from "./components/forms/UpdateUserForm";
-import { action as searchTaskAction } from "./components/forms/SearchTaskForm.jsx";
-import { loader as taskLoader } from "./components/tasks/TaskListContainer.jsx";
 import Error from "./components/Error.jsx";
 
 function App() {
@@ -22,13 +20,10 @@ function App() {
                 path="/"
                 element={<HomePage />}
                 errorElement={<Error />}
-                loader={taskLoader(authContext)}
-                action={searchTaskAction(authContext)}
             />
             <Route path="/signup" action={signupAction(authContext)} />
             <Route path="/reset-password" action={resetPasswordAction(authContext)} />
             <Route path="/update-user" action={updateUserAction(authContext)} />
-            <Route path="/search-task" />
             <Route path="*" element={<NotFound />} />
         </>
     ));
@@ -42,4 +37,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <App />
         </TaskMenuContext>
     </AuthProvider>
-)
+);
