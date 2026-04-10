@@ -5,6 +5,7 @@ import {createTask, toggleDoneTask, tryCatchDecorator} from "../../scripts/api.j
 import {useAuth} from "../../contexts/AuthContext.jsx";
 import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
 import {openForm} from "../../scripts/utils.js";
+import {ALLOWED_COLORS} from "./TaskMenuColorPicker.jsx";
 
 function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
@@ -28,7 +29,6 @@ export default function Task({taskListInd, ind, data, date, tasksCol}) {
     function openTaskMenu(ev) {
         if (document.querySelector('.blur-bg.active')) return;
         openForm("task-menu");
-        console.log(data);
         setTaskData(data);
     }
 
@@ -46,7 +46,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol}) {
          border-gray-200 dark:border-gray-700 hover:border-gray-500 dark:hover:border-blue-700 hover:border-b-0 
          dark:hover:border-b group`} data-ind={ind}>
             <div className="task flex justify-between items-center py-2 px-3 cursor-grab" onClick={openTaskMenu}>
-                <h5 className={`task-title px-2 py-0.5 rounded-full text-sm bg-${data.color} ` + (data.done && "opacity-40 line-through ") || ''}
+                <h5 className={`task-title px-2 py-0.5 rounded-full text-sm bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}
                 >{ data.description && <i className="fa-regular fa-note-sticky"></i> } {data.name.slice(0, MAX_TASK_NAME_LENGTH) +
                     (data.name.length > MAX_TASK_NAME_LENGTH ? "..." : "")}</h5>
                 <button className="toggle-done hidden group-hover:block max-lg:block" onClick={handleToggleDone}>

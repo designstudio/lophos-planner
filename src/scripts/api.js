@@ -36,7 +36,6 @@ export function tryCatchDecorator(func) {
                 data,
             }
         } catch (err) {
-            console.log(err.message);
             return {
                 success: false,
                 message: err.message,
@@ -50,7 +49,6 @@ export function tryCatchDecorator(func) {
 export async function createTask(data) {
     const docRef = await addDoc(taskColRef, data);
     const newTask = await getDoc(docRef);
-    console.log(`creating task ${data.name} ${data.order}`)
     return {
         ...newTask.data(),
         id: newTask.id,
@@ -58,7 +56,6 @@ export async function createTask(data) {
 }
 
 export async function getUserTasks(userId) {
-    console.log(userId);
     // await sleep(1000);
     const q = query(taskColRef,
         where("uid", "==", userId || "null"));
@@ -76,8 +73,6 @@ export async function getSearchedTasks(userId, query) {
 }
 
 export async function updateTask(taskId, data) {
-    console.log(`updating task ${taskId}`);
-    console.log(data);
     const taskRef = doc(db, "tasks", taskId);
     await updateDoc(taskRef, data);
 }
@@ -86,7 +81,6 @@ export async function deleteTask(taskId) {
 
     const taskRef = doc(db, "tasks", taskId);
     const taskData = (await getDoc(taskRef)).data();
-    console.log("in delete", taskData);
     const q = query(taskColRef, where("date", "==", taskData.date),
         where("order", ">", taskData.order));
     (await getDocs(q)).docs.map(async doc => {
@@ -94,14 +88,12 @@ export async function deleteTask(taskId) {
             order: increment(-1),
         })
     });
-    console.log("in delete 2", taskData);
     await deleteDoc(taskRef);
 }
 
 export async function reOrderTasks(reOrdered) {
 
     reOrdered.map(async (task, index) => {
-        console.log(task.id, task.name, index);
         await updateDoc(doc(db, "tasks", task.id), {
             order: index,
         });
@@ -118,7 +110,6 @@ export async function toggleDoneTask(taskId) {
 
 export async function clearUsersTasks(userId) {
     const tasks = await getUserTasks(userId);
-    console.log(`deleting ${tasks.length}`)
     tasks.map(async ({ id }) => {
         await deleteDoc(doc(db, "tasks", id));
     })
@@ -127,7 +118,6 @@ export async function clearUsersTasks(userId) {
 // Users CRUD
 
 export async function createUser(id, data) {
-    console.log('in create user', id, data);
     await setDoc(doc(db, 'users', id), data);
 }
 
@@ -145,4 +135,3 @@ export async function updateUserData(id, data) {
     const userRef = doc(db, 'users', id);
     await updateDoc(userRef, data);
 }
-
