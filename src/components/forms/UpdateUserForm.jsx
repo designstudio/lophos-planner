@@ -13,6 +13,9 @@ export const action = (AuthContext) => async ({ request }) => {
         password = formData.get("password"),
         passwordConfirm = formData.get("confirmPassword"),
         darkMode = formData.get("dark-mode") === "on";
+    if (password && password.length < 6) {
+        return "Password must be at least 6 characters";
+    }
     if (passwordConfirm !== password) {
         return "Passwords don't match";
     }
@@ -30,7 +33,6 @@ export default function UpdateUserForm() {
 
     function closeBlur(ev) {
         const blur = document.querySelector('[data-id="update-user-form"]');
-        console.log(blur);
         blur.classList.remove("active");
     }
     return (
