@@ -4,7 +4,6 @@ export function formDate(date) {
 
 export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-
 const formBlurDict = {
     "login-form": "login-form",
     "task-menu": "task-menu",
@@ -19,23 +18,34 @@ export function formTransition(from, to) {
 
 export function openForm(formBlurId) {
     const formBlur = document.querySelector(`[data-id='${formBlurId}']`);
+    if (!formBlur) return;
+
     formBlur.classList.add('active');
-    formBlur.querySelector(`.${formBlurId}`).animate([
+
+    const formElement = formBlur.querySelector(`.${formBlurId}`);
+    if (!formElement) return;
+
+    formElement.animate(
+        [
+            {
+                top: "6rem",
+                opacity: 0.5,
+            },
+            {
+                top: "3.5rem",
+                opacity: 1,
+            },
+        ],
         {
-            top: "6rem",
-            opacity: .5,
-        },
-        {
-            top: "3.5rem",
-            opacity: 1,
-        },
-    ], {
-        duration: 300,
-        fill: "forwards",
-    });
+            duration: 300,
+            fill: "forwards",
+        }
+    );
 }
 
 export function closeForm(formBlurId) {
     const fromForm = document.querySelector(`.blur-bg[data-id="${formBlurId}"]`);
+    if (!fromForm) return;
+
     fromForm.classList.remove("active");
 }
