@@ -31,6 +31,11 @@ export async function createTask(data) {
 }
 
 export async function getUserTasks(userId) {
+    // AJUSTE: Impede a chamada se o userId for inválido ou 'undefined' (string)
+    if (!userId || userId === 'undefined') {
+        return [];
+    }
+
     const { data, error } = await supabase
         .from('tasks')
         .select('*')
