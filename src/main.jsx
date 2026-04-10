@@ -37,11 +37,9 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-        <AuthProvider>
-            <TaskMenuContext>
-                <App />
-            </TaskMenuContext>
-        </AuthProvider>
-    </React.StrictMode>,
+    <AuthProvider>
+        <TaskMenuContext>
+            <App />
+        </TaskMenuContext>
+    </AuthProvider>
 )

@@ -10,8 +10,37 @@ export function useAuth() {
 
 function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
+    const [isAuthReady, setIsAuthReady] = React.useState(false);
 
     React.useEffect(() => {
+        let mounted = true;
+
+        async function bootstrapAuth() {
+            const { data, error } = await supabase.auth.getSession();
+            const sessionUserId = data?.session?.user?.id ?? null;
+
+            console.log('[AUTH] bootstrap getSession', { sessionUserId, error });
+
+            if (!mounted) return;
+
+            if (sessionUserId) {
+                const profile = await getCurrentUser(sessionUserId);
+                console.log('[AUTH] bootstrap profile', profile);
+                if (!mounted) return;
+
+                setCurrentUser(profile);
+                localStorage.isLoggedIn = 'true';
+                localStorage.theme = profile?.darkMode ? 'dark' : 'light';
+            } else {
+                setCurrentUser(null);
+                localStorage.isLoggedIn = 'false';
+            }
+
+            setIsAuthReady(true);
+        }
+
+        bootstrapAuth();
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('[AUTH] onAuthStateChange', { event, sessionUserId: session?.user?.id ?? null });
 
@@ -19,17 +48,23 @@ function AuthProvider({ children }) {
                 const profile = await getCurrentUser(session.user.id);
                 console.log('[AUTH] fetched profile from onAuthStateChange', profile);
 
+                if (!mounted) return;
                 setCurrentUser(profile);
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = profile?.darkMode ? 'dark' : 'light';
             } else {
-                console.log('[AUTH] no active session');
+                if (!mounted) return;
                 setCurrentUser(null);
                 localStorage.isLoggedIn = 'false';
             }
+
+            if (mounted) setIsAuthReady(true);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     async function signup({ email, password, name }) {
@@ -72,7 +107,14 @@ function AuthProvider({ children }) {
         try {
             console.log('[AUTH] login start', { email });
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const result = await Promise.race([
+                supabase.auth.signInWithPassword({ email, password }),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Login timed out.')), 15000)
+                ),
+            ]);
+
+            const { data, error } = result;
             if (error) throw error;
 
             console.log('[AUTH] login auth response', data);
@@ -146,6 +188,7 @@ function AuthProvider({ children }) {
 
     const value = {
         currentUser,
+        isAuthReady,
         signup,
         login,
         logout,
