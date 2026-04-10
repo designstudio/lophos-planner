@@ -9,7 +9,11 @@ export const action = (AuthContext) => async ({ request }) => {
     const email = formData.get("email");
     const password = formData.get("password");
 
+    console.log('[LOGIN FORM] action start', { email });
+
     const res = await login(email, password);
+
+    console.log('[LOGIN FORM] action result', res);
 
     if (res?.type === "error") {
         return redirect(`/?errorMessage=${encodeURIComponent(res.errorMessage)}`);
