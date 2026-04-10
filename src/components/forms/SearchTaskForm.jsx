@@ -3,34 +3,22 @@ import React from "react";
 import { Form, useSubmit, useActionData } from "react-router-dom";
 import { getSearchedTasks } from "../../scripts/api.js";
 import SearchTask from "../tasks/SearchTask.jsx";
-
-export const action = AuthContext => async ({ request }) => {
-    const { currentUser } = AuthContext;
-    const formData = await request.formData();
-    const search = formData.get("search-task-name");
-
-    console.log(search, search.length);
-
-    if (!search) return [];
-    return await getSearchedTasks(currentUser.uid, search);
-};
+import { useAuth } from "../../contexts/AuthContext.jsx";
 
 export default function SearchTaskForm() {
     const submit = useSubmit();
     const tasks = useActionData();
-
-    console.log("action in search", tasks);
+    const { currentUser } = useAuth();
 
     function handleSearch(ev) {
         if (ev.currentTarget.value) {
             const clearSearchBtn = document.querySelector(".clear-search");
-            clearSearchBtn.classList.remove("hidden");
-            console.log(ev.currentTarget.parentElement);
+            clearSearchBtn?.classList.remove("hidden");
         } else {
-            document.querySelector(".clear-search").classList.add("hidden");
+            document.querySelector(".clear-search")?.classList.add("hidden");
         }
 
-        submit(ev.currentTarget.parentElement);
+        submit(ev.currentTarget.parentElement, { method: "post", action: "/" });
     }
 
     return (
@@ -64,7 +52,7 @@ export default function SearchTaskForm() {
                 </Form>
 
                 <div className="search-results">
-                    {tasks &&
+                    {Array.isArray(tasks) &&
                         tasks.map(task => (
                             <SearchTask key={task.id} data={task} date={new Date(task.date)} />
                         ))}
