@@ -129,40 +129,73 @@ export async function clearUsersTasks(userId) {
 // Users CRUD
 
 export async function createUser(id, data) {
-    const { error } = await supabase.from('users').insert({
+    const payload = {
         id,
         email: data.email,
         name: data.name,
         dark_mode: data.darkMode ?? false,
-    });
+    };
+
+    console.log('[USER] createUser payload', payload);
+
+    const { error } = await supabase.from('users').insert(payload);
+
+    console.log('[USER] createUser response', { error });
 
     if (error) throw error;
 }
 
 export async function getCurrentUser(id) {
-    if (!id) return null;
+    if (!id) {
+        console.log('[USER] getCurrentUser skipped: no id');
+        return null;
+    }
 
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+    console.log('[USER] getCurrentUser start', { id });
 
-    if (error || !data) return null;
+    const result = await Promise.race([
+        supabase
+            .from('users')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle(),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('getCurrentUser timed out.')), 15000)
+        ),
+    ]);
 
-    return {
+    console.log('[USER] getCurrentUser raw result', result);
+
+    const { data, error } = result;
+
+    if (error || !data) {
+        console.log('[USER] getCurrentUser empty/error', { data, error });
+        return null;
+    }
+
+    const profile = {
         uid: data.id,
         email: data.email,
         name: data.name,
         darkMode: data.dark_mode,
     };
+
+    console.log('[USER] getCurrentUser mapped profile', profile);
+
+    return profile;
 }
 
 export async function updateUserData(id, data) {
+    const payload = { name: data.name, dark_mode: data.darkMode };
+
+    console.log('[USER] updateUserData payload', { id, payload });
+
     const { error } = await supabase
         .from('users')
-        .update({ name: data.name, dark_mode: data.darkMode })
+        .update(payload)
         .eq('id', id);
+
+    console.log('[USER] updateUserData response', { error });
 
     if (error) throw error;
 }
