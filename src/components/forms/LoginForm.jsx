@@ -15,7 +15,8 @@ export const action = (AuthContext) => async ({ request }) => {
         return redirect(`/?errorMessage=${encodeURIComponent(res.errorMessage)}`);
     }
 
-    return redirect("/");
+    window.location.href = "/";
+    return null;
 };
 
 export default function LoginForm() {
