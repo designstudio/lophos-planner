@@ -24,7 +24,6 @@ function AuthProvider({ children }) {
         return auth.onAuthStateChanged(async user => {
             setCurrentUser(await getCurrentUser(user.uid));
             localStorage.isLoggedIn = user ? "true" : "false";
-            console.log(localStorage.isLoggedIn);
         })
     }, []);
 
@@ -57,7 +56,6 @@ function AuthProvider({ children }) {
         try {
             const res = await signInWithPopup(auth, googleProvider);
             const {displayName:name, email, } = res.user;
-            console.log(res.user);
             const user = await getCurrentUser(res.user.uid);
             localStorage.theme = user.darkMode ? "dark" : "light";
             return res.user;
@@ -73,8 +71,6 @@ function AuthProvider({ children }) {
         try {
             const res = await signInWithPopup(auth, googleProvider);
             const {uid, displayName:name, email, } = res.user;
-            console.log(uid, name, email);
-            console.log(res.user);
             return await createUser(uid, {email, name});
         } catch (err) {
             return {

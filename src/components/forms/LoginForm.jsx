@@ -10,7 +10,6 @@ export const action = (AuthContext) => async ({ request }) => {
     const { login } = AuthContext;
     const email = formData.get("email"),
         password = formData.get("password");
-    console.log(email, password, request.url);
     const res = await login(email, password);
     if (res?.type !== "error") {
         localStorage.theme = res.darkMode ? "dark" : "light";

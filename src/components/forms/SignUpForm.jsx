@@ -15,7 +15,6 @@ export const action = (AuthContext) => async ({ request }) => {
     if (passwordConfirm !== password) {
         return redirect("/?errorMessage=Passwords don't match");
     }
-    console.log(email, password, request.url);
     await signup({email, password, name})
     return redirect("/");
 }
