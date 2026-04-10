@@ -11,11 +11,11 @@ export const action = (AuthContext) => async ({ request }) => {
 
     const res = await login(email, password);
 
-    if (res?.type !== "error") {
-        localStorage.theme = res.darkMode ? "dark" : "light";
+    if (res?.type === "error") {
+        return redirect(`/?errorMessage=${encodeURIComponent(res.errorMessage)}`);
     }
 
-    return redirect(`/?${res.type === "error" ? "errorMessage=" + encodeURIComponent(res.errorMessage) : ""}`);
+    return redirect("/");
 };
 
 export default function LoginForm() {

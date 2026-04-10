@@ -17,6 +17,7 @@ function AuthProvider({ children }) {
                 const profile = await getCurrentUser(session.user.id);
                 setCurrentUser(profile);
                 localStorage.isLoggedIn = 'true';
+                localStorage.theme = profile?.darkMode ? 'dark' : 'light';
             } else {
                 setCurrentUser(null);
                 localStorage.isLoggedIn = 'false';
@@ -40,6 +41,7 @@ function AuthProvider({ children }) {
             const profile = await getCurrentUser(data.user.id);
             setCurrentUser(profile);
             localStorage.isLoggedIn = 'true';
+            localStorage.theme = profile?.darkMode ? 'dark' : 'light';
 
             return { type: 'success', data: profile };
         } catch (err) {
@@ -55,10 +57,24 @@ function AuthProvider({ children }) {
 
     async function login(email, password) {
         try {
-            localStorage.isLoggedIn = 'true';
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) throw error;
-            return data;
+
+            const userId = data?.user?.id;
+            if (!userId) {
+                return { type: 'error', errorMessage: 'Unable to retrieve authenticated user.' };
+            }
+
+            const profile = await getCurrentUser(userId);
+            if (!profile) {
+                return { type: 'error', errorMessage: 'User profile was not found.' };
+            }
+
+            setCurrentUser(profile);
+            localStorage.isLoggedIn = 'true';
+            localStorage.theme = profile.darkMode ? 'dark' : 'light';
+
+            return { type: 'success', data: profile };
         } catch (err) {
             return { type: 'error', errorMessage: err.message };
         }
@@ -66,6 +82,7 @@ function AuthProvider({ children }) {
 
     async function logout() {
         await supabase.auth.signOut();
+        setCurrentUser(null);
         localStorage.isLoggedIn = 'false';
         localStorage.theme = 'light';
         return window.location.reload();
@@ -83,7 +100,9 @@ function AuthProvider({ children }) {
             }
 
             await updateUserData(currentUser.uid, data);
-            setCurrentUser(await getCurrentUser(currentUser.uid));
+            const updatedProfile = await getCurrentUser(currentUser.uid);
+            setCurrentUser(updatedProfile);
+            localStorage.theme = updatedProfile?.darkMode ? 'dark' : 'light';
         } catch (err) {
             return err.message;
         }
