@@ -42,6 +42,7 @@ export default function SignUpForm() {
                 <div className="w-full flex justify-between items-center mb-12">
                     <h3 className="font-bold text-lg">Hello, nice to meet you!</h3>
                     <button
+                        type="button"
                         className="border rounded-full border-gray-700 px-3 py-1 font-bold text-sm"
                         onClick={() => formTransition("signup-form", "login-form")}
                     >
@@ -99,7 +100,10 @@ export default function SignUpForm() {
                         (I don't have ones so you don't have to ;) )
                     </p>
 
-                    <button className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold">
+                    <button
+                        type="submit"
+                        className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold"
+                    >
                         Create account
                     </button>
                 </Form>
