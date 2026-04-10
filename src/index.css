@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .max-container {
+        max-width: 1440px;
+        margin: 0 auto;
+    }
+
+    .blur-bg.active > .task-menu {
+        @apply top-10;
+    }
+
+    .blur-bg:not(.active) > .task-menu {
+        @apply top-24;
+    }
+
+    .profile-menu.active, .extras-menu.active, .task-menu-color-picker.active,
+    .blur-bg.active, .invite.active > .invite-blur  {
+        @apply fixed;
+    }
+
+    .profile-menu:not(.active), .extras-menu:not(.active), .task-menu-color-picker:not(.active),
+    .blur-bg:not(.active), .invite:not(.active) > .invite-blur {
+        @apply hidden;
+    }
+
+    .invite.active > .invite-page {
+        @apply translate-x-0;
+    }
+
+    .invite:not(.active) > .invite-page {
+        @apply translate-x-full;
+    }
+
+    .sortable-drag {
+        @apply bg-indigo-400 opacity-50 rounded-md;
+    }
+
+    .sortable-drag .toggle-done {
+        @apply hidden;
+    }
+
+     .sortable-ghost {
+        @apply opacity-0;
+    }
+
+
+}
+
+@layer utilities {
+    .padding-x {
+        @apply px-2 sm:px-4 lg:px-6;
+    }
+}
