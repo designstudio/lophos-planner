@@ -92,7 +92,7 @@ function AuthProvider({ children }) {
             if (email !== currentUser.email) {
                 await updateEmail(auth.currentUser, email);
             }
-            if (password && password !== currentUser.password) {
+            if (password) {
                 await updatePassword(auth.currentUser, password);
             }
             await updateUserData(currentUser.uid, data);
