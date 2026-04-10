@@ -12,25 +12,53 @@ function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
     const [isAuthReady, setIsAuthReady] = React.useState(false);
 
+    function buildFallbackUser(sessionUser, profile = null) {
+        if (!sessionUser) return null;
+
+        return {
+            uid: sessionUser.id,
+            email: profile?.email ?? sessionUser.email ?? '',
+            name:
+                profile?.name ??
+                sessionUser.user_metadata?.name ??
+                sessionUser.email?.split('@')[0] ??
+                'User',
+            darkMode: profile?.darkMode ?? false,
+        };
+    }
+
     React.useEffect(() => {
         let mounted = true;
 
         async function bootstrapAuth() {
             const { data, error } = await supabase.auth.getSession();
-            const sessionUserId = data?.session?.user?.id ?? null;
+            const sessionUser = data?.session?.user ?? null;
 
-            console.log('[AUTH] bootstrap getSession', { sessionUserId, error });
+            console.log('[AUTH] bootstrap getSession', { sessionUserId: sessionUser?.id ?? null, error });
 
             if (!mounted) return;
 
-            if (sessionUserId) {
-                const profile = await getCurrentUser(sessionUserId);
-                console.log('[AUTH] bootstrap profile', profile);
-                if (!mounted) return;
-
-                setCurrentUser(profile);
+            if (sessionUser) {
+                // Libera a UI imediatamente com fallback
+                const fallbackUser = buildFallbackUser(sessionUser);
+                setCurrentUser(fallbackUser);
                 localStorage.isLoggedIn = 'true';
-                localStorage.theme = profile?.darkMode ? 'dark' : 'light';
+                localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
+
+                // Tenta enriquecer com o perfil público sem bloquear a UI
+                try {
+                    const profile = await getCurrentUser(sessionUser.id);
+                    console.log('[AUTH] bootstrap profile', profile);
+
+                    if (!mounted) return;
+                    if (profile) {
+                        const mergedUser = buildFallbackUser(sessionUser, profile);
+                        setCurrentUser(mergedUser);
+                        localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
+                    }
+                } catch (err) {
+                    console.error('[AUTH] bootstrap profile error', err);
+                }
             } else {
                 setCurrentUser(null);
                 localStorage.isLoggedIn = 'false';
@@ -41,17 +69,35 @@ function AuthProvider({ children }) {
 
         bootstrapAuth();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AUTH] onAuthStateChange', { event, sessionUserId: session?.user?.id ?? null });
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+            const sessionUser = session?.user ?? null;
+            console.log('[AUTH] onAuthStateChange', { event, sessionUserId: sessionUser?.id ?? null });
 
-            if (session?.user) {
-                const profile = await getCurrentUser(session.user.id);
-                console.log('[AUTH] fetched profile from onAuthStateChange', profile);
-
+            if (sessionUser) {
+                const fallbackUser = buildFallbackUser(sessionUser);
                 if (!mounted) return;
-                setCurrentUser(profile);
+
+                // Libera a UI já
+                setCurrentUser(fallbackUser);
                 localStorage.isLoggedIn = 'true';
-                localStorage.theme = profile?.darkMode ? 'dark' : 'light';
+                localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
+
+                // Tenta buscar perfil sem travar
+                try {
+                    const profile = await getCurrentUser(sessionUser.id);
+                    console.log('[AUTH] fetched profile from onAuthStateChange', profile);
+
+                    if (!mounted) return;
+                    if (profile) {
+                        const mergedUser = buildFallbackUser(sessionUser, profile);
+                        setCurrentUser(mergedUser);
+                        localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
+                    }
+                } catch (err) {
+                    console.error('[AUTH] onAuthStateChange profile error', err);
+                }
             } else {
                 if (!mounted) return;
                 setCurrentUser(null);
@@ -71,26 +117,41 @@ function AuthProvider({ children }) {
         try {
             console.log('[AUTH] signup start', { email, name });
 
-            const { data, error } = await supabase.auth.signUp({ email, password });
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { name },
+                },
+            });
             if (error) throw error;
 
             console.log('[AUTH] signup auth response', data);
 
-            if (!data?.user?.id) {
+            const sessionUser = data?.user;
+            if (!sessionUser?.id) {
                 return { type: 'error', errorMessage: 'User was created without a valid id.' };
             }
 
-            await createUser(data.user.id, { email, name });
-            console.log('[AUTH] profile row created');
+            // Tenta criar o perfil público, mas não bloqueia login
+            try {
+                await createUser(sessionUser.id, { email, name });
+                console.log('[AUTH] profile row created');
+            } catch (err) {
+                console.error('[AUTH] createUser error', err);
+            }
 
-            const profile = await getCurrentUser(data.user.id);
-            console.log('[AUTH] profile after signup', profile);
+            const fallbackUser = buildFallbackUser(sessionUser, {
+                email,
+                name,
+                darkMode: false,
+            });
 
-            setCurrentUser(profile);
+            setCurrentUser(fallbackUser);
             localStorage.isLoggedIn = 'true';
-            localStorage.theme = profile?.darkMode ? 'dark' : 'light';
+            localStorage.theme = 'light';
 
-            return { type: 'success', data: profile };
+            return { type: 'success', data: fallbackUser };
         } catch (err) {
             console.error('[AUTH] signup error', err);
 
@@ -119,23 +180,32 @@ function AuthProvider({ children }) {
 
             console.log('[AUTH] login auth response', data);
 
-            const userId = data?.user?.id;
-            if (!userId) {
+            const sessionUser = data?.user;
+            if (!sessionUser?.id) {
                 return { type: 'error', errorMessage: 'Unable to retrieve authenticated user.' };
             }
 
-            const profile = await getCurrentUser(userId);
-            console.log('[AUTH] profile after login', profile);
+            const fallbackUser = buildFallbackUser(sessionUser);
+            setCurrentUser(fallbackUser);
+            localStorage.isLoggedIn = 'true';
+            localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
 
-            if (!profile) {
-                return { type: 'error', errorMessage: 'User profile was not found.' };
+            // Tenta enriquecer, mas não trava o login
+            try {
+                const profile = await getCurrentUser(sessionUser.id);
+                console.log('[AUTH] profile after login', profile);
+
+                if (profile) {
+                    const mergedUser = buildFallbackUser(sessionUser, profile);
+                    setCurrentUser(mergedUser);
+                    localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
+                    return { type: 'success', data: mergedUser };
+                }
+            } catch (err) {
+                console.error('[AUTH] login profile enrichment error', err);
             }
 
-            setCurrentUser(profile);
-            localStorage.isLoggedIn = 'true';
-            localStorage.theme = profile.darkMode ? 'dark' : 'light';
-
-            return { type: 'success', data: profile };
+            return { type: 'success', data: fallbackUser };
         } catch (err) {
             console.error('[AUTH] login error', err);
             return { type: 'error', errorMessage: err.message };
@@ -163,11 +233,15 @@ function AuthProvider({ children }) {
             }
 
             await updateUserData(currentUser.uid, data);
-            const updatedProfile = await getCurrentUser(currentUser.uid);
-            console.log('[AUTH] updated profile', updatedProfile);
 
-            setCurrentUser(updatedProfile);
-            localStorage.theme = updatedProfile?.darkMode ? 'dark' : 'light';
+            setCurrentUser(prev => ({
+                ...prev,
+                email,
+                name: data.name,
+                darkMode: data.darkMode,
+            }));
+
+            localStorage.theme = data.darkMode ? 'dark' : 'light';
         } catch (err) {
             console.error('[AUTH] update user error', err);
             return err.message;
@@ -196,11 +270,7 @@ function AuthProvider({ children }) {
         updateUser,
     };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export default AuthProvider;
