@@ -1,31 +1,48 @@
-import { Form, redirect, useSearchParams } from "react-router-dom";
+import React from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import { formTransition } from "../../scripts/utils.js";
-
-export const action = (AuthContext) => async ({ request }) => {
-    const formData = await request.formData();
-
-    const { login } = AuthContext;
-    const email = formData.get("email");
-    const password = formData.get("password");
-
-    console.log('[LOGIN FORM] action start', { email });
-
-    const res = await login(email, password);
-
-    console.log('[LOGIN FORM] action result', res);
-
-    if (res?.type === "error") {
-        return redirect(`/?errorMessage=${encodeURIComponent(res.errorMessage)}`);
-    }
-
-    window.location.href = "/";
-    return null;
-};
+import { useAuth } from "../../contexts/AuthContext.jsx";
 
 export default function LoginForm() {
+    const { login } = useAuth();
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const errorMessage = searchParams.get("errorMessage");
+    const errorMessageFromUrl = searchParams.get("errorMessage");
+
+    const [errorMessage, setErrorMessage] = React.useState(errorMessageFromUrl || "");
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    async function handleSubmit(ev) {
+        ev.preventDefault();
+
+        const formData = new FormData(ev.currentTarget);
+        const email = formData.get("email");
+        const password = formData.get("password");
+
+        console.log("[LOGIN FORM] submit start", { email });
+
+        try {
+            setIsSubmitting(true);
+            setErrorMessage("");
+
+            const res = await login(email, password);
+
+            console.log("[LOGIN FORM] submit result", res);
+
+            if (res?.type === "error") {
+                setErrorMessage(res.errorMessage || "Unable to login.");
+                return;
+            }
+
+            window.location.href = "/";
+        } catch (err) {
+            console.error("[LOGIN FORM] submit error", err);
+            setErrorMessage(err.message || "Unexpected login error.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
     return (
         <Blur type="login-form">
@@ -51,7 +68,7 @@ export default function LoginForm() {
                     </h3>
                 )}
 
-                <Form method="POST" action="/login" className="relative">
+                <form onSubmit={handleSubmit} className="relative">
                     <input type="text" defaultValue="login-form" name="form-id" id="form-id" className="hidden" />
 
                     <input
@@ -82,11 +99,12 @@ export default function LoginForm() {
 
                     <button
                         type="submit"
-                        className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold"
+                        disabled={isSubmitting}
+                        className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold disabled:opacity-60"
                     >
-                        Let me in
+                        {isSubmitting ? "Logging in..." : "Let me in"}
                     </button>
-                </Form>
+                </form>
             </div>
         </Blur>
     );
