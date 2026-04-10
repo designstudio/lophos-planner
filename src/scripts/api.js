@@ -21,11 +21,15 @@ export function tryCatchDecorator(func) {
 // Tasks CRUD
 
 export async function createTask(data) {
+    console.log('[TASK] createTask payload', data);
+
     const { data: task, error } = await supabase
         .from('tasks')
         .insert(data)
         .select()
         .single();
+
+    console.log('[TASK] createTask response', { task, error });
 
     if (error) throw error;
     return { ...task, date: new Date(task.date) };
