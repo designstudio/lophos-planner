@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import Header from './components/Header';
 import TaskListContainer from './components/tasks/TaskListContainer';
 import LoginForm from "./components/forms/LoginForm";
 import SignUpForm from "./components/forms/SignUpForm";
@@ -9,9 +8,10 @@ import ResetPasswordForm from "./components/forms/ResetPasswordForm";
 import InvitePage from "./components/InvitePage";
 import TaskMenu from "./components/tasks/TaskMenu";
 import SearchTaskForm from "./components/forms/SearchTaskForm.jsx";
+import Header from "./components/Header";
 
 function HomePage() {
-    const { currentUser } = useAuth();
+    const { currentUser, isAuthReady } = useAuth();
 
     useEffect(() => {
         if (currentUser?.darkMode || localStorage.theme === 'dark') {
@@ -36,9 +36,22 @@ function HomePage() {
         }
     }, [currentUser]);
 
+    if (!isAuthReady) {
+        return (
+            <div className="min-w-screen min-h-screen bg-white dark:bg-black">
+                <main className="max-container">
+                    <LoginForm />
+                    <SignUpForm />
+                    <ResetPasswordForm />
+                </main>
+            </div>
+        );
+    }
+
     return (
         <div className="min-w-screen min-h-screen bg-white dark:bg-black">
             <main className="max-container">
+                <Header />
                 {currentUser ? (
                     <>
                         <TaskListContainer />
