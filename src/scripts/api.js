@@ -26,12 +26,12 @@ export async function createTask(data) {
         .insert(data)
         .select()
         .single();
+
     if (error) throw error;
     return { ...task, date: new Date(task.date) };
 }
 
 export async function getUserTasks(userId) {
-    // AJUSTE: Impede a chamada se o userId for inválido ou 'undefined' (string)
     if (!userId || userId === 'undefined') {
         return [];
     }
@@ -40,6 +40,7 @@ export async function getUserTasks(userId) {
         .from('tasks')
         .select('*')
         .eq('uid', userId);
+
     if (error) throw error;
     return data.map(task => ({ ...task, date: new Date(task.date) }));
 }
@@ -56,6 +57,7 @@ export async function updateTask(taskId, data) {
         .from('tasks')
         .update(data)
         .eq('id', taskId);
+
     if (error) throw error;
 }
 
@@ -65,6 +67,7 @@ export async function deleteTask(taskId) {
         .select('date, order')
         .eq('id', taskId)
         .single();
+
     if (fetchError) throw fetchError;
 
     const { data: subsequent, error: queryError } = await supabase
@@ -72,6 +75,7 @@ export async function deleteTask(taskId) {
         .select('id, order')
         .eq('date', taskData.date)
         .gt('order', taskData.order);
+
     if (queryError) throw queryError;
 
     await Promise.all(
@@ -98,12 +102,14 @@ export async function toggleDoneTask(taskId) {
         .select('done')
         .eq('id', taskId)
         .single();
+
     if (fetchError) throw fetchError;
 
     const { error } = await supabase
         .from('tasks')
         .update({ done: !data.done })
         .eq('id', taskId);
+
     if (error) throw error;
 }
 
@@ -112,6 +118,7 @@ export async function clearUsersTasks(userId) {
         .from('tasks')
         .delete()
         .eq('uid', userId);
+
     if (error) throw error;
 }
 
@@ -124,17 +131,21 @@ export async function createUser(id, data) {
         name: data.name,
         dark_mode: data.darkMode ?? false,
     });
+
     if (error) throw error;
 }
 
 export async function getCurrentUser(id) {
     if (!id) return null;
+
     const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', id)
-        .single();
-    if (error) return null;
+        .maybeSingle();
+
+    if (error || !data) return null;
+
     return {
         uid: data.id,
         email: data.email,
@@ -148,5 +159,6 @@ export async function updateUserData(id, data) {
         .from('users')
         .update({ name: data.name, dark_mode: data.darkMode })
         .eq('id', id);
+
     if (error) throw error;
 }
