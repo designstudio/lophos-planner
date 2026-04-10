@@ -1,7 +1,6 @@
-import {Form, redirect, useActionData, useLoaderData, useSearchParams} from "react-router-dom";
+import {Form, redirect, useSearchParams} from "react-router-dom";
 import Blur from "../Blur.jsx";
 import {formTransition} from "../../scripts/utils.js";
-import {useAuth} from "../../contexts/AuthContext.jsx";
 
 export const action = (AuthContext) => async ({ request }) => {
 
@@ -12,10 +11,12 @@ export const action = (AuthContext) => async ({ request }) => {
         email = formData.get("email"),
         passwordConfirm = formData.get("confirmPassword"),
         password = formData.get("password");
+    if (password && password.length < 6) {
+        return redirect("/?errorMessage=Password must be at least 6 characters");
+    }
     if (passwordConfirm !== password) {
         return redirect("/?errorMessage=Passwords don't match");
     }
-    console.log(email, password, request.url);
     await signup({email, password, name})
     return redirect("/");
 }
@@ -24,8 +25,6 @@ export default function SignUpForm() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const errorMessage = searchParams.get("errorMessage");
-
-    const { googleSignUp } = useAuth();
 
     return (
         <Blur type="signup-form">
@@ -56,12 +55,6 @@ export default function SignUpForm() {
                     <button
                         className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full  font-bold "
                     >Create account</button>
-                    <button
-                        className="w-full my-2 py-1 border border-black  rounded-full bg-white"
-                        onClick={async ev => {
-                            ev.preventDefault();
-                            await googleSignUp();
-                        }}><i className="fa-brands fa-google"></i> Sign in with Google</button>
                 </Form>
 
             </div>

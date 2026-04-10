@@ -1,148 +1,147 @@
-import {db} from "./firebase.js";
-import {
-    collection,
-    addDoc,
-    doc,
-    getDoc,
-    getDocs,
-    deleteDoc,
-    updateDoc,
-    query,
-    where,
-    setDoc,
-    increment,
-
-} from "firebase/firestore";
-import levenshtein from "js-levenshtein";
-
-const taskColRef = collection(db, "tasks");
-const userColRef = collection(db, "users");
+import { supabase } from './supabase.js';
+import levenshtein from 'js-levenshtein';
 
 const MAX_LEVENSHTEIN_DISTANCE = 3;
 
 export function sleep(time) {
-    return new Promise(resolve => {
-        setTimeout(resolve, time);
-    });
+    return new Promise(resolve => setTimeout(resolve, time));
 }
 
 export function tryCatchDecorator(func) {
-
     return async function () {
         try {
             const data = await func.call(this, ...arguments);
-            return {
-                success: true,
-                data,
-            }
+            return { success: true, data };
         } catch (err) {
-            console.log(err.message);
-            return {
-                success: false,
-                message: err.message,
-            }
+            return { success: false, message: err.message };
         }
-    }
+    };
 }
 
 // Tasks CRUD
 
 export async function createTask(data) {
-    const docRef = await addDoc(taskColRef, data);
-    const newTask = await getDoc(docRef);
-    console.log(`creating task ${data.name} ${data.order}`)
-    return {
-        ...newTask.data(),
-        id: newTask.id,
-    };
+    const { data: task, error } = await supabase
+        .from('tasks')
+        .insert(data)
+        .select()
+        .single();
+    if (error) throw error;
+    return { ...task, date: new Date(task.date) };
 }
 
 export async function getUserTasks(userId) {
-    console.log(userId);
-    // await sleep(1000);
-    const q = query(taskColRef,
-        where("uid", "==", userId || "null"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        date: new Date(doc.data().date),
-    }))
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('uid', userId);
+    if (error) throw error;
+    return data.map(task => ({ ...task, date: new Date(task.date) }));
 }
 
 export async function getSearchedTasks(userId, query) {
     const tasks = await getUserTasks(userId);
-    return tasks.filter(task => levenshtein(task.name, query) <= MAX_LEVENSHTEIN_DISTANCE).slice(0, 10);
+    return tasks
+        .filter(task => levenshtein(task.name, query) <= MAX_LEVENSHTEIN_DISTANCE)
+        .slice(0, 10);
 }
 
 export async function updateTask(taskId, data) {
-    console.log(`updating task ${taskId}`);
-    console.log(data);
-    const taskRef = doc(db, "tasks", taskId);
-    await updateDoc(taskRef, data);
+    const { error } = await supabase
+        .from('tasks')
+        .update(data)
+        .eq('id', taskId);
+    if (error) throw error;
 }
 
 export async function deleteTask(taskId) {
+    const { data: taskData, error: fetchError } = await supabase
+        .from('tasks')
+        .select('date, order')
+        .eq('id', taskId)
+        .single();
+    if (fetchError) throw fetchError;
 
-    const taskRef = doc(db, "tasks", taskId);
-    const taskData = (await getDoc(taskRef)).data();
-    console.log("in delete", taskData);
-    const q = query(taskColRef, where("date", "==", taskData.date),
-        where("order", ">", taskData.order));
-    (await getDocs(q)).docs.map(async doc => {
-        await updateDoc(doc.ref, {
-            order: increment(-1),
-        })
-    });
-    console.log("in delete 2", taskData);
-    await deleteDoc(taskRef);
+    const { data: subsequent, error: queryError } = await supabase
+        .from('tasks')
+        .select('id, order')
+        .eq('date', taskData.date)
+        .gt('order', taskData.order);
+    if (queryError) throw queryError;
+
+    await Promise.all(
+        subsequent.map(task =>
+            supabase.from('tasks').update({ order: task.order - 1 }).eq('id', task.id)
+        )
+    );
+
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    if (error) throw error;
 }
 
 export async function reOrderTasks(reOrdered) {
-
-    reOrdered.map(async (task, index) => {
-        console.log(task.id, task.name, index);
-        await updateDoc(doc(db, "tasks", task.id), {
-            order: index,
-        });
-    })
+    await Promise.all(
+        reOrdered.map((task, index) =>
+            supabase.from('tasks').update({ order: index }).eq('id', task.id)
+        )
+    );
 }
 
 export async function toggleDoneTask(taskId) {
-    const taskRef = doc(db, "tasks", taskId);
-    const taskDone = (await getDoc(taskRef)).data().done;
-    await updateDoc(taskRef, {
-        done: !taskDone,
-    });
+    const { data, error: fetchError } = await supabase
+        .from('tasks')
+        .select('done')
+        .eq('id', taskId)
+        .single();
+    if (fetchError) throw fetchError;
+
+    const { error } = await supabase
+        .from('tasks')
+        .update({ done: !data.done })
+        .eq('id', taskId);
+    if (error) throw error;
 }
 
 export async function clearUsersTasks(userId) {
-    const tasks = await getUserTasks(userId);
-    console.log(`deleting ${tasks.length}`)
-    tasks.map(async ({ id }) => {
-        await deleteDoc(doc(db, "tasks", id));
-    })
+    const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('uid', userId);
+    if (error) throw error;
 }
 
 // Users CRUD
 
 export async function createUser(id, data) {
-    console.log('in create user', id, data);
-    await setDoc(doc(db, 'users', id), data);
+    const { error } = await supabase.from('users').insert({
+        id,
+        email: data.email,
+        name: data.name,
+        dark_mode: data.darkMode ?? false,
+    });
+    if (error) throw error;
 }
 
 export async function getCurrentUser(id) {
     if (!id) return null;
-    const userRef = doc(db, 'users', id);
-    const userSnapshot = await getDoc(userRef);
+    const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', id)
+        .single();
+    if (error) return null;
     return {
-        uid: userSnapshot.id,
-        ...userSnapshot.data(),
-    }
+        uid: data.id,
+        email: data.email,
+        name: data.name,
+        darkMode: data.dark_mode,
+    };
 }
 
 export async function updateUserData(id, data) {
-    const userRef = doc(db, 'users', id);
-    await updateDoc(userRef, data);
+    const { error } = await supabase
+        .from('users')
+        .update({ name: data.name, dark_mode: data.darkMode })
+        .eq('id', id);
+    if (error) throw error;
 }
-

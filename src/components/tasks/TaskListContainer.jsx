@@ -1,8 +1,7 @@
 import React, {useEffect, useState, Suspense} from 'react'
 import TaskList from './TaskList.jsx'
 import {useLoaderData, useSearchParams, defer, Await} from "react-router-dom";
-import { onSnapshot, collection, query, where, orderBy } from "firebase/firestore";
-import { db } from "../../scripts/firebase.js";
+import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import {reOrderTasks, getUserTasks, tryCatchDecorator} from "../../scripts/api.js";
 import Loading from "../Loading.jsx";
@@ -12,7 +11,6 @@ import Header from "../Header.jsx";
 
 export const loader = AuthContext => async () => {
     const { currentUser } = AuthContext;
-    console.log(currentUser, currentUser?.uid);
 
     return defer({ tasksPromise: tryCatchDecorator(getUserTasks)(currentUser?.uid) });
 }
@@ -36,7 +34,6 @@ const TaskListContainer = () => {
 
     function reorderTasks(listInd) {
         return async ev => {
-            console.log(ev);
             const oldIndex = ev.oldIndex, newIndex = ev.newIndex;
 
             const curListTasks = [...tasksData[formDate(dates[listInd])]];
@@ -44,8 +41,6 @@ const TaskListContainer = () => {
             curListTasks.splice(curListTasks.indexOf(curListTasks[oldIndex]), 1);
             curListTasks.splice(newIndex, 0, temp);
 
-
-            console.log(tasksData[formDate(dates[listInd])], curListTasks);
             await reOrderTasks(curListTasks);
         }
     }
@@ -53,30 +48,45 @@ const TaskListContainer = () => {
     const { currentUser } = useAuth();
 
     useEffect(() => {
+        if (!currentUser?.uid) return;
 
-        const taskColRef = collection(db, "tasks");
-        const q = query(taskColRef,
-            where("uid", "==", currentUser?.uid || "null"), orderBy("order"));
-        return onSnapshot(q, snapshot => {
-            setTasks(snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id,
-                date: new Date(doc.data().date),
-            })))
-        })
+        const fetchTasks = async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('uid', currentUser.uid)
+                .order('order');
+            if (!error) {
+                setTasks((data || []).map(task => ({ ...task, date: new Date(task.date) })));
+            }
+        };
+
+        fetchTasks();
+
+        const channel = supabase
+            .channel(`tasks:${currentUser.uid}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tasks',
+                filter: `uid=eq.${currentUser.uid}`,
+            }, fetchTasks)
+            .subscribe();
+
+        return () => supabase.removeChannel(channel);
     }, [currentUser]);
 
     useEffect(() => {
-        setInterval(() => {
+        const intervalId = setInterval(() => {
             const openedBlur = document.querySelector(".blur-bg.active");
             document.body.style.overflowY = openedBlur ? "hidden" : "auto";
         }, 50);
+        return () => clearInterval(intervalId);
     }, []);
 
     useEffect(() => {
         if (searchParams.has("weekShift")) {
             const shift = +searchParams.get("weekShift") * 7;
-            console.log(shift);
             setCurDate((prevCurDate) => {
                 const newDate = new Date();
                 newDate.setDate(newDate.getDate() + shift);
@@ -96,7 +106,6 @@ const TaskListContainer = () => {
         tasksData[formDate(newDate)] = tasks.filter(task => formDate(task.date) === formDate(newDate));
         changeMaxTasks(tasksData[formDate(newDate)].length + 1);
     }
-    // console.log(tasksData);
 
     function renderTasks(data) {
         const { success, data: tasksData } = data;

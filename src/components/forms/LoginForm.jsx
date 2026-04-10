@@ -1,7 +1,6 @@
 import {Form, redirect, useSearchParams} from "react-router-dom";
 import Blur from "../Blur.jsx";
 import {formTransition} from "../../scripts/utils.js";
-import {useAuth} from "../../contexts/AuthContext.jsx";
 
 export const action = (AuthContext) => async ({ request }) => {
 
@@ -10,7 +9,6 @@ export const action = (AuthContext) => async ({ request }) => {
     const { login } = AuthContext;
     const email = formData.get("email"),
         password = formData.get("password");
-    console.log(email, password, request.url);
     const res = await login(email, password);
     if (res?.type !== "error") {
         localStorage.theme = res.darkMode ? "dark" : "light";
@@ -30,10 +28,6 @@ export default function LoginForm() {
     const [searchParams, setSearchParams] = useSearchParams();
     const errorMessage = searchParams.get("errorMessage");
 
-    const { currentUser, googleSignIn, } = useAuth();
-    if (currentUser) {
-        closeLoginForm();
-    }
     return (
         <Blur type="login-form">
             <div className="login-form relative top-10 bg-[#f8e8e2] rounded-xl p-4 lg:p-8 w-[28rem]
@@ -66,14 +60,6 @@ export default function LoginForm() {
                     <button
                         className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full  font-bold "
                     >Let me in
-                    </button>
-                    <button
-                        className="w-full my-2 py-1 border border-black rounded-full bg-white"
-                        onClick={async ev => {
-                            ev.preventDefault();
-                            await googleSignIn();
-                        }}>
-                        <i className="fa-brands fa-google"></i> Log in with Google
                     </button>
                 </Form>
 

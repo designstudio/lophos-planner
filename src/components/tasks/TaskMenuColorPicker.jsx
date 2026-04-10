@@ -1,13 +1,15 @@
 import TaskMenuBtn from "./TaskMenuBtn.jsx";
 
+export const ALLOWED_COLORS = new Set([
+    "white text-black dark:text-white dark:bg-black",
+    "amber-500 text-black",
+    "green-500 text-white",
+    "red-500 text-white",
+]);
+
 export function TaskMenuColorPicker({ setColor }) {
 
-    const colors = [
-        "white text-black dark:text-white dark:bg-black",
-        "amber-500 text-black",
-        "green-500 text-white",
-        "red-500 text-white",
-    ]
+    const colors = [...ALLOWED_COLORS];
 
     return (
         <div className="task-menu-color-picker bg-[#DDE1FB] border border-black rounded-md w-20 py-4 z-20 -translate-x-[50%] text-center"

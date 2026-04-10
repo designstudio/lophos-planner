@@ -6,6 +6,7 @@ import {Form} from "react-router-dom";
 import {tryCatchDecorator, deleteTask} from "../../scripts/api.js";
 import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
 import EasyMDE from "easymde";
+import "easymde/dist/easymde.min.css";
 
 const TaskMenu = () => {
 
@@ -41,9 +42,6 @@ const TaskMenu = () => {
 
     async function delTask(ev) {
         const data = await tryCatchDecorator(deleteTask)(taskId);
-        if (data.success === false) {
-            console.log(`in delete error: ${data.message}`);
-        }
         const bgBlur = document.querySelector(".blur-bg.active");
         bgBlur.classList.remove("active");
     }
@@ -95,11 +93,9 @@ const TaskMenu = () => {
         });
         easyMDE.codemirror.on("change", () => {
             document.getElementById("task-description").value = easyMDE.value();
-            console.log(document.getElementById("task-description").value);
         })
         const secondEasyMDE = document.querySelector(".EasyMDEContainer:nth-of-type(2)");
         if (secondEasyMDE) secondEasyMDE.classList.add("hidden");
-        console.log(description);
         if (description) easyMDE.value(description);
     }, [taskData]);
 

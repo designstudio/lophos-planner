@@ -104,7 +104,6 @@ const Header = () => {
             window.removeEventListener("resize", handleResize)
         }
     }, [])
-    console.log(newDate);
     let monthName = months[newDate.getMonth()];
     if (isSmall) monthName = monthName.slice(0, 4) + '.';
     return (
