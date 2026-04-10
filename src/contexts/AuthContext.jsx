@@ -9,7 +9,6 @@ export function useAuth() {
 }
 
 function AuthProvider({ children }) {
-
     const [currentUser, setCurrentUser] = React.useState(null);
 
     React.useEffect(() => {
@@ -23,6 +22,7 @@ function AuthProvider({ children }) {
                 localStorage.isLoggedIn = 'false';
             }
         });
+
         return () => subscription.unsubscribe();
     }, []);
 
@@ -30,10 +30,26 @@ function AuthProvider({ children }) {
         try {
             const { data, error } = await supabase.auth.signUp({ email, password });
             if (error) throw error;
+
+            if (!data?.user?.id) {
+                return { type: 'error', errorMessage: 'User was created without a valid id.' };
+            }
+
+            await createUser(data.user.id, { email, name });
+
+            const profile = await getCurrentUser(data.user.id);
+            setCurrentUser(profile);
             localStorage.isLoggedIn = 'true';
-            return await createUser(data.user.id, { email, name });
+
+            return { type: 'success', data: profile };
         } catch (err) {
-            return { type: 'error', errorMessage: err.message };
+            let message = err.message;
+
+            if (message === 'email rate limit exceeded') {
+                message = 'Too many attempts in a short time. Please wait a few minutes and try again.';
+            }
+
+            return { type: 'error', errorMessage: message };
         }
     }
 
@@ -60,10 +76,12 @@ function AuthProvider({ children }) {
             const updates = {};
             if (email !== currentUser.email) updates.email = email;
             if (password) updates.password = password;
+
             if (Object.keys(updates).length > 0) {
                 const { error } = await supabase.auth.updateUser(updates);
                 if (error) throw error;
             }
+
             await updateUserData(currentUser.uid, data);
             setCurrentUser(await getCurrentUser(currentUser.uid));
         } catch (err) {
