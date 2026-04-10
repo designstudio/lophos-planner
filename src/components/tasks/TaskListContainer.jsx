@@ -12,7 +12,6 @@ import Header from "../Header.jsx";
 
 export const loader = AuthContext => async () => {
     const { currentUser } = AuthContext;
-    console.log(currentUser, currentUser?.uid);
 
     return defer({ tasksPromise: tryCatchDecorator(getUserTasks)(currentUser?.uid) });
 }
@@ -36,7 +35,6 @@ const TaskListContainer = () => {
 
     function reorderTasks(listInd) {
         return async ev => {
-            console.log(ev);
             const oldIndex = ev.oldIndex, newIndex = ev.newIndex;
 
             const curListTasks = [...tasksData[formDate(dates[listInd])]];
@@ -45,7 +43,6 @@ const TaskListContainer = () => {
             curListTasks.splice(newIndex, 0, temp);
 
 
-            console.log(tasksData[formDate(dates[listInd])], curListTasks);
             await reOrderTasks(curListTasks);
         }
     }
@@ -67,16 +64,16 @@ const TaskListContainer = () => {
     }, [currentUser]);
 
     useEffect(() => {
-        setInterval(() => {
+        const intervalId = setInterval(() => {
             const openedBlur = document.querySelector(".blur-bg.active");
             document.body.style.overflowY = openedBlur ? "hidden" : "auto";
         }, 50);
+        return () => clearInterval(intervalId);
     }, []);
 
     useEffect(() => {
         if (searchParams.has("weekShift")) {
             const shift = +searchParams.get("weekShift") * 7;
-            console.log(shift);
             setCurDate((prevCurDate) => {
                 const newDate = new Date();
                 newDate.setDate(newDate.getDate() + shift);
