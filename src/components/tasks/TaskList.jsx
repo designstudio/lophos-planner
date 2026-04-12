@@ -5,9 +5,9 @@ import {createTask, tryCatchDecorator} from "../../scripts/api.js";
 import {ReactSortable} from "react-sortablejs";
 import {Form} from "react-router-dom";
 import {formDate, toInputDateValue} from "../../scripts/utils.js";
-import { formatDayMonth, getAppLanguage, getLocale } from "../../scripts/i18n.js";
+import { formatDayMonth, getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 
-const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn}) => {
+const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn, holidayName = ""}) => {
 
     const {currentUser} = useAuth();
     const language = getAppLanguage(currentUser?.language);
@@ -118,7 +118,8 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                                    tasksCol={tasksData.length}
                                    ind={i}/>);
     }
-    for (let i = 0; i < Math.max(0, (last ? (maxTasks / 2) - 1 : maxTasks) - 1 - tasksData.length); ++i) {
+    const fixedRows = 1 + (holidayName ? 1 : 0);
+    for (let i = 0; i < Math.max(0, (last ? (maxTasks / 2) - 1 : maxTasks) - fixedRows - tasksData.length); ++i) {
         emptyComponents.push(
             <div className="empty-task task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black"
                  key={i}
@@ -153,6 +154,14 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                     {day}
                 </h3>
             </div>
+
+            {holidayName && (
+                <div className="task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black">
+                    <p className="task-holiday-item">
+                        <span className="task-holiday-badge">{t(language, "holidayLabel")} - {holidayName}</span>
+                    </p>
+                </div>
+            )}
 
             <ReactSortable list={tasksData} setList={nextList => updateColumnTasks(ind, nextList)}
                            group={{ name: "tasks", pull: true, put: true }}

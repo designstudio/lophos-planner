@@ -10,6 +10,7 @@ import TurndownService from "turndown";
 import { marked } from "marked";
 import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { parseDateOnly, toShortId } from "../../scripts/utils.js";
+import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
 const turndownService = new TurndownService({
     bulletListMarker: "-",
@@ -179,6 +180,7 @@ const TaskMenu = () => {
     const [mentionQuery, setMentionQuery] = React.useState("");
     const [mentionPosition, setMentionPosition] = React.useState({ top: 0, left: 0 });
     const [selectedMentionIndex, setSelectedMentionIndex] = React.useState(0);
+    const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const openedTaskId = searchParams.get("openedTask");
 
     useLayoutEffect(() => {
@@ -275,6 +277,34 @@ const TaskMenu = () => {
             document.removeEventListener("pointerdown", handlePointerDownOutside);
         };
     }, [isDatePickerOpen]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const month = calendarMonth.getMonth();
+        const year = calendarMonth.getFullYear();
+        const years = [year];
+        if (month === 0) years.push(year - 1);
+        if (month === 11) years.push(year + 1);
+
+        async function loadHolidays() {
+            const countryCode = getCountryCodeForLanguage(language);
+            const holidays = await getHolidaysByYears({ years, countryCode });
+            if (isCancelled) return;
+
+            const nextMap = {};
+            holidays.forEach(holiday => {
+                if (!holiday?.date) return;
+                nextMap[holiday.date] = holiday.localName || holiday.name || "";
+            });
+            setHolidayNamesByDate(nextMap);
+        }
+
+        loadHolidays();
+        return () => {
+            isCancelled = true;
+        };
+    }, [calendarMonth, language]);
 
     useEffect(() => {
         isToolbarStickyRef.current = isToolbarSticky;
@@ -754,9 +784,10 @@ const TaskMenu = () => {
                 key: toInputDate(cellDate),
                 inCurrentMonth: cellDate.getMonth() === calendarMonth.getMonth(),
                 isSelected: selectedDate ? isSameDay(cellDate, selectedDate) : false,
+                holidayName: holidayNamesByDate[toInputDate(cellDate)] || "",
             };
         });
-    }, [calendarMonth, selectedDate, weekStartIndex]);
+    }, [calendarMonth, holidayNamesByDate, selectedDate, weekStartIndex]);
 
     function changeCalendarMonth(delta) {
         setCalendarMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() + delta, 1));
@@ -836,8 +867,12 @@ const TaskMenu = () => {
                                                 "task-menu-calendar-day",
                                                 dayItem.inCurrentMonth ? "" : "is-outside-month",
                                                 dayItem.isSelected ? "is-selected" : "",
+                                                dayItem.holidayName ? "has-holiday" : "",
                                             ].filter(Boolean).join(" ")}
                                             onClick={() => handleDateSelect(dayItem.date)}
+                                            aria-label={dayItem.holidayName
+                                                ? `${dayItem.date.getDate()} - ${dayItem.holidayName}`
+                                                : `${dayItem.date.getDate()}`}
                                         >
                                             {dayItem.date.getDate()}
                                         </button>
@@ -1016,37 +1051,44 @@ const TaskMenu = () => {
                                             target="_blank"
                                             rel="noreferrer"
                                             className="group/link-row flex items-center justify-between gap-2"
-                                            title={normalizeLinkUrl(link.url)}
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium text-black">{link.name || t(language, "untitledLink")}</p>
                                                 <p className="truncate text-xs text-[#4b5688]">{link.url}</p>
                                             </div>
                                             <div className="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/link-row:opacity-100">
-                                                <button
-                                                    type="button"
-                                                    onClick={ev => {
-                                                        ev.preventDefault();
-                                                        startEditingRelatedLink(index);
-                                                    }}
-                                                    className="text-black transition-colors hover:text-blue-600"
-                                                    aria-label={t(language, "editLink")}
-                                                    title={t(language, "editLink")}
-                                                >
-                                                    <Edit02 className="h-[14px] w-[14px]" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={ev => {
-                                                        ev.preventDefault();
-                                                        removeRelatedLink(index);
-                                                    }}
-                                                    className="text-black transition-colors hover:text-blue-600"
-                                                    aria-label={t(language, "removeLink")}
-                                                    title={t(language, "removeLink")}
-                                                >
-                                                    <X className="h-[14px] w-[14px]" />
-                                                </button>
+                                                <div className="relative group/edit-link">
+                                                    <button
+                                                        type="button"
+                                                        onClick={ev => {
+                                                            ev.preventDefault();
+                                                            startEditingRelatedLink(index);
+                                                        }}
+                                                        className="text-black transition-colors hover:text-blue-600"
+                                                        aria-label={t(language, "editLink")}
+                                                    >
+                                                        <Edit02 className="h-[14px] w-[14px]" />
+                                                    </button>
+                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/edit-link:opacity-100">
+                                                        {t(language, "editLink")}
+                                                    </p>
+                                                </div>
+                                                <div className="relative group/remove-link">
+                                                    <button
+                                                        type="button"
+                                                        onClick={ev => {
+                                                            ev.preventDefault();
+                                                            removeRelatedLink(index);
+                                                        }}
+                                                        className="text-black transition-colors hover:text-blue-600"
+                                                        aria-label={t(language, "removeLink")}
+                                                    >
+                                                        <X className="h-[14px] w-[14px]" />
+                                                    </button>
+                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/remove-link:opacity-100">
+                                                        {t(language, "removeLink")}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </a>
                                     </li>

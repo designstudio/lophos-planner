@@ -86,7 +86,6 @@ function HomePage() {
                         <ShareSettingsForm />
                         <ResetPasswordForm />
                         <TaskMenu />
-                        <InvitePage />
                     </>
                 ) : (
                     <>
@@ -95,6 +94,7 @@ function HomePage() {
                         <ResetPasswordForm />
                     </>
                 )}
+                <InvitePage />
             </main>
         </div>
     );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { supabase } from '../scripts/supabase.js';
+import { detectBrowserLanguage } from '../scripts/i18n.js';
 import {
     createUser,
     getCurrentUser,
@@ -9,6 +10,7 @@ import {
     createAgenda as createAgendaApi,
     updateAgendaName as updateAgendaNameApi,
     setUserCurrentAgenda,
+    setUserDefaultAgenda,
     deleteAgenda as deleteAgendaApi,
 } from '../scripts/api.js';
 
@@ -22,8 +24,30 @@ function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
     const [agendas, setAgendas] = React.useState([]);
     const [isAuthReady, setIsAuthReady] = React.useState(false);
+    const [appLanguage, setAppLanguage] = React.useState(() => (
+        (typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()
+    ));
     const loadedProfileIdRef = React.useRef(null);
     const signOutTimerRef = React.useRef(null);
+
+    function getStoredDefaultAgendaId(userId) {
+        if (!userId || typeof localStorage === 'undefined') return null;
+        return localStorage.getItem(`defaultAgendaId:${userId}`);
+    }
+
+    function setStoredDefaultAgendaId(userId, agendaId) {
+        if (!userId || typeof localStorage === 'undefined') return;
+        if (!agendaId) {
+            localStorage.removeItem(`defaultAgendaId:${userId}`);
+            return;
+        }
+        localStorage.setItem(`defaultAgendaId:${userId}`, String(agendaId));
+    }
+
+    function clearStoredDefaultAgendaId(userId) {
+        if (!userId || typeof localStorage === 'undefined') return;
+        localStorage.removeItem(`defaultAgendaId:${userId}`);
+    }
 
     function buildFallbackUser(sessionUser, profile = null) {
         if (!sessionUser) return null;
@@ -37,10 +61,55 @@ function AuthProvider({ children }) {
                 sessionUser.email?.split('@')[0] ??
                 'User',
             darkMode: profile?.darkMode ?? false,
-            language: profile?.language ?? 'ptBR',
+            language: profile?.language ?? ((typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()),
             dateFormat: profile?.dateFormat ?? 'DD-MM',
             weekStartsOn: profile?.weekStartsOn ?? 'Monday',
             currentAgendaId: profile?.currentAgendaId ?? null,
+            defaultAgendaId: profile?.defaultAgendaId ?? null,
+        };
+    }
+
+    async function ensureSessionUserSetup(sessionUser, fallbackProfile = null) {
+        if (!sessionUser?.id) {
+            return {
+                user: null,
+                agendas: [],
+            };
+        }
+
+        let profile = fallbackProfile ?? await getCurrentUser(sessionUser.id);
+
+        if (!profile) {
+            try {
+                await createUser(sessionUser.id, {
+                    email: sessionUser.email ?? '',
+                    name:
+                        sessionUser.user_metadata?.name ??
+                        sessionUser.user_metadata?.full_name ??
+                        sessionUser.email?.split('@')[0] ??
+                        'User',
+                });
+            } catch (err) {
+                console.error('[AUTH] ensureSessionUserSetup createUser error', err);
+            }
+
+            profile = await getCurrentUser(sessionUser.id);
+        }
+
+        const fallbackUser = buildFallbackUser(sessionUser, profile);
+        const preferredAgendaId =
+            profile?.defaultAgendaId ??
+            getStoredDefaultAgendaId(sessionUser.id) ??
+            profile?.currentAgendaId ??
+            fallbackUser.currentAgendaId;
+
+        const ensured = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
+        fallbackUser.currentAgendaId = ensured.currentAgendaId;
+        fallbackUser.defaultAgendaId = preferredAgendaId || ensured.currentAgendaId;
+
+        return {
+            user: fallbackUser,
+            agendas: ensured.agendas,
         };
     }
 
@@ -60,20 +129,19 @@ function AuthProvider({ children }) {
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
                 localStorage.language = fallbackUser.language;
+                setAppLanguage(fallbackUser.language);
 
                 // Tenta enriquecer com o perfil público sem bloquear a UI
                 try {
-                    const profile = await getCurrentUser(sessionUser.id);
+                    const { user, agendas: nextAgendas } = await ensureSessionUserSetup(sessionUser);
 
                     if (!mounted) return;
-                    if (profile) {
-                        const ensured = await ensureDefaultAgenda(sessionUser.id, profile.currentAgendaId);
-                        const mergedUser = buildFallbackUser(sessionUser, profile);
-                        mergedUser.currentAgendaId = ensured.currentAgendaId;
-                        setCurrentUser(mergedUser);
-                        setAgendas(ensured.agendas);
-                        localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
-                        localStorage.language = mergedUser.language;
+                    if (user) {
+                        setCurrentUser(user);
+                        setAgendas(nextAgendas);
+                        localStorage.theme = user.darkMode ? 'dark' : 'light';
+                        localStorage.language = user.language;
+                        setAppLanguage(user.language);
                     }
                 } catch (err) {
                     console.error('[AUTH] bootstrap profile error', err);
@@ -115,6 +183,7 @@ function AuthProvider({ children }) {
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
                 localStorage.language = fallbackUser.language;
+                setAppLanguage(fallbackUser.language);
                 setIsAuthReady(true);
                 // Fetch de perfil não feito aqui — bootstrapAuth e login() já cuidam disso
             } else {
@@ -170,18 +239,22 @@ function AuthProvider({ children }) {
                 dateFormat: 'DD-MM',
                 weekStartsOn: 'Monday',
                 currentAgendaId: null,
+                defaultAgendaId: null,
             });
 
             const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
             fallbackUser.currentAgendaId = ensured.currentAgendaId;
+            fallbackUser.defaultAgendaId = ensured.currentAgendaId;
+            setStoredDefaultAgendaId(sessionUser.id, ensured.currentAgendaId);
 
-            setCurrentUser(fallbackUser);
-            setAgendas(ensured.agendas);
-            localStorage.isLoggedIn = 'true';
-            localStorage.theme = 'light';
-            localStorage.language = fallbackUser.language;
+                setCurrentUser(fallbackUser);
+                setAgendas(ensured.agendas);
+                localStorage.isLoggedIn = 'true';
+                localStorage.theme = 'light';
+                localStorage.language = fallbackUser.language;
+                setAppLanguage(fallbackUser.language);
 
-            return { type: 'success', data: fallbackUser };
+                return { type: 'success', data: fallbackUser };
         } catch (err) {
             console.error('[AUTH] signup error', err);
 
@@ -215,25 +288,35 @@ function AuthProvider({ children }) {
 
             const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
             fallbackUser.currentAgendaId = ensured.currentAgendaId;
+            fallbackUser.defaultAgendaId = ensured.currentAgendaId;
 
             setCurrentUser(fallbackUser);
             setAgendas(ensured.agendas);
             localStorage.isLoggedIn = 'true';
             localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
             localStorage.language = fallbackUser.language;
+            setAppLanguage(fallbackUser.language);
 
             // Tenta enriquecer, mas não trava o login
             try {
                 const profile = await getCurrentUser(sessionUser.id);
 
                 if (profile) {
-                    const ensuredFromProfile = await ensureDefaultAgenda(sessionUser.id, profile.currentAgendaId);
+                    const preferredAgendaId =
+                        profile.defaultAgendaId ??
+                        getStoredDefaultAgendaId(sessionUser.id) ??
+                        profile.currentAgendaId;
+
+                    const ensuredFromProfile = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
                     const mergedUser = buildFallbackUser(sessionUser, profile);
                     mergedUser.currentAgendaId = ensuredFromProfile.currentAgendaId;
+                    mergedUser.defaultAgendaId = preferredAgendaId || ensuredFromProfile.currentAgendaId;
+                    setStoredDefaultAgendaId(sessionUser.id, mergedUser.defaultAgendaId);
                     setCurrentUser(mergedUser);
                     setAgendas(ensuredFromProfile.agendas);
                     localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
                     localStorage.language = mergedUser.language;
+                    setAppLanguage(mergedUser.language);
                     return { type: 'success', data: mergedUser };
                 }
             } catch (err) {
@@ -247,13 +330,78 @@ function AuthProvider({ children }) {
         }
     }
 
+    async function loginWithGoogle() {
+        try {
+            const redirectTo = `${window.location.origin}/`;
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo,
+                },
+            });
+
+            if (error) throw error;
+            return { type: 'success' };
+        } catch (err) {
+            console.error('[AUTH] loginWithGoogle error', err);
+            return { type: 'error', errorMessage: err.message || 'Unable to sign in with Google.' };
+        }
+    }
+
+    async function loginWithApple() {
+        try {
+            const redirectTo = `${window.location.origin}/`;
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'apple',
+                options: {
+                    redirectTo,
+                },
+            });
+
+            if (error) throw error;
+            return { type: 'success' };
+        } catch (err) {
+            console.error('[AUTH] loginWithApple error', err);
+            return { type: 'error', errorMessage: err.message || 'Unable to sign in with Apple.' };
+        }
+    }
+
     async function logout() {
         await supabase.auth.signOut();
         setCurrentUser(null);
         setAgendas([]);
+        clearStoredDefaultAgendaId(currentUser?.uid);
         localStorage.isLoggedIn = 'false';
         localStorage.theme = 'light';
+        const nextLanguage = localStorage.language || detectBrowserLanguage();
+        setAppLanguage(nextLanguage);
         return window.location.reload();
+    }
+
+    async function setLanguagePreference(nextLanguage) {
+        if (!nextLanguage) return;
+
+        localStorage.language = nextLanguage;
+        setAppLanguage(nextLanguage);
+
+        if (!currentUser?.uid) return;
+
+        try {
+            await updateUserData(currentUser.uid, {
+                name: currentUser.name,
+                darkMode: currentUser.darkMode,
+                language: nextLanguage,
+                dateFormat: currentUser.dateFormat,
+                weekStartsOn: currentUser.weekStartsOn,
+            });
+
+            setCurrentUser(prev => prev ? {
+                ...prev,
+                language: nextLanguage,
+            } : prev);
+        } catch (err) {
+            console.error('[AUTH] set language preference error', err);
+        }
     }
 
     async function updateUser(email, password, data) {
@@ -269,6 +417,13 @@ function AuthProvider({ children }) {
 
             await updateUserData(currentUser.uid, data);
 
+            if (typeof data.defaultAgendaId !== 'undefined') {
+                const result = await setUserDefaultAgenda(currentUser.uid, data.defaultAgendaId || null);
+                if (result?.persisted === false) {
+                    setStoredDefaultAgendaId(currentUser.uid, data.defaultAgendaId || null);
+                }
+            }
+
             setCurrentUser(prev => ({
                 ...prev,
                 email,
@@ -277,6 +432,7 @@ function AuthProvider({ children }) {
                 language: data.language,
                 dateFormat: data.dateFormat,
                 weekStartsOn: data.weekStartsOn,
+                ...(typeof data.defaultAgendaId !== 'undefined' ? { defaultAgendaId: data.defaultAgendaId || null } : {}),
             }));
 
             localStorage.theme = data.darkMode ? 'dark' : 'light';
@@ -306,6 +462,7 @@ function AuthProvider({ children }) {
 
             await deleteCurrentAccount(currentUser.uid);
             await supabase.auth.signOut();
+            clearStoredDefaultAgendaId(currentUser.uid);
 
             setCurrentUser(null);
             setAgendas([]);
@@ -333,7 +490,12 @@ function AuthProvider({ children }) {
             setCurrentUser(prev => ({
                 ...prev,
                 currentAgendaId: agenda.id,
+                defaultAgendaId: prev?.defaultAgendaId ?? agenda.id,
             }));
+            if (!currentUser?.defaultAgendaId) {
+                setStoredDefaultAgendaId(currentUser.uid, agenda.id);
+                await setUserDefaultAgenda(currentUser.uid, agenda.id);
+            }
             return { type: 'success', data: agenda };
         } catch (err) {
             return { type: 'error', errorMessage: err.message || 'Unable to create agenda.' };
@@ -376,7 +538,15 @@ function AuthProvider({ children }) {
             setCurrentUser(prev => ({
                 ...prev,
                 currentAgendaId: data.currentAgendaId,
+                defaultAgendaId:
+                    String(prev?.defaultAgendaId) === String(agendaId)
+                        ? data.currentAgendaId
+                        : prev?.defaultAgendaId,
             }));
+            if (String(currentUser?.defaultAgendaId) === String(agendaId)) {
+                setStoredDefaultAgendaId(currentUser.uid, data.currentAgendaId || null);
+                await setUserDefaultAgenda(currentUser.uid, data.currentAgendaId || null);
+            }
             return { type: 'success', data };
         } catch (err) {
             return { type: 'error', errorMessage: err.message || 'Unable to delete agenda.' };
@@ -385,9 +555,12 @@ function AuthProvider({ children }) {
 
     const value = {
         currentUser,
+        appLanguage,
         isAuthReady,
         signup,
         login,
+        loginWithGoogle,
+        loginWithApple,
         logout,
         resetPassword,
         updateUser,
@@ -397,6 +570,7 @@ function AuthProvider({ children }) {
         switchAgenda,
         renameAgenda,
         deleteAgenda,
+        setLanguagePreference,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext.jsx";
 import { updateTask } from "../../scripts/api.js";
 import { formDate, parseDateOnly } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
+import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
 const TaskListContainer = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -13,6 +14,7 @@ const TaskListContainer = () => {
     const [tasks, setTasks] = useState([]);
     const [maxTasks, setMaxTasks] = React.useState(10);
     const [loading, setLoading] = useState(true);
+    const [holidayNamesByDate, setHolidayNamesByDate] = useState({});
     const tasksRef = React.useRef([]);
     const fetchTimeoutRef = React.useRef(null);
 
@@ -328,6 +330,37 @@ const TaskListContainer = () => {
 
     const weekStartIndex = currentUser?.weekStartsOn === "Sunday" ? 0 : 1;
     const dayOfWeek = (curDate.getDay() - weekStartIndex + 7) % 7;
+
+    useEffect(() => {
+        const startDate = new Date(+curDate);
+        startDate.setDate(startDate.getDate() - dayOfWeek);
+
+        const endDate = new Date(+startDate);
+        endDate.setDate(endDate.getDate() + 6);
+
+        const years = [startDate.getFullYear(), endDate.getFullYear()];
+        const countryCode = getCountryCodeForLanguage(language);
+        let isCancelled = false;
+
+        async function loadWeekHolidays() {
+            const holidays = await getHolidaysByYears({ years, countryCode });
+            if (isCancelled) return;
+
+            const nextMap = {};
+            holidays.forEach(holiday => {
+                if (!holiday?.date) return;
+                nextMap[holiday.date] = holiday.localName || holiday.name || "";
+            });
+
+            setHolidayNamesByDate(nextMap);
+        }
+
+        loadWeekHolidays();
+        return () => {
+            isCancelled = true;
+        };
+    }, [curDate, dayOfWeek, language]);
+
     const dates = [];
     const tasksData = {};
     const orderedTasks = sortTasksForDisplay(tasks, shouldSortCompletedTasks);
@@ -363,6 +396,7 @@ const TaskListContainer = () => {
                     maxTasks={maxTasks}
                     changeMaxTasks={changeMaxTasks}
                     tasksData={tasksData[formDate(date)]}
+                    holidayName={holidayNamesByDate[formDate(date)] || ""}
                 />
             ))}
 
@@ -380,6 +414,7 @@ const TaskListContainer = () => {
                         maxTasks={maxTasks}
                         changeMaxTasks={changeMaxTasks}
                         tasksData={tasksData[formDate(date)]}
+                        holidayName={holidayNamesByDate[formDate(date)] || ""}
                     />
                 ))}
             </div>

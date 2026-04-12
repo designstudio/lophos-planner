@@ -3,6 +3,14 @@ const LOCALE_BY_LANGUAGE = {
     enUS: "en-US",
 };
 
+export function detectBrowserLanguage() {
+    if (typeof navigator === "undefined") return "ptBR";
+
+    const browserLanguage = (navigator.language || navigator.languages?.[0] || "").toLowerCase();
+    if (browserLanguage.startsWith("pt")) return "ptBR";
+    return "enUS";
+}
+
 const MESSAGES = {
     ptBR: {
         loadingTasks: "Carregando suas tarefas...",
@@ -65,10 +73,13 @@ const MESSAGES = {
         name: "Nome",
         email: "Email",
         password: "Senha",
+        emailField: "E-mail",
         confirmPassword: "Repetir senha",
         dateFormat: "Formato da data",
         weekStartsOn: "Semana começa em",
         language: "Idioma",
+        defaultView: "Visualização padrão",
+        holidayLabel: "Feriado",
         monday: "Segunda",
         sunday: "Domingo",
         save: "Salvar",
@@ -96,21 +107,27 @@ const MESSAGES = {
         portugueseBrazil: "Português (Brasil)",
         english: "English",
         welcomeBack: "Que bom te ver de novo!",
-        signUp: "Criar conta",
+        signUp: "Cadastre-se",
         emailAddress: "Seu email",
         forgotPassword: "Esqueceu a senha?",
         loggingIn: "Entrando...",
         letMeIn: "Entrar",
-        welcome: "Bem-vindo!",
+        googleLogin: "Entrar com o Google",
+        googleLoginLoading: "Redirecionando para o Google...",
+        appleLogin: "Entrar com a ID Apple",
+        appleLoginLoading: "Redirecionando para a Apple...",
+        welcome: "Oi! É um prazer te conhecer!",
         logIn: "Login",
         fullName: "Nome completo",
         passwordMin: "Senha (mínimo 6 caracteres)",
         termsText: "Ao criar uma conta, você concorda com nossos Termos e Política de Privacidade.",
+        termsTextLine1: "Ao criar uma conta, você concorda",
+        termsTextLine2: "com nossos Termos e Política de Privacidade.",
         createAccount: "Criar conta",
-        resetPassword: "Redefinir senha",
+        resetPassword: "Esqueceu a senha?",
         back: "Voltar",
-        resetDescription: "Digite seu email para receber instruções de redefinição de senha.",
-        sendResetLink: "Enviar link de redefinição",
+        resetDescription: "Por favor, insira seu e-mail para receber instruções de recuperação de senha.",
+        sendResetLink: "Enviar",
         passwordsDontMatch: "As senhas não coincidem",
         passwordMinError: "A senha deve ter no mínimo 6 caracteres",
     },
@@ -175,10 +192,13 @@ const MESSAGES = {
         name: "Name",
         email: "Email",
         password: "Password",
+        emailField: "Email",
         confirmPassword: "Confirm password",
         dateFormat: "Date format",
         weekStartsOn: "Week starts on",
         language: "Language",
+        defaultView: "Default view",
+        holidayLabel: "Holiday",
         monday: "Monday",
         sunday: "Sunday",
         save: "Save",
@@ -211,16 +231,22 @@ const MESSAGES = {
         forgotPassword: "Forgot password?",
         loggingIn: "Logging in...",
         letMeIn: "Let me in",
-        welcome: "Welcome!",
+        googleLogin: "Continue with Google",
+        googleLoginLoading: "Redirecting to Google...",
+        appleLogin: "Continue with Apple ID",
+        appleLoginLoading: "Redirecting to Apple...",
+        welcome: "Hi! It is a pleasure to meet you!",
         logIn: "Log in",
         fullName: "Full name",
         passwordMin: "Password (min 6 characters)",
         termsText: "By creating an account, you agree to our Terms and Privacy Policy.",
+        termsTextLine1: "By creating an account, you agree",
+        termsTextLine2: "to our Terms and Privacy Policy.",
         createAccount: "Create account",
-        resetPassword: "Reset password",
+        resetPassword: "Forgot your password?",
         back: "Back",
-        resetDescription: "Enter your email to receive password reset instructions.",
-        sendResetLink: "Send reset link",
+        resetDescription: "Please enter your email to receive password recovery instructions.",
+        sendResetLink: "Send",
         passwordsDontMatch: "Passwords do not match",
         passwordMinError: "Password must be at least 6 characters",
     },
@@ -231,7 +257,9 @@ export function getLocale(language) {
 }
 
 export function getAppLanguage(userLanguage) {
-    return userLanguage || localStorage.language || "ptBR";
+    if (userLanguage) return userLanguage;
+    if (typeof localStorage !== "undefined" && localStorage.language) return localStorage.language;
+    return detectBrowserLanguage();
 }
 
 export function t(language, key) {

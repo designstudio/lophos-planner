@@ -173,6 +173,25 @@ select {
         @apply opacity-40 line-through;
     }
 
+    .task-holiday-item {
+        @apply flex h-[41px] w-full items-center truncate px-0 text-[14px] font-medium text-black dark:text-white;
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .task-holiday-badge {
+        --tw-bg-opacity: 1;
+        background: rgb(242 242 242 / var(--tw-bg-opacity));
+        border-radius: 500px;
+        padding: 0.25rem 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     /* Form Components */
     .form-label {
         @apply block text-xs font-bold text-gray-900 dark:text-white mb-2;
@@ -265,6 +284,11 @@ select {
         opacity: 0.72;
     }
 
+    .tooltip-surface {
+        --tw-bg-opacity: 1;
+        background-color: rgb(31 41 55 / var(--tw-bg-opacity));
+    }
+
     .task-menu-calendar {
         width: 220px;
         @apply absolute left-0 top-10 z-20 rounded-md border border-black bg-[#eef1ff] p-3 shadow-lg;
@@ -325,6 +349,11 @@ select {
         background-color: rgba(59, 130, 246, 0.55);
         position: absolute;
         bottom: 0.2rem;
+    }
+
+    .task-menu-calendar-day.has-holiday:not(.is-selected) {
+        background-color: rgba(0, 0, 0, 0.05);
+        box-shadow: none;
     }
 
     .task-menu-calendar-day.is-outside-month {

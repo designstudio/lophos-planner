@@ -8,6 +8,7 @@ import {formDate, openForm, parseDateOnly} from "../scripts/utils.js";
 import { supabase } from "../scripts/supabase.js";
 import { DotsVertical, ChevronLeft, ChevronRight, User03 } from "@untitledui/icons";
 import { getAppLanguage, getLocale, t } from "../scripts/i18n.js";
+import { getCountryCodeForLanguage, getHolidaysByYears } from "../scripts/holidays.js";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -25,6 +26,7 @@ const Header = () => {
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [taskDates, setTaskDates] = React.useState(() => new Set());
+    const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const calendarRef = React.useRef(null);
     const fetchTimeoutRef = React.useRef(null);
 
@@ -163,6 +165,34 @@ const Header = () => {
         };
     }, [currentUser?.uid, currentUser?.currentAgendaId]);
 
+    React.useEffect(() => {
+        let isCancelled = false;
+
+        const month = calendarMonth.getMonth();
+        const year = calendarMonth.getFullYear();
+        const years = [year];
+        if (month === 0) years.push(year - 1);
+        if (month === 11) years.push(year + 1);
+
+        async function loadHolidays() {
+            const countryCode = getCountryCodeForLanguage(language);
+            const holidays = await getHolidaysByYears({ years, countryCode });
+            if (isCancelled) return;
+
+            const nextMap = {};
+            holidays.forEach(holiday => {
+                if (!holiday?.date) return;
+                nextMap[holiday.date] = holiday.localName || holiday.name || "";
+            });
+            setHolidayNamesByDate(nextMap);
+        }
+
+        loadHolidays();
+        return () => {
+            isCancelled = true;
+        };
+    }, [calendarMonth, language]);
+
     const weekdayLabels = React.useMemo(() => {
         const baseSunday = new Date(2024, 0, 7);
 
@@ -204,9 +234,10 @@ const Header = () => {
                 inCurrentMonth: cellDate.getMonth() === calendarMonth.getMonth(),
                 isToday: isSameDay(cellDate, today),
                 hasTasks: taskDates.has(dateKey),
+                holidayName: holidayNamesByDate[dateKey] || "",
             };
         });
-    }, [calendarMonth, taskDates, weekStartIndex]);
+    }, [calendarMonth, holidayNamesByDate, taskDates, weekStartIndex]);
 
     function changeCalendarMonth(delta) {
         setCalendarMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() + delta, 1));
@@ -251,6 +282,7 @@ const Header = () => {
             bgColor: "bg-black dark:bg-black",
             icon: ChevronLeft,
             onClick: toPrevWeek,
+            className: "ml-4",
         },
         {
             textColor: "text-white dark:text-gray-100",
@@ -313,8 +345,12 @@ const Header = () => {
                                         dayItem.inCurrentMonth ? "" : "is-outside-month",
                                         dayItem.isToday ? "is-selected" : "",
                                         dayItem.hasTasks ? "has-tasks" : "",
+                                        dayItem.holidayName ? "has-holiday" : "",
                                     ].filter(Boolean).join(" ")}
                                     onClick={() => handleCalendarDaySelect(dayItem.date)}
+                                    aria-label={dayItem.holidayName
+                                        ? `${dayItem.date.getDate()} - ${dayItem.holidayName}`
+                                        : `${dayItem.date.getDate()}`}
                                 >
                                     {dayItem.date.getDate()}
                                 </button>
@@ -331,7 +367,7 @@ const Header = () => {
                         <h2 className="text-sm font-semibold leading-none">{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
         opacity-0 group-hover:opacity-100 transition ease-linear duration-200
-         text-white bg-gray-800 rounded text-xs p-1">{t(language, "profile")}</p>
+         text-white tooltip-surface rounded text-xs p-1">{t(language, "profile")}</p>
                     </button>
                     : <HeaderBtn {...{
                         textColor: "text-gray-900 dark:text-white",

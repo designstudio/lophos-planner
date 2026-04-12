@@ -75,6 +75,7 @@ function hardResetBlurState(blurEl, blurId) {
     if (panel) {
         panel.style.transform = "";
         panel.style.opacity = "";
+        panel.style.top = "";
     }
 }
 
@@ -122,37 +123,23 @@ const formBlurDict = {
     "share-settings-form": "share-settings-form",
 }
 
-export function formTransition(from, to) {
-    closeForm(from);
+export async function formTransition(from, to) {
+    await closeForm(from);
     openForm(to);
 }
 
 export function openForm(formBlurId) {
     ensureModalRecoveryListeners();
-    recoverZombieBlurs();
 
     document.querySelector(".profile-menu")?.classList.remove("active");
     document.querySelector(".extras-menu")?.classList.remove("active");
 
+    // Close every other active modal instantly (hard reset), but never touch the target.
     document.querySelectorAll('.blur-bg').forEach(blurEl => {
         const blurId = blurEl.getAttribute('data-id');
-        if (!blurId) return;
+        if (!blurId || blurId === formBlurId) return;
 
-        const isTarget = blurId === formBlurId;
-        const isActive = blurEl.classList.contains('active');
-        const isClosing = blurEl.dataset.closing === "true";
-        const closeStartedAt = Number(blurEl.dataset.closeStartedAt || 0);
-        const panel = blurEl.querySelector(`.${blurId}`);
-        const panelOpacity = panel ? Number(window.getComputedStyle(panel).opacity) : 1;
-        const isInvisibleGhost = panelOpacity < 0.05;
-        const staleClosing = isClosing && closeStartedAt > 0 && (Date.now() - closeStartedAt > 350);
-
-        if (!isTarget && isActive) {
-            hardResetBlurState(blurEl, blurId);
-            return;
-        }
-
-        if (isTarget && (isClosing || isInvisibleGhost || staleClosing)) {
+        if (blurEl.classList.contains('active') || blurEl.dataset.closing === "true") {
             hardResetBlurState(blurEl, blurId);
         }
     });
@@ -160,6 +147,7 @@ export function openForm(formBlurId) {
     const formBlur = document.querySelector(`[data-id='${formBlurId}']`);
     if (!formBlur) return;
 
+    // Cancel any in-flight close timer for the target modal.
     const pendingCloseTimer = modalCloseTimers.get(formBlur);
     if (pendingCloseTimer) {
         clearTimeout(pendingCloseTimer);
@@ -172,8 +160,7 @@ export function openForm(formBlurId) {
     const panelOpacity = formElement ? Number(window.getComputedStyle(formElement).opacity) : 1;
     const isInvisibleGhost = panelOpacity < 0.05;
 
-    // Repeated open requests are common when URL sync and click handlers fire close together.
-    // If the target modal is already visible and healthy, keep it as-is instead of resetting it.
+    // If the modal is already fully visible and healthy, just ensure scroll/overflow state.
     if (isAlreadyActive && !isClosing && !isInvisibleGhost) {
         formBlur.scrollTop = 0;
         formElement?.scrollTo?.(0, 0);
@@ -181,14 +168,12 @@ export function openForm(formBlurId) {
         return;
     }
 
+    // Hard-reset the target to clear any stale animation state.
+    hardResetBlurState(formBlur, formBlurId);
+    void formBlur.offsetHeight; // force reflow so CSS transitions restart cleanly
+
     formBlur.dataset.animationToken = String(++modalAnimationToken);
     formBlur.dataset.closing = "false";
-    formBlur.getAnimations().forEach(animation => animation.cancel());
-
-    // Hard reset for the target modal to avoid ghost states after focus/tab switches.
-    hardResetBlurState(formBlur, formBlurId);
-    void formBlur.offsetHeight;
-
     formBlur.classList.add('active');
     formBlur.scrollTop = 0;
     document.body.style.overflowY = "hidden";
@@ -198,24 +183,24 @@ export function openForm(formBlurId) {
     formElement.getAnimations().forEach(animation => animation.cancel());
     formElement.style.transform = "";
     formElement.style.opacity = "";
+    formElement.style.top = "";
     formElement.scrollTop = 0;
 
-    formElement.animate(
+    const openAnimation = formElement.animate(
         [
-            {
-                top: "6rem",
-                opacity: 0.5,
-            },
-            {
-                top: "3.5rem",
-                opacity: 1,
-            },
+            { top: "6rem", opacity: 0.5 },
+            { top: "3.5rem", opacity: 1 },
         ],
-        {
-            duration: 300,
-            fill: "forwards",
-        }
+        { duration: 300, fill: "forwards" }
     );
+
+    // After the animation completes, remove the inline top so CSS class takes over again.
+    openAnimation.finished.then(() => {
+        formElement.style.top = "";
+        formElement.style.opacity = "";
+    }).catch(() => {
+        // Animation was cancelled — nothing to do.
+    });
 }
 
 export function closeForm(formBlurId) {
@@ -264,10 +249,18 @@ export function closeForm(formBlurId) {
             return;
         }
 
+        // Cancel all animations and wipe every inline style so the modal starts clean next open.
+        fromForm.getAnimations().forEach(a => a.cancel());
+        formElement?.getAnimations().forEach(a => a.cancel());
+
         fromForm.scrollTop = 0;
         if (formElement) {
             formElement.scrollTop = 0;
+            formElement.style.transform = "";
+            formElement.style.opacity = "";
+            formElement.style.top = "";
         }
+        fromForm.style.opacity = "";
         fromForm.classList.remove("active");
         fromForm.dataset.closing = "false";
         fromForm.dataset.closeStartedAt = "";

@@ -59,7 +59,7 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
             </h5>
             {isTruncated && (
-                <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded bg-gray-800 p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
+                <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded tooltip-surface p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
                     {taskName}
                 </p>
             )}
@@ -607,13 +607,13 @@ export default function PublicSharePage() {
                         >
                             <SearchMd className="h-[18px] w-[18px] lg:h-5 lg:w-5" />
                         </button>
-                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
+                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
                             {t(language, "search")}
                         </p>
                     </div>
                     <button
                         type="button"
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
+                        className="ml-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
                         onClick={() => moveWeek(-1)}
                     >
                         <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -734,7 +734,7 @@ export default function PublicSharePage() {
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
-                                <p className="absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-close:opacity-100">
+                                <p className="absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-close:opacity-100">
                                     Fechar
                                 </p>
                             </div>
