@@ -1,5 +1,4 @@
-import {formTransition, openForm} from "../scripts/utils.js";
-import {useEffect} from "react";
+import { openForm } from "../scripts/utils.js";
 import {useAuth} from "../contexts/AuthContext.jsx";
 
 
@@ -14,15 +13,6 @@ export default function InvitePage() {
         const invitePage = document.querySelector(".invite");
         invitePage.classList.remove("active");
     }
-
-    useEffect(() => {
-        if (localStorage.getItem("isLoggedIn") !== "true") {
-            setTimeout(() => {
-                const invitePage = document.querySelector(".invite");
-                invitePage.classList.add("active");
-            }, 500);
-        }
-    }, []);
 
     const {currentUser} = useAuth();
 

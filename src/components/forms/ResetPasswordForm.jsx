@@ -1,4 +1,5 @@
-import { Form, redirect, useActionData } from "react-router-dom";
+import React from "react";
+import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import { formTransition } from "../../scripts/utils.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -16,38 +17,43 @@ export const action = (AuthContext) => async ({ request }) => {
 
 export default function ResetPasswordForm() {
     const errorMessage = useActionData();
+    const navigation = useNavigation();
     const { currentUser } = useAuth();
     const language = getAppLanguage(currentUser?.language);
+    const [email, setEmail] = React.useState("");
+
+    const isSubmitting = navigation.state === "submitting";
+    const canSubmit = email.trim();
 
     return (
         <Blur type="reset-password-form">
             <div
-                className="task-menu relative top-4 w-[28rem] z-20 bg-stone-50 dark:bg-gray-800 rounded-xl p-6 shadow-lg text-gray-700 dark:text-gray-300"
+                className="reset-password-form relative top-4 z-20 mx-auto w-full max-w-[512px] rounded-[24px] bg-[#f8e8e2] p-6 text-black shadow-lg outline-none"
                 onClick={ev => ev.stopPropagation()}
             >
-                <div className="w-full flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, "resetPassword")}</h3>
+                <div className="w-full flex justify-between items-center mb-6">
+                    <h3 className="text-[21px] font-bold leading-[1.333333] tracking-[-0.5px] text-black">{t(language, "resetPassword")}</h3>
                     <button
                         type="button"
-                        className="btn btn-secondary text-sm"
+                        className="inline-flex h-10 items-center justify-center rounded-full bg-[rgba(17,24,39,0.06)] px-5 text-sm font-bold leading-none text-black transition-opacity duration-150 hover:opacity-80"
                         onClick={() => formTransition("reset-password-form", "login-form")}
                     >
-                        {t(language, "back")}
+                        {t(language, "login")}
                     </button>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="mb-6 text-[15px] leading-6 text-[#0000008d]">
                     {t(language, "resetDescription")}
                 </p>
 
                 {errorMessage && typeof errorMessage === "string" && (
-                    <div className="rounded-lg px-4 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 py-4 mb-4 border border-red-300 dark:border-red-700">
+                    <div className="mb-4 rounded-[18px] border border-red-300 bg-red-100 px-4 py-4 text-sm text-red-700">
                         {errorMessage}
                     </div>
                 )}
 
                 <Form method="POST" className="relative space-y-4" action="/reset-password">
-                    <input type="text" defaultValue="login-form" name="form-id" id="form-id" className="hidden" />
+                    <input type="text" defaultValue="reset-password-form" name="form-id" id="form-id" className="hidden" />
 
                     <div className="form-group">
                         <input
@@ -55,16 +61,19 @@ export default function ResetPasswordForm() {
                             id="email"
                             name="email"
                             required
-                            placeholder={t(language, "emailAddress")}
-                            className="input-base"
+                            value={email}
+                            onChange={ev => setEmail(ev.target.value)}
+                            placeholder={t(language, "emailField")}
+                            className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
                         />
                     </div>
 
                     <button
                         type="submit"
-                        className="btn btn-primary w-full"
+                        disabled={!canSubmit || isSubmitting}
+                        className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-black px-6 text-base font-bold text-white transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-60"
                     >
-                        {t(language, "sendResetLink")}
+                        {isSubmitting ? `${t(language, "sendResetLink")}...` : t(language, "sendResetLink")}
                     </button>
                 </Form>
             </div>

@@ -253,6 +253,7 @@ export function getCurrentUser(id) {
             dateFormat: data.date_format,
             weekStartsOn: data.week_starts_on,
             currentAgendaId: data.current_agenda_id || null,
+            defaultAgendaId: data.default_agenda_id || null,
         };
         return profile;
     }).finally(() => _getCurrentUserInFlight.delete(id));
@@ -270,12 +271,28 @@ export async function updateUserData(id, data) {
         week_starts_on: data.weekStartsOn ?? 'Monday',
     };
 
-    const { error } = await supabase
+    if (typeof data.defaultAgendaId !== 'undefined') {
+        payload.default_agenda_id = data.defaultAgendaId || null;
+    }
+
+    const firstTry = await supabase
         .from('users')
         .update(payload)
         .eq('id', id);
 
-    if (error) throw error;
+    if (!firstTry.error) return;
+
+    // Backward compatibility for instances that still don't have default_agenda_id.
+    const missingDefaultAgendaColumn = /column\s+"?default_agenda_id"?\s+of relation\s+"?users"? does not exist|Could not find the 'default_agenda_id' column/i.test(firstTry.error.message || '');
+    if (!missingDefaultAgendaColumn) throw firstTry.error;
+
+    const { default_agenda_id: _ignoredDefaultAgendaId, ...payloadWithoutDefaultAgenda } = payload;
+    const retry = await supabase
+        .from('users')
+        .update(payloadWithoutDefaultAgenda)
+        .eq('id', id);
+
+    if (retry.error) throw retry.error;
 }
 
 // Agendas
@@ -383,6 +400,22 @@ export async function setUserCurrentAgenda(userId, agendaId) {
         .eq('id', userId);
 
     if (error) throw error;
+}
+
+export async function setUserDefaultAgenda(userId, agendaId) {
+    const { error } = await supabase
+        .from('users')
+        .update({ default_agenda_id: agendaId })
+        .eq('id', userId);
+
+    if (!error) return { persisted: true };
+
+    const missingDefaultAgendaColumn = /column\s+"?default_agenda_id"?\s+of relation\s+"?users"? does not exist|Could not find the 'default_agenda_id' column/i.test(error.message || '');
+    if (missingDefaultAgendaColumn) {
+        return { persisted: false };
+    }
+
+    throw error;
 }
 
 export async function ensureDefaultAgenda(userId, preferredAgendaId = null) {
