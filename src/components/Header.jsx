@@ -1,16 +1,32 @@
 import React from "react"
-import HeaderBtn from "./HeaderBtn"
+import { HeaderBtn } from "./HeaderBtn"
 import {useSearchParams} from "react-router-dom";
 import {useAuth} from "../contexts/AuthContext.jsx";
 import ProfileMenu from "./menus/ProfileMenu.jsx";
 import ExtrasMenu from "./menus/ExtrasMenu.jsx";
-import {clearUsersTasks} from "../scripts/api.js";
-import {openForm} from "../scripts/utils.js";
+import {formDate, openForm, parseDateOnly} from "../scripts/utils.js";
+import { supabase } from "../scripts/supabase.js";
+import { DotsVertical, ChevronLeft, ChevronRight, User03 } from "@untitledui/icons";
+import { getAppLanguage, getLocale, t } from "../scripts/i18n.js";
+
+function startOfMonth(date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function isSameDay(dateA, dateB) {
+    return dateA.getFullYear() === dateB.getFullYear()
+        && dateA.getMonth() === dateB.getMonth()
+        && dateA.getDate() === dateB.getDate();
+}
 
 const Header = () => {
 
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const [searchParams, setSearchParams] = useSearchParams();
+    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+    const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
+    const [taskDates, setTaskDates] = React.useState(() => new Set());
+    const calendarRef = React.useRef(null);
+    const fetchTimeoutRef = React.useRef(null);
 
     const newDate = new Date();
     if (searchParams.get("weekShift")) {
@@ -24,8 +40,15 @@ const Header = () => {
     function openProfileMenu(ev) {
         ev.stopPropagation();
         const profileMenu = document.querySelector(".profile-menu");
+        const extrasMenu = document.querySelector(".extras-menu");
+        if (!profileMenu || !extrasMenu) return;
+
+        const wasOpen = profileMenu.classList.contains("active");
+        profileMenu.classList.remove("active");
+        extrasMenu.classList.remove("active");
+        if (wasOpen) return;
+
         profileMenu.classList.add("active");
-        document.querySelector(".extras-menu").classList.remove("active");
         const buttonPos = ev.currentTarget.getBoundingClientRect();
         profileMenu.style.left = `${Math.round(buttonPos.left + buttonPos.width / 2)}px`;
         profileMenu.style.top = `${Math.round(buttonPos.bottom) + 8}px`;
@@ -34,8 +57,15 @@ const Header = () => {
     function openExtrasMenu(ev) {
         ev.stopPropagation();
         const extrasMenu = document.querySelector(".extras-menu");
+        const profileMenu = document.querySelector(".profile-menu");
+        if (!extrasMenu || !profileMenu) return;
+
+        const wasOpen = extrasMenu.classList.contains("active");
+        extrasMenu.classList.remove("active");
+        profileMenu.classList.remove("active");
+        if (wasOpen) return;
+
         extrasMenu.classList.add("active");
-        document.querySelector(".profile-menu").classList.remove("active");
         const buttonPos = ev.currentTarget.getBoundingClientRect();
         extrasMenu.style.right = `${Math.round(window.innerWidth - buttonPos.right - 15)}px`;
         extrasMenu.style.top = `${Math.round(buttonPos.bottom) + 8}px`;
@@ -58,78 +88,257 @@ const Header = () => {
     }
 
     const {currentUser} = useAuth();
+    const language = getAppLanguage(currentUser?.language);
+    const locale = getLocale(language);
+    const weekStartIndex = currentUser?.weekStartsOn === "Sunday" ? 0 : 1;
+
+    React.useEffect(() => {
+        setCalendarMonth(startOfMonth(newDate));
+    }, [newDate.getFullYear(), newDate.getMonth(), newDate.getDate()]);
+
+    React.useEffect(() => {
+        if (!isCalendarOpen) return undefined;
+
+        function handlePointerDown(ev) {
+            if (calendarRef.current?.contains(ev.target)) return;
+            setIsCalendarOpen(false);
+        }
+
+        document.addEventListener("mousedown", handlePointerDown);
+        return () => document.removeEventListener("mousedown", handlePointerDown);
+    }, [isCalendarOpen]);
+
+    React.useEffect(() => {
+        if (!currentUser?.uid || !currentUser?.currentAgendaId) {
+            setTaskDates(new Set());
+            return undefined;
+        }
+
+        const fetchTaskDates = async () => {
+            const { data, error } = await supabase
+                .from("tasks")
+                .select("date")
+                .eq("uid", currentUser.uid)
+                .eq("agenda_id", currentUser.currentAgendaId);
+
+            if (error) return;
+
+            setTaskDates(new Set((data || []).map(task => formDate(parseDateOnly(task.date)))));
+        };
+
+        const scheduleFetchTaskDates = () => {
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+
+            fetchTimeoutRef.current = setTimeout(() => {
+                fetchTimeoutRef.current = null;
+                fetchTaskDates();
+            }, 40);
+        };
+
+        fetchTaskDates();
+
+        const channel = supabase
+            .channel(`header-task-dates:${currentUser.uid}:${currentUser.currentAgendaId}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "tasks",
+                    filter: `agenda_id=eq.${currentUser.currentAgendaId}`,
+                },
+                scheduleFetchTaskDates
+            )
+            .subscribe();
+
+        return () => {
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+                fetchTimeoutRef.current = null;
+            }
+
+            supabase.removeChannel(channel);
+        };
+    }, [currentUser?.uid, currentUser?.currentAgendaId]);
+
+    const weekdayLabels = React.useMemo(() => {
+        const baseSunday = new Date(2024, 0, 7);
+
+        return Array.from({ length: 7 }, (_, index) => {
+            const weekDate = new Date(baseSunday);
+            weekDate.setDate(baseSunday.getDate() + ((weekStartIndex + index) % 7));
+
+            return new Intl.DateTimeFormat(locale, { weekday: "short" })
+                .format(weekDate)
+                .replaceAll(".", "")
+                .toLowerCase();
+        });
+    }, [locale, weekStartIndex]);
+
+    const calendarTitle = React.useMemo(() => {
+        const formatted = new Intl.DateTimeFormat(locale, {
+            month: "long",
+            year: "numeric",
+        }).format(calendarMonth);
+
+        return formatted.replace(/^./, chr => chr.toUpperCase());
+    }, [calendarMonth, locale]);
+
+    const calendarDays = React.useMemo(() => {
+        const monthStart = startOfMonth(calendarMonth);
+        const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+        const offset = (monthStart.getDay() - weekStartIndex + 7) % 7;
+        const totalCells = Math.ceil((offset + monthEnd.getDate()) / 7) * 7;
+        const today = new Date();
+
+        return Array.from({ length: totalCells }, (_, index) => {
+            const cellDate = new Date(monthStart);
+            cellDate.setDate(monthStart.getDate() - offset + index);
+            const dateKey = formDate(cellDate);
+
+            return {
+                date: cellDate,
+                key: dateKey,
+                inCurrentMonth: cellDate.getMonth() === calendarMonth.getMonth(),
+                isToday: isSameDay(cellDate, today),
+                hasTasks: taskDates.has(dateKey),
+            };
+        });
+    }, [calendarMonth, taskDates, weekStartIndex]);
+
+    function changeCalendarMonth(delta) {
+        setCalendarMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() + delta, 1));
+    }
+
+    function getStartOfWeek(refDate) {
+        const start = parseDateOnly(refDate);
+        const offset = (start.getDay() - weekStartIndex + 7) % 7;
+        start.setDate(start.getDate() - offset);
+        return start;
+    }
+
+    function handleCalendarDaySelect(date) {
+        const todayWeekStart = getStartOfWeek(new Date());
+        const targetWeekStart = getStartOfWeek(date);
+        const nextShift = Math.round((targetWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
+
+        setSearchParams(prevSearchParams => {
+            const nextParams = new URLSearchParams(prevSearchParams);
+            if (nextShift === 0) {
+                nextParams.delete("weekShift");
+            } else {
+                nextParams.set("weekShift", `${nextShift}`);
+            }
+            return nextParams;
+        });
+        setCalendarMonth(startOfMonth(date));
+        setIsCalendarOpen(false);
+    }
 
     const headerBtns = [
-
         {
-            textColor: "black dark:text-white",
-            bgColor: "blue-200 dark:bg-blue-800",
-            icon: "fa-solid fa-xmark",
-            onClick: currentUser ? async () => {
-                await clearUsersTasks(currentUser.uid);
-            } : () => {},
-            tooltip: "Delete all tasks",
-        },
-        {
-            textColor: "black",
-            bgColor: "purple-200",
-            icon: "fa-solid fa-ellipsis-vertical",
-            tooltip: "Extras",
+            textColor: "text-gray-900 dark:text-white",
+            bgColor: "",
+            icon: DotsVertical,
+            tooltip: t(language, "extras"),
             onClick: openExtrasMenu,
+            style: { backgroundColor: '#f2f2f2' },
         },
         {
-            textColor: "white",
-            bgColor: "black dark:bg-stone-800",
-            icon: "fa-solid fa-chevron-left",
+            textColor: "text-white dark:text-gray-100",
+            bgColor: "bg-black dark:bg-black",
+            icon: ChevronLeft,
             onClick: toPrevWeek,
         },
         {
-            textColor: "white",
-            bgColor: "black dark:bg-stone-800",
-            icon: "fa-solid fa-chevron-right",
+            textColor: "text-white dark:text-gray-100",
+            bgColor: "bg-black dark:bg-black",
+            icon: ChevronRight,
             onClick: toNextWeek,
         },
     ]
 
-    const [isSmall, setIsSmall] = React.useState(window.innerWidth < 1024);
-
-    const handleResize = () => {
-        setIsSmall(window.innerWidth < 1024);
-
-    }
-
-    React.useEffect(() => {
-        window.addEventListener("resize", handleResize)
-        return () => {
-            window.removeEventListener("resize", handleResize)
-        }
-    }, [])
-    let monthName = months[newDate.getMonth()];
-    if (isSmall) monthName = monthName.slice(0, 4) + '.';
+    const monthName = new Intl.DateTimeFormat(locale, { month: "long" }).format(newDate);
     return (
         <header
             className="max-container flex justify-between max-lg:border-b max-lg:border-gray-200
-            items-center w-full gap-12 padding-x py-3 lg:py-6 bg-white max-lg:fixed top-0 left-0
-            dark:bg-black dark:text-white">
-            <h1 className={"text-xl font-[700] lg:text-4xl tracking-tighter " + (+searchParams.get("weekShift") && 'text-blue-600')}>{monthName} {newDate.getFullYear()}</h1>
+            items-center w-full gap-6 padding-x py-4 lg:py-5 bg-white max-lg:fixed top-0 left-0 z-50
+            dark:bg-gray-800 dark:text-white dark:border-gray-700">
+            <div className="relative" ref={calendarRef}>
+                <button
+                    type="button"
+                    className="header-month-trigger text-[36px] font-bold leading-[42px] tracking-[-0.5px] capitalize text-black dark:text-white"
+                    onClick={() => setIsCalendarOpen(prev => !prev)}
+                    aria-label={t(language, "changeTaskDate")}
+                    aria-expanded={isCalendarOpen}
+                >
+                    <span>{monthName} {newDate.getFullYear()}</span>
+                </button>
 
-            <div className="flex gap-3">
+                {isCalendarOpen && (
+                    <div className="task-menu-calendar header-month-calendar" onClick={ev => ev.stopPropagation()}>
+                        <div className="task-menu-calendar-header">
+                            <button
+                                type="button"
+                                className="task-menu-calendar-nav"
+                                onClick={() => changeCalendarMonth(-1)}
+                                aria-label={t(language, "previousMonth")}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <p className="task-menu-calendar-title">{calendarTitle}</p>
+                            <button
+                                type="button"
+                                className="task-menu-calendar-nav"
+                                onClick={() => changeCalendarMonth(1)}
+                                aria-label={t(language, "nextMonth")}
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="task-menu-calendar-weekdays">
+                            {weekdayLabels.map((label, index) => (
+                                <span key={`${label}-${index}`}>{label}</span>
+                            ))}
+                        </div>
+                        <div className="task-menu-calendar-grid">
+                            {calendarDays.map(dayItem => (
+                                <button
+                                    key={dayItem.key}
+                                    type="button"
+                                    className={[
+                                        "task-menu-calendar-day",
+                                        dayItem.inCurrentMonth ? "" : "is-outside-month",
+                                        dayItem.isToday ? "is-selected" : "",
+                                        dayItem.hasTasks ? "has-tasks" : "",
+                                    ].filter(Boolean).join(" ")}
+                                    onClick={() => handleCalendarDaySelect(dayItem.date)}
+                                >
+                                    {dayItem.date.getDate()}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex gap-2">
 
                 {currentUser ?
-                    <button className="h-8 w-8 lg:w-10 lg:h-10 lg:text-lg flex-1 hover:shadow-lg relative group
-                    dark:border dark:border-gray-200 dark:bg-black dark:bg-stone-800
-                    bg-blue-200 rounded-full mx-auto flex justify-center items-center" onClick={openProfileMenu}>
-                        <h2>{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>
+                    <button className="app-button-hover relative group flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                        <h2 className="text-sm font-semibold leading-none">{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
         opacity-0 group-hover:opacity-100 transition ease-linear duration-200
-         text-white bg-gray-800 rounded text-xs p-1">Profile</p>
+         text-white bg-gray-800 rounded text-xs p-1">{t(language, "profile")}</p>
                     </button>
                     : <HeaderBtn {...{
-                        textColor: "black dark:text-white",
-                        bgColor: "blue-200 dark:bg-black",
-                        icon: "fa-regular fa-user",
+                        textColor: "text-gray-900 dark:text-white",
+                        bgColor: "bg-blue-200 dark:bg-blue-700",
+                        icon: User03,
                         onClick: openLoginForm,
-                        tooltip: "Login",
+                        tooltip: t(language, "login"),
                     }}/>}
                 {
                     headerBtns.map((btn, index) => (

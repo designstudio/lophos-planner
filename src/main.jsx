@@ -10,6 +10,7 @@ import { action as signupAction } from "./components/forms/SignUpForm";
 import { action as resetPasswordAction } from "./components/forms/ResetPasswordForm";
 import { action as updateUserAction } from "./components/forms/UpdateUserForm";
 import Error from "./components/Error.jsx";
+import PublicSharePage from "./PublicSharePage.jsx";
 
 function App() {
     const authContext = useAuth();
@@ -19,6 +20,11 @@ function App() {
             <Route
                 path="/"
                 element={<HomePage />}
+                errorElement={<Error />}
+            />
+            <Route
+                path="/share/:shareToken"
+                element={<PublicSharePage />}
                 errorElement={<Error />}
             />
             <Route path="/signup" action={signupAction(authContext)} />

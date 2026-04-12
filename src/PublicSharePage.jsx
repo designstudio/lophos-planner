@@ -1,0 +1,837 @@
+import React from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02 } from "@untitledui/icons";
+import { marked } from "marked";
+import { getPublicAgendaByShareToken } from "./scripts/api.js";
+import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
+import { formDate, matchesShortId, parseDateOnly, toShortId } from "./scripts/utils.js";
+import { supabase } from "./scripts/supabase.js";
+
+function startOfMonth(date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function isSameDay(dateA, dateB) {
+    return dateA.getFullYear() === dateB.getFullYear()
+        && dateA.getMonth() === dateB.getMonth()
+        && dateA.getDate() === dateB.getDate();
+}
+
+function normalizeRelatedLinks(task) {
+    const rawLinks = task?.relatedLinks ?? task?.related_links;
+    if (!Array.isArray(rawLinks)) return [];
+
+    return rawLinks
+        .filter(link => link && typeof link === "object")
+        .map(link => ({
+            name: (link.name || "").toString(),
+            url: (link.url || "").toString(),
+        }))
+        .filter(link => link.url);
+}
+
+function normalizeLinkUrl(url) {
+    const trimmed = (url || "").trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+}
+
+function normalizeSearchText(text) {
+    return (text || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
+    const taskName = task.name || "";
+    const isTruncated = taskName.length > maxLength;
+    const visibleTaskName = taskName.slice(0, maxLength) + (isTruncated ? "..." : "");
+
+    return (
+        <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
+            <h5 className={`min-w-0 flex items-center gap-1 text-[14px] font-normal leading-[41px] text-black ${task.done ? "opacity-40 line-through" : ""}`}>
+                {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
+                {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
+                <span className="block min-w-0 truncate">{visibleTaskName}</span>
+            </h5>
+            {isTruncated && (
+                <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded bg-gray-800 p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
+                    {taskName}
+                </p>
+            )}
+        </div>
+    );
+}
+
+function isImageAvatar(value) {
+    return typeof value === "string" && (value.startsWith("data:image/") || value.startsWith("http://") || value.startsWith("https://"));
+}
+
+const MODAL_EXIT_DURATION_MS = 220;
+
+export default function PublicSharePage() {
+    const { shareToken } = useParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const [loading, setLoading] = React.useState(true);
+    const [owner, setOwner] = React.useState(null);
+    const [agenda, setAgenda] = React.useState(null);
+    const [tasks, setTasks] = React.useState([]);
+    const [selectedTask, setSelectedTask] = React.useState(null);
+    const [isTaskPreviewOpen, setIsTaskPreviewOpen] = React.useState(false);
+    const [isTaskPreviewVisible, setIsTaskPreviewVisible] = React.useState(false);
+    const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+    const [isSearchVisible, setIsSearchVisible] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState("");
+    const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+    const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
+    const refreshTimeoutRef = React.useRef(null);
+    const calendarRef = React.useRef(null);
+    const taskPreviewCloseTimeoutRef = React.useRef(null);
+    const searchCloseTimeoutRef = React.useRef(null);
+
+    React.useEffect(() => () => {
+        if (taskPreviewCloseTimeoutRef.current) {
+            clearTimeout(taskPreviewCloseTimeoutRef.current);
+            taskPreviewCloseTimeoutRef.current = null;
+        }
+        if (searchCloseTimeoutRef.current) {
+            clearTimeout(searchCloseTimeoutRef.current);
+            searchCloseTimeoutRef.current = null;
+        }
+    }, []);
+
+    React.useEffect(() => {
+        let mounted = true;
+
+        async function loadAgenda() {
+            setLoading(true);
+            try {
+                const data = await getPublicAgendaByShareToken(shareToken);
+                if (!mounted) return;
+
+                if (!data) {
+                    setOwner(null);
+                    setAgenda(null);
+                    setTasks([]);
+                    setLoading(false);
+                    return;
+                }
+
+                setOwner(data.owner);
+                setAgenda(data.agenda || null);
+                setTasks(data.tasks);
+                setLoading(false);
+            } catch {
+                if (!mounted) return;
+                setOwner(null);
+                setAgenda(null);
+                setTasks([]);
+                setLoading(false);
+            }
+        }
+
+        loadAgenda();
+        return () => {
+            mounted = false;
+        };
+    }, [shareToken]);
+
+    React.useEffect(() => {
+        if (!agenda?.id || !owner?.id) return undefined;
+
+        let disposed = false;
+
+        async function refreshPublicTasks() {
+            const { data, error } = await supabase
+                .from("tasks")
+                .select("*")
+                .eq("uid", owner.id)
+                .eq("agenda_id", agenda.id)
+                .order("order");
+
+            if (disposed || error) return;
+
+            setTasks((data || []).map(task => ({
+                ...task,
+                date: parseDateOnly(task.date),
+            })));
+        }
+
+        const scheduleRefresh = () => {
+            if (refreshTimeoutRef.current) {
+                clearTimeout(refreshTimeoutRef.current);
+            }
+
+            refreshTimeoutRef.current = setTimeout(() => {
+                refreshTimeoutRef.current = null;
+                refreshPublicTasks();
+            }, 40);
+        };
+
+        const channel = supabase
+            .channel(`public-share-tasks:${agenda.id}`)
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "tasks",
+                    filter: `agenda_id=eq.${agenda.id}`,
+                },
+                scheduleRefresh
+            )
+            .subscribe();
+
+        // Fallback leve caso realtime atrase ou esteja indisponivel.
+        const intervalId = setInterval(refreshPublicTasks, 15000);
+
+        return () => {
+            disposed = true;
+
+            if (refreshTimeoutRef.current) {
+                clearTimeout(refreshTimeoutRef.current);
+                refreshTimeoutRef.current = null;
+            }
+
+            clearInterval(intervalId);
+            supabase.removeChannel(channel);
+        };
+    }, [agenda?.id, owner?.id]);
+
+    React.useEffect(() => {
+        const baseTitle = "Lophos Planner";
+        const agendaName = (agenda?.name || "").trim();
+        document.title = agendaName ? `${agendaName} - ${baseTitle}` : baseTitle;
+    }, [agenda?.name]);
+
+    const language = owner?.language || "ptBR";
+    const dateFormat = owner?.dateFormat || "DD-MM";
+    const weekStartsOn = owner?.weekStartsOn || "Monday";
+    const agendaAccent = agenda?.color || "#3b82f6";
+
+    const now = new Date();
+    const weekShift = Number(searchParams.get("weekShift") || 0);
+    const openedTaskId = searchParams.get("openedTask");
+    const shiftedDate = new Date(now);
+    shiftedDate.setDate(shiftedDate.getDate() + (weekShift * 7));
+
+    const weekStartIndex = weekStartsOn === "Sunday" ? 0 : 1;
+    const dayOfWeek = (shiftedDate.getDay() - weekStartIndex + 7) % 7;
+
+    React.useEffect(() => {
+        setCalendarMonth(startOfMonth(shiftedDate));
+    }, [shiftedDate.getFullYear(), shiftedDate.getMonth()]);
+
+    React.useEffect(() => {
+        if (!isCalendarOpen) return undefined;
+
+        function handlePointerDown(ev) {
+            if (calendarRef.current?.contains(ev.target)) return;
+            setIsCalendarOpen(false);
+        }
+
+        document.addEventListener("mousedown", handlePointerDown);
+        return () => document.removeEventListener("mousedown", handlePointerDown);
+    }, [isCalendarOpen]);
+
+    const dates = [];
+    const tasksData = {};
+    const shouldSortCompletedTasks = agenda?.sort_completed_tasks ?? true;
+
+    const sortedTasks = [...tasks].sort((taskA, taskB) => {
+        // First, separate completed from non-completed if sortCompletedTasks is enabled
+        if (shouldSortCompletedTasks) {
+            const aCompleted = taskA.done ? 1 : 0;
+            const bCompleted = taskB.done ? 1 : 0;
+            if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+        }
+
+        const dateDiff = new Date(taskA.date).getTime() - new Date(taskB.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+
+        const orderDiff = (taskA.order ?? 0) - (taskB.order ?? 0);
+        if (orderDiff !== 0) return orderDiff;
+
+        return String(taskA.id).localeCompare(String(taskB.id));
+    });
+
+    for (let i = -dayOfWeek; i < -dayOfWeek + 7; i += 1) {
+        const date = new Date(shiftedDate);
+        date.setDate(date.getDate() + i);
+        dates.push(date);
+        tasksData[formDate(date)] = sortedTasks.filter(task => formDate(task.date) === formDate(date));
+    }
+
+    function moveWeek(step) {
+        const next = weekShift + step;
+        setSearchParams(prev => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set("weekShift", String(next));
+            return nextParams;
+        });
+    }
+
+    function setOpenedTaskInUrl(taskId) {
+        setSearchParams(prev => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set("openedTask", toShortId(taskId));
+            return nextParams;
+        });
+    }
+
+    function clearOpenedTaskInUrl() {
+        setSearchParams(prev => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.delete("openedTask");
+            return nextParams;
+        });
+    }
+
+    function openTaskPreview(task) {
+        if (taskPreviewCloseTimeoutRef.current) {
+            clearTimeout(taskPreviewCloseTimeoutRef.current);
+            taskPreviewCloseTimeoutRef.current = null;
+        }
+
+        setSelectedTask(task);
+        setIsTaskPreviewOpen(true);
+        requestAnimationFrame(() => setIsTaskPreviewVisible(true));
+        setOpenedTaskInUrl(task.id);
+    }
+
+    function closeTaskPreview() {
+        setIsTaskPreviewVisible(false);
+        clearOpenedTaskInUrl();
+
+        if (taskPreviewCloseTimeoutRef.current) {
+            clearTimeout(taskPreviewCloseTimeoutRef.current);
+        }
+        taskPreviewCloseTimeoutRef.current = setTimeout(() => {
+            setIsTaskPreviewOpen(false);
+            setSelectedTask(null);
+            taskPreviewCloseTimeoutRef.current = null;
+        }, MODAL_EXIT_DURATION_MS);
+    }
+
+    function openSearchModal() {
+        if (searchCloseTimeoutRef.current) {
+            clearTimeout(searchCloseTimeoutRef.current);
+            searchCloseTimeoutRef.current = null;
+        }
+
+        setIsSearchOpen(true);
+        requestAnimationFrame(() => setIsSearchVisible(true));
+    }
+
+    function closeSearchModal() {
+        setIsSearchVisible(false);
+
+        if (searchCloseTimeoutRef.current) {
+            clearTimeout(searchCloseTimeoutRef.current);
+        }
+        searchCloseTimeoutRef.current = setTimeout(() => {
+            setIsSearchOpen(false);
+            setSearchQuery("");
+            searchCloseTimeoutRef.current = null;
+        }, MODAL_EXIT_DURATION_MS);
+    }
+
+    React.useEffect(() => {
+        if (!openedTaskId) {
+            if (selectedTask) {
+                setIsTaskPreviewVisible(false);
+                if (taskPreviewCloseTimeoutRef.current) {
+                    clearTimeout(taskPreviewCloseTimeoutRef.current);
+                }
+                taskPreviewCloseTimeoutRef.current = setTimeout(() => {
+                    setIsTaskPreviewOpen(false);
+                    setSelectedTask(null);
+                    taskPreviewCloseTimeoutRef.current = null;
+                }, MODAL_EXIT_DURATION_MS);
+            } else {
+                setIsTaskPreviewVisible(false);
+                setIsTaskPreviewOpen(false);
+                setSelectedTask(null);
+            }
+            return;
+        }
+
+        const task = tasks.find(item => matchesShortId(item.id, openedTaskId));
+        if (task) {
+            if (taskPreviewCloseTimeoutRef.current) {
+                clearTimeout(taskPreviewCloseTimeoutRef.current);
+                taskPreviewCloseTimeoutRef.current = null;
+            }
+            setSelectedTask(task);
+            setIsTaskPreviewOpen(true);
+            requestAnimationFrame(() => setIsTaskPreviewVisible(true));
+        }
+    }, [openedTaskId, tasks]);
+
+    function getStartOfWeek(refDate) {
+        const start = new Date(refDate);
+        const startIndex = weekStartsOn === "Sunday" ? 0 : 1;
+        const offset = (start.getDay() - startIndex + 7) % 7;
+        start.setDate(start.getDate() - offset);
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }
+
+    const weekdayLabels = React.useMemo(() => {
+        const baseSunday = new Date(2024, 0, 7);
+
+        return Array.from({ length: 7 }, (_, index) => {
+            const weekDate = new Date(baseSunday);
+            weekDate.setDate(baseSunday.getDate() + ((weekStartIndex + index) % 7));
+
+            return new Intl.DateTimeFormat(getLocale(language), { weekday: "short" })
+                .format(weekDate)
+                .replaceAll(".", "")
+                .toLowerCase();
+        });
+    }, [language, weekStartIndex]);
+
+    const calendarTitle = React.useMemo(() => {
+        const formatted = new Intl.DateTimeFormat(getLocale(language), {
+            month: "long",
+            year: "numeric",
+        }).format(calendarMonth);
+
+        return formatted.replace(/^./, chr => chr.toUpperCase());
+    }, [calendarMonth, language]);
+
+    const taskDateKeys = React.useMemo(() => {
+        return new Set(tasks.map(task => formDate(task.date)));
+    }, [tasks]);
+
+    const calendarDays = React.useMemo(() => {
+        const monthStart = startOfMonth(calendarMonth);
+        const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
+        const offset = (monthStart.getDay() - weekStartIndex + 7) % 7;
+        const totalCells = Math.ceil((offset + monthEnd.getDate()) / 7) * 7;
+        const today = new Date();
+
+        return Array.from({ length: totalCells }, (_, index) => {
+            const cellDate = new Date(monthStart);
+            cellDate.setDate(monthStart.getDate() - offset + index);
+            const dateKey = formDate(cellDate);
+
+            return {
+                date: cellDate,
+                key: dateKey,
+                inCurrentMonth: cellDate.getMonth() === calendarMonth.getMonth(),
+                isToday: isSameDay(cellDate, today),
+                hasTasks: taskDateKeys.has(dateKey),
+            };
+        });
+    }, [calendarMonth, taskDateKeys, weekStartIndex]);
+
+    function changeCalendarMonth(delta) {
+        setCalendarMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() + delta, 1));
+    }
+
+    function handleCalendarDaySelect(date) {
+        const todayWeekStart = getStartOfWeek(new Date());
+        const targetWeekStart = getStartOfWeek(date);
+        const nextShift = Math.round((targetWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
+
+        setSearchParams(prevSearchParams => {
+            const nextParams = new URLSearchParams(prevSearchParams);
+            if (nextShift === 0) {
+                nextParams.delete("weekShift");
+            } else {
+                nextParams.set("weekShift", String(nextShift));
+            }
+            return nextParams;
+        });
+
+        setCalendarMonth(startOfMonth(date));
+        setIsCalendarOpen(false);
+    }
+
+    function openTaskFromSearch(task) {
+        const taskDate = new Date(task.date);
+        const todayWeekStart = getStartOfWeek(new Date());
+        const taskWeekStart = getStartOfWeek(taskDate);
+        const nextShift = Math.round((taskWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
+
+        setSearchParams(prev => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set("weekShift", String(nextShift));
+            nextParams.set("openedTask", toShortId(task.id));
+            return nextParams;
+        });
+
+        setSelectedTask(task);
+        setIsSearchOpen(false);
+        setSearchQuery("");
+    }
+
+    const filteredSearchTasks = React.useMemo(() => {
+        const query = normalizeSearchText(searchQuery);
+        if (!query) return [];
+
+        const queryTokens = query.split(/\s+/).filter(Boolean);
+
+        return tasks
+            .filter(task => {
+                const relatedLinks = normalizeRelatedLinks(task);
+                const haystack = normalizeSearchText([
+                    task.name,
+                    task.description,
+                    ...relatedLinks.map(link => link.name),
+                    ...relatedLinks.map(link => link.url),
+                ].join(" "));
+
+                return queryTokens.every(token => haystack.includes(token));
+            })
+            .slice(0, 12);
+    }, [searchQuery, tasks]);
+
+    const activeTaskDate = selectedTask?.date ? new Date(selectedTask.date) : null;
+    const hasSelectedDescription = !!selectedTask?.description?.trim();
+    const selectedRelatedLinks = selectedTask ? normalizeRelatedLinks(selectedTask) : [];
+    const hasSelectedRelatedLinks = selectedRelatedLinks.length > 0;
+    const previewDateText = activeTaskDate
+        ? new Intl.DateTimeFormat(getLocale(language), {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+        }).format(activeTaskDate).replaceAll(".", "")
+        : t(language, "taskMenuDateFallback");
+
+    if (loading) {
+        return <div className="min-h-screen bg-white px-5 py-8 text-2xl font-bold text-black">Loading...</div>;
+    }
+
+    if (!owner) {
+        return (
+            <div className="min-h-screen bg-white px-5 py-8 text-xl font-semibold text-black">
+                {t(language, "publicAgendaUnavailable")}
+            </div>
+        );
+    }
+
+    const monthName = new Intl.DateTimeFormat(getLocale(language), { month: "long" }).format(shiftedDate);
+
+    return (
+        <div
+            className="min-w-screen min-h-screen bg-white text-black"
+            style={{
+                '--agenda-accent': agendaAccent,
+                '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'rgba(59, 130, 246, 0.2)',
+            }}
+        >
+            <header className="max-container flex items-center justify-between gap-6 bg-white px-4 py-4 lg:px-5 lg:py-5">
+                <div className="relative" ref={calendarRef}>
+                    <button
+                        type="button"
+                        className="header-month-trigger text-[36px] font-bold leading-[42px] tracking-[-0.5px] capitalize text-black"
+                        onClick={() => setIsCalendarOpen(prev => !prev)}
+                        aria-label={t(language, "changeTaskDate")}
+                        aria-expanded={isCalendarOpen}
+                    >
+                        <span>{monthName} {shiftedDate.getFullYear()}</span>
+                    </button>
+
+                    {isCalendarOpen && (
+                        <div className="task-menu-calendar header-month-calendar" onClick={ev => ev.stopPropagation()}>
+                            <div className="task-menu-calendar-header">
+                                <button
+                                    type="button"
+                                    className="task-menu-calendar-nav"
+                                    onClick={() => changeCalendarMonth(-1)}
+                                    aria-label={t(language, "previousMonth")}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <p className="task-menu-calendar-title">{calendarTitle}</p>
+                                <button
+                                    type="button"
+                                    className="task-menu-calendar-nav"
+                                    onClick={() => changeCalendarMonth(1)}
+                                    aria-label={t(language, "nextMonth")}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <div className="task-menu-calendar-weekdays">
+                                {weekdayLabels.map((label, index) => (
+                                    <span key={`${label}-${index}`}>{label}</span>
+                                ))}
+                            </div>
+                            <div className="task-menu-calendar-grid">
+                                {calendarDays.map(dayItem => (
+                                    <button
+                                        key={dayItem.key}
+                                        type="button"
+                                        className={[
+                                            "task-menu-calendar-day",
+                                            dayItem.inCurrentMonth ? "" : "is-outside-month",
+                                            dayItem.isToday ? "is-selected" : "",
+                                            dayItem.hasTasks ? "has-tasks" : "",
+                                        ].filter(Boolean).join(" ")}
+                                        onClick={() => handleCalendarDaySelect(dayItem.date)}
+                                    >
+                                        {dayItem.date.getDate()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-sm font-semibold"
+                        title={t(language, "publicAgendaBy")}
+                    >
+                        {isImageAvatar((agenda?.avatar || "").trim()) ? (
+                            <img src={agenda.avatar} alt={agenda?.name || "Agenda"} className="h-full w-full object-cover" />
+                        ) : (
+                            (agenda?.name || owner.name || "U").trim().slice(0, 1).toUpperCase()
+                        )}
+                    </button>
+                    <div className="relative group/public-search">
+                        <button
+                            type="button"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black"
+                            onClick={openSearchModal}
+                            title={t(language, "search")}
+                        >
+                            <SearchMd className="h-[18px] w-[18px] lg:h-5 lg:w-5" />
+                        </button>
+                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
+                            {t(language, "search")}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
+                        onClick={() => moveWeek(-1)}
+                    >
+                        <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
+                    </button>
+                    <button
+                        type="button"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
+                        onClick={() => moveWeek(1)}
+                    >
+                        <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />
+                    </button>
+                </div>
+            </header>
+
+            <main className="w-full px-4 pb-6 pt-4 lg:grid lg:grid-cols-6 lg:gap-6 lg:px-5 lg:pt-10">
+                {dates.slice(0, 5).map((date, index) => {
+                    const dateKey = formDate(date);
+                    const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
+                    const label = language === "ptBR"
+                        ? dayText.replace("-feira", "").replace(/^./, c => c.toUpperCase())
+                        : dayText;
+                    const active = formDate(new Date()) === dateKey;
+
+                    return (
+                        <div className="min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
+                            <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
+                                <h2 className={`text-[21px] font-bold leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                    {formatDayMonth(date, language, dateFormat)}
+                                </h2>
+                                <h3 className={`text-[21px] font-normal leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                    {label}
+                                </h3>
+                            </div>
+
+                            {tasksData[dateKey].map(task => (
+                                <button
+                                    type="button"
+                                    className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
+                                    key={task.id}
+                                    onClick={() => openTaskPreview(task)}
+                                >
+                                    <div className="task flex h-[41px] items-center justify-between px-0">
+                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                    </div>
+                                </button>
+                            ))}
+
+                            {Array.from({ length: Math.max(0, 10 - tasksData[dateKey].length) }).map((_, emptyIndex) => (
+                                <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
+                            ))}
+                        </div>
+                    );
+                })}
+
+                <div className="mt-6 min-w-0 flex flex-col gap-[30px] lg:mt-0">
+                    {dates.slice(5).map((date, index) => {
+                        const dateKey = formDate(date);
+                        const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
+                        const label = language === "ptBR"
+                            ? dayText.replace("-feira", "").replace(/^./, c => c.toUpperCase())
+                            : dayText;
+                        const active = formDate(new Date()) === dateKey;
+
+                        return (
+                            <div className="min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
+                                <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
+                                    <h2 className={`text-[21px] font-bold leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                        {formatDayMonth(date, language, dateFormat)}
+                                    </h2>
+                                    <h3 className={`text-[21px] font-normal leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                        {label}
+                                    </h3>
+                                </div>
+
+                                {tasksData[dateKey].map(task => (
+                                    <button
+                                        type="button"
+                                        className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
+                                        key={task.id}
+                                        onClick={() => openTaskPreview(task)}
+                                    >
+                                        <div className="task flex h-[41px] items-center justify-between px-0">
+                                            {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                        </div>
+                                    </button>
+                                ))}
+
+                                {Array.from({ length: Math.max(0, 4 - tasksData[dateKey].length) }).map((_, emptyIndex) => (
+                                    <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
+                                ))}
+                            </div>
+                        );
+                    })}
+                </div>
+            </main>
+
+            {isTaskPreviewOpen && selectedTask && (
+                <div
+                    className={`fixed inset-0 z-20 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pb-10 pt-6 transition-opacity duration-200 ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    onClick={closeTaskPreview}
+                >
+                    <div
+                        className={`task-menu task-menu-panel relative top-14 mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#dfe2ff] px-6 py-7 text-gray-700 shadow-lg transition-all duration-200 ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        onClick={ev => ev.stopPropagation()}
+                    >
+                        <div className="mb-6 flex w-full items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-black">
+                                <Calendar className="h-4 w-4" />
+                                <p>{previewDateText}</p>
+                            </div>
+                            <div className="relative group/public-close">
+                                <button
+                                    type="button"
+                                    onClick={closeTaskPreview}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition-colors duration-150 hover:bg-[rgba(255,255,255,0.45)]"
+                                    aria-label="Fechar"
+                                    title="Fechar"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                                <p className="absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-close:opacity-100">
+                                    Fechar
+                                </p>
+                            </div>
+                        </div>
+
+                        <h3 className={`task-menu-title w-full border-b border-[#aeb5dd] pb-4 pr-10 text-[24px] leading-[1.3] text-black ${selectedTask.done ? "text-black/40" : ""}`}>
+                            {selectedTask.name}
+                        </h3>
+
+                        {hasSelectedDescription && (
+                            <div
+                                className="task-menu-editor mt-5"
+                                dangerouslySetInnerHTML={{ __html: marked.parse(selectedTask.description || "").replace(/<a href="#task:([^"]+)">/g, '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">') }}
+                            />
+                        )}
+
+                        {hasSelectedRelatedLinks && (
+                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-[#aeb5dd]" : "mt-3"}`}>
+                                <h4 className="text-sm font-semibold text-black">{t(language, "relatedLinks")}</h4>
+                                <ul className="mt-4 max-h-32 space-y-2 overflow-auto pr-1">
+                                    {selectedRelatedLinks.map((link, index) => (
+                                        <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[#edf0ff] px-4 py-3">
+                                            <a
+                                                href={normalizeLinkUrl(link.url)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex min-w-0 items-center justify-between gap-2"
+                                                title={normalizeLinkUrl(link.url)}
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-medium text-black">{link.name || normalizeLinkUrl(link.url)}</p>
+                                                    <p className="truncate text-xs text-[#4b5688]">{link.url}</p>
+                                                </div>
+                                                <LinkExternal01 className="h-4 w-4 shrink-0 text-[#4b5688]" />
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </section>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {isSearchOpen && (
+                <div
+                    className={`fixed inset-0 z-30 flex items-start justify-center bg-black/20 px-4 pb-10 pt-6 transition-opacity duration-200 ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    onClick={closeSearchModal}
+                >
+                    <div
+                        className={`search-form relative top-14 z-20 w-[28rem] rounded-xl bg-white p-4 text-gray-600 transition-all duration-200 ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        onClick={ev => ev.stopPropagation()}
+                    >
+                        <h3 className="text-xl font-bold tracking-tight text-black">{t(language, "search")}</h3>
+
+                        <div className="relative">
+                            <input
+                                className="my-6 w-full border-b border-[rgba(0,0,0,0.15)] py-1 text-black focus:outline-none"
+                                type="text"
+                                autoFocus
+                                value={searchQuery}
+                                onChange={ev => setSearchQuery(ev.target.value)}
+                            />
+
+                            <button
+                                type="button"
+                                className={`absolute right-2 top-10 -translate-y-[50%] ${searchQuery ? "" : "hidden"}`}
+                                onClick={() => setSearchQuery("")}
+                            >
+                                <XCircle className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="search-results">
+                            {filteredSearchTasks.map(task => (
+                                <button
+                                    key={task.id}
+                                    type="button"
+                                    className="group w-full border-b border-gray-300 text-left"
+                                    onClick={() => openTaskFromSearch(task)}
+                                >
+                                    <div className="task flex h-[41px] items-center justify-between px-0">
+                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                        <p className="ml-4 shrink-0 text-gray-400">{formatDayMonth(new Date(task.date), language, dateFormat)}</p>
+                                    </div>
+                                </button>
+                            ))}
+
+                            {!!searchQuery.trim() && filteredSearchTasks.length === 0 && (
+                                <p className="py-2 text-sm text-gray-400">
+                                    {language === "ptBR" ? "Nenhuma tarefa encontrada." : "No tasks found."}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

@@ -1,8 +1,11 @@
-import { Form, redirect, useActionData } from "react-router-dom";
+import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
 import Blur from "../Blur.jsx";
+import React from "react";
 
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { useState } from "react";
+import { Moon02, Check, Trash03, ChevronDown } from "@untitledui/icons";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
+import { closeForm, openForm } from "../../scripts/utils.js";
 
 export const action = (AuthContext) => async ({ request }) => {
     const formData = await request.formData();
@@ -13,6 +16,9 @@ export const action = (AuthContext) => async ({ request }) => {
     const password = formData.get("password");
     const passwordConfirm = formData.get("confirmPassword");
     const darkMode = formData.get("dark-mode") === "on";
+    const language = formData.get("language") || "ptBR";
+    const dateFormat = formData.get("date-format") || "DD-MM";
+    const weekStartsOn = formData.get("week-starts-on") || "Monday";
 
     if (password && password.length < 6) {
         return "Password must be at least 6 characters";
@@ -22,72 +28,189 @@ export const action = (AuthContext) => async ({ request }) => {
         return "Passwords don't match";
     }
 
-    await updateUser(email, password, { name, darkMode });
+    await updateUser(email, password, { name, darkMode, language, dateFormat, weekStartsOn });
     return redirect("/");
 };
 
 export default function UpdateUserForm() {
     const errorMessage = useActionData();
-    const { currentUser } = useAuth();
-    const [dataChanged, setDataChanged] = useState();
+    const navigation = useNavigation();
+    const { currentUser, deleteAccount } = useAuth();
+    const language = getAppLanguage(currentUser?.language);
 
-    function closeBlur() {
-        const blur = document.querySelector('[data-id="update-user-form"]');
-        if (!blur) return;
-        blur.classList.remove("active");
+    const initialFormValues = React.useMemo(() => ({
+        name: currentUser?.name || "",
+        email: currentUser?.email || "",
+        password: "",
+        confirmPassword: "",
+        darkMode: !!currentUser?.darkMode,
+        dateFormat: currentUser?.dateFormat || "DD-MM",
+        weekStartsOn: currentUser?.weekStartsOn || "Monday",
+        language: currentUser?.language || "ptBR",
+    }), [
+        currentUser?.name,
+        currentUser?.email,
+        currentUser?.darkMode,
+        currentUser?.dateFormat,
+        currentUser?.weekStartsOn,
+        currentUser?.language,
+    ]);
+
+    const [formValues, setFormValues] = React.useState(initialFormValues);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = React.useState(false);
+    const [deleteAccountError, setDeleteAccountError] = React.useState("");
+    const deleteModalRef = React.useRef(null);
+    const wasSubmittingRef = React.useRef(false);
+
+    React.useEffect(() => {
+        setFormValues(initialFormValues);
+    }, [initialFormValues]);
+
+    React.useEffect(() => {
+        if (!isDeleteModalOpen || !deleteModalRef.current) return;
+
+        deleteModalRef.current.animate(
+            [
+                {
+                    top: "6rem",
+                    opacity: 0.5,
+                },
+                {
+                    top: "3.5rem",
+                    opacity: 1,
+                },
+            ],
+            {
+                duration: 300,
+                fill: "forwards",
+            }
+        );
+    }, [isDeleteModalOpen]);
+
+    React.useEffect(() => {
+        if (navigation.state === "submitting") {
+            wasSubmittingRef.current = true;
+            return;
+        }
+
+        if (wasSubmittingRef.current && navigation.state === "idle") {
+            const hasActionError = typeof errorMessage === "string" && errorMessage.length > 0;
+            if (!hasActionError) {
+                closeForm("update-user-form");
+            }
+            wasSubmittingRef.current = false;
+        }
+    }, [navigation.state, errorMessage]);
+
+    const hasChanges = React.useMemo(() => {
+        return (
+            formValues.name !== initialFormValues.name ||
+            formValues.email !== initialFormValues.email ||
+            formValues.darkMode !== initialFormValues.darkMode ||
+            formValues.dateFormat !== initialFormValues.dateFormat ||
+            formValues.weekStartsOn !== initialFormValues.weekStartsOn ||
+            formValues.language !== initialFormValues.language ||
+            formValues.password.length > 0 ||
+            formValues.confirmPassword.length > 0
+        );
+    }, [formValues, initialFormValues]);
+
+    function updateField(field, value) {
+        setFormValues(prev => ({
+            ...prev,
+            [field]: value,
+        }));
+    }
+
+    async function handleDeleteAccount() {
+        setIsDeletingAccount(true);
+        setDeleteAccountError("");
+
+        const result = await deleteAccount();
+        if (result?.type === "error") {
+            setDeleteAccountError(result.errorMessage || t(language, "deleteAccountError"));
+            setIsDeletingAccount(false);
+            return;
+        }
+
+        setIsDeletingAccount(false);
+    }
+
+    function openDeleteAccountModal() {
+        setDeleteAccountError("");
+        closeForm("update-user-form");
+        setIsDeleteModalOpen(true);
+    }
+
+    function closeDeleteAccountModal() {
+        if (isDeletingAccount) return;
+        setIsDeleteModalOpen(false);
+        setDeleteAccountError("");
+        requestAnimationFrame(() => openForm("update-user-form"));
     }
 
     return (
+        <>
+        {!isDeleteModalOpen && (
         <Blur type="update-user-form">
             <div
-                className="update-user-form relative top-10 bg-[#e5d7fa] top-10 rounded-xl p-4 lg:p-8 w-[28rem]
-                z-20 text-gray-600 transition-all duration-500 ease-linear"
+                className="update-user-form relative mb-20 w-[32rem] max-w-full z-20 bg-[#e5d7fa] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
-                <h3 className="font-bold text-xl tracking-tight">Account</h3>
+                <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "settingsTitle")}</h3>
 
                 {errorMessage && typeof errorMessage === "string" && (
-                    <h3 className="rounded-md px-2 text-sm bg-red-500 text-black py-3 my-1">
+                    <h3 className="mt-2 rounded-md px-3 py-2 text-sm bg-red-400 text-black">
                         {errorMessage}
                     </h3>
                 )}
 
-                <Form method="POST" className="relative" action="/update-user">
-                    <div className="w-full flex gap-3 items-center my-4 pb-2 px-2 border-b border-black">
-                        <i className="fa-solid fa-moon text-2xl"></i>
+                <Form method="POST" className="relative mt-6" action="/update-user">
+                    <div className="flex w-full items-center gap-3 rounded-[13px] bg-black px-4 py-4 text-white">
+                        <Moon02 className="h-7 w-7 text-white" />
                         <div className="flex-1">
-                            <p className="font-bold text-xs">Dark Mode</p>
-                            <p className="leading-4 text-sm">Switch interface to dark theme</p>
+                            <p className="text-sm font-bold text-white">{t(language, "darkMode")}</p>
+                            <p className="text-sm leading-4 text-white">{t(language, "darkModeDescription")}</p>
                         </div>
 
                         <button
                             type="button"
-                            className={`h-4 w-10 border border-black ${currentUser?.darkMode && "active"}
-                            rounded-full relative top-1 [&.active]:bg-black group/dark-mode`}
-                            onClick={ev => {
-                                ev.currentTarget.classList.toggle("active");
-                                document.getElementById("dark-mode").checked = ev.currentTarget.classList.contains("active");
-                                localStorage.setItem("theme", ev.currentTarget.classList.contains("active") ? "dark" : "light");
+                            className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
+                                formValues.darkMode
+                                    ? "bg-[#e5d7fa] border-[#e5d7fa]"
+                                    : "bg-black border-[#e5d7fa]"
+                            }`}
+                            onClick={() => {
+                                const next = !formValues.darkMode;
+                                updateField("darkMode", next);
+                                localStorage.setItem("theme", next ? "dark" : "light");
                             }}
                         >
-                            <div className="h-4 w-4 absolute rounded-full border border-black bg-black
-                            top-[-1px] left-0 group-[.active]/dark-mode:left-6 group-[.active]/dark-mode:bg-[#e5d7fa] flex justify-center items-center">
-                                <i className="fa-solid fa-check text-black text-xs"></i>
+                            <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
+                                formValues.darkMode
+                                    ? "translate-x-[20px] bg-black"
+                                    : "translate-x-0 bg-[#e5d7fa]"
+                            }`}>
+                                {formValues.darkMode && <Check className="h-3 w-3 text-[#e5d7fa]" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
 
-                    <input type="checkbox" defaultChecked={currentUser?.darkMode} name="dark-mode" id="dark-mode" className="hidden" />
+                    <input type="checkbox" checked={formValues.darkMode} name="dark-mode" id="dark-mode" className="hidden" readOnly />
                     <input type="text" defaultValue="update-user-form" name="form-id" id="form-id" className="hidden" />
+
+                    <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
 
                     <input
                         type="text"
                         id="name"
                         name="name"
                         required
-                        placeholder="Name"
-                        defaultValue={currentUser?.name}
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
+                        placeholder={t(language, "name")}
+                        value={formValues.name}
+                        onChange={ev => updateField("name", ev.target.value)}
+                        className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                     />
 
                     <input
@@ -95,46 +218,147 @@ export default function UpdateUserForm() {
                         id="email"
                         name="email"
                         required
-                        placeholder="Email"
-                        defaultValue={currentUser?.email}
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
+                        placeholder={t(language, "email")}
+                        value={formValues.email}
+                        onChange={ev => updateField("email", ev.target.value)}
+                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                     />
 
                     <input
                         type="password"
                         id="password"
                         name="password"
-                        placeholder="Password"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
+                        placeholder={t(language, "password")}
+                        value={formValues.password}
+                        onChange={ev => updateField("password", ev.target.value)}
+                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                     />
 
                     <input
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
-                        placeholder="Confirm Password"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
+                        placeholder={t(language, "confirmPassword")}
+                        value={formValues.confirmPassword}
+                        onChange={ev => updateField("confirmPassword", ev.target.value)}
+                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                     />
 
-                    <div className="w-full flex justify-between items-center">
+                    <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Configurações do sistema</h4>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="text-sm font-semibold text-black">
+                            {t(language, "dateFormat")}
+                            <div className="relative mt-4">
+                                <select
+                                    name="date-format"
+                                    value={formValues.dateFormat}
+                                    onChange={ev => updateField("dateFormat", ev.target.value)}
+                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                >
+                                    <option value="DD-MM">DD-MM</option>
+                                    <option value="MM-DD">MM-DD</option>
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                            </div>
+                        </label>
+
+                        <label className="text-sm font-semibold text-black">
+                            {t(language, "weekStartsOn")}
+                            <div className="relative mt-4">
+                                <select
+                                    name="week-starts-on"
+                                    value={formValues.weekStartsOn}
+                                    onChange={ev => updateField("weekStartsOn", ev.target.value)}
+                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                >
+                                    <option value="Monday">{t(language, "monday")}</option>
+                                    <option value="Sunday">{t(language, "sunday")}</option>
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                            </div>
+                        </label>
+                    </div>
+
+                    <label className="mt-4 block text-sm font-semibold text-black">
+                        {t(language, "language")}
+                        <div className="relative mt-4">
+                            <select
+                                name="language"
+                                value={formValues.language}
+                                onChange={ev => updateField("language", ev.target.value)}
+                                className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                            >
+                                <option value="ptBR">{t(language, "portugueseBrazil")}</option>
+                                <option value="enUS">{t(language, "english")}</option>
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                        </div>
+                    </label>
+
+                    <div className="mt-6 w-full flex justify-between items-center">
                         <button
                             type="submit"
-                            className="py-1 px-4 border border-black bg-gray-700 text-gray-100 rounded-full font-bold"
-                            onClick={closeBlur}
+                            disabled={!hasChanges}
+                            className="app-button-hover py-1.5 px-5 border border-black bg-black text-white rounded-full font-bold disabled:opacity-20"
                         >
-                            Save
+                            {t(language, "save")}
                         </button>
 
                         <button
                             type="button"
-                            className="my-2 py-1 rounded-full font-bold text-red-400"
-                            onClick={ev => ev.preventDefault()}
+                            className="app-button-hover my-2 rounded-full py-1 text-[14px] font-normal text-[#df535f]"
+                            onClick={openDeleteAccountModal}
                         >
-                            <i className="fa-regular fa-trash-can"></i> Delete account
+                            <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAccount")}
                         </button>
                     </div>
                 </Form>
             </div>
         </Blur>
+        )}
+
+        {isDeleteModalOpen && (
+            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-6 pb-10" onClick={closeDeleteAccountModal}>
+                <div
+                    ref={deleteModalRef}
+                    className="relative top-14 mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    onClick={ev => ev.stopPropagation()}
+                >
+                    <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
+                        {t(language, "deleteAccountConfirmTitle")}
+                    </h4>
+                    <p className="mt-3 text-base leading-7 text-black">
+                        {t(language, "deleteAccountConfirmMessage")}
+                    </p>
+
+                    {deleteAccountError && (
+                        <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                            {deleteAccountError}
+                        </p>
+                    )}
+
+                    <div className="mt-5 flex items-center gap-3">
+                        <button
+                            type="button"
+                            disabled={isDeletingAccount}
+                            onClick={handleDeleteAccount}
+                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-60"
+                        >
+                            {isDeletingAccount ? `${t(language, "confirmDeleteAccount")}...` : t(language, "confirmDeleteAccount")}
+                        </button>
+                        <button
+                            type="button"
+                            disabled={isDeletingAccount}
+                            onClick={closeDeleteAccountModal}
+                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-60"
+                        >
+                            {t(language, "cancel")}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }
