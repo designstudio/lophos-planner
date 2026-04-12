@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import { formTransition } from "../../scripts/utils.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
 
 export default function LoginForm() {
-    const { login } = useAuth();
+    const { login, currentUser } = useAuth();
+    const language = getAppLanguage(currentUser?.language);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const errorMessageFromUrl = searchParams.get("errorMessage");
@@ -31,14 +33,14 @@ export default function LoginForm() {
             console.log("[LOGIN FORM] submit result", res);
 
             if (res?.type === "error") {
-                setErrorMessage(res.errorMessage || "Unable to login.");
+                setErrorMessage(res.errorMessage || t(language, "login"));
                 return;
             }
 
             window.location.href = "/";
         } catch (err) {
             console.error("[LOGIN FORM] submit error", err);
-            setErrorMessage(err.message || "Unexpected login error.");
+            setErrorMessage(err.message || t(language, "login"));
         } finally {
             setIsSubmitting(false);
         }
@@ -47,62 +49,65 @@ export default function LoginForm() {
     return (
         <Blur type="login-form">
             <div
-                className="login-form relative top-10 bg-[#f8e8e2] rounded-xl p-4 lg:p-8 w-[28rem]
-                z-20 text-gray-600 transition-all duration-500 ease-linear"
+                className="login-form relative top-4 task-menu w-[28rem] z-20 bg-stone-50 dark:bg-gray-800 rounded-xl p-6 shadow-lg"
                 onClick={ev => ev.stopPropagation()}
             >
-                <div className="w-full flex justify-between items-center mb-12">
-                    <h3 className="font-bold text-xl tracking-tight">Hello, welcome back!</h3>
+                <div className="w-full flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, "welcomeBack")}</h3>
                     <button
                         type="button"
-                        className="border rounded-full border-gray-700 px-3 py-1 font-bold text-sm"
+                        className="btn btn-secondary text-sm"
                         onClick={() => formTransition("login-form", "signup-form")}
                     >
-                        Sign Up
+                        {t(language, "signUp")}
                     </button>
                 </div>
 
                 {errorMessage && (
-                    <h3 className="rounded-md px-2 text-sm bg-red-500 text-black py-3 my-1">
+                    <div className="rounded-lg px-4 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 py-4 mb-4 border border-red-300 dark:border-red-700">
                         {errorMessage}
-                    </h3>
+                    </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="relative">
+                <form onSubmit={handleSubmit} className="relative space-y-4">
                     <input type="text" defaultValue="login-form" name="form-id" id="form-id" className="hidden" />
 
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        placeholder="Email"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            placeholder={t(language, "emailAddress")}
+                            className="input-base"
+                        />
+                    </div>
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        required
-                        placeholder="Password"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            placeholder={t(language, "password")}
+                            className="input-base"
+                        />
+                    </div>
 
                     <button
                         type="button"
-                        className="text-gray-400 w-full text-right"
+                        className="text-blue-600 dark:text-blue-400 w-full text-right text-sm hover:underline"
                         onClick={() => formTransition("login-form", "reset-password-form")}
                     >
-                        Forgot password?
+                        {t(language, "forgotPassword")}
                     </button>
 
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold disabled:opacity-60"
+                        className="btn btn-primary w-full mt-4"
                     >
-                        {isSubmitting ? "Logging in..." : "Let me in"}
+                        {isSubmitting ? t(language, "loggingIn") : t(language, "letMeIn")}
                     </button>
                 </form>
             </div>

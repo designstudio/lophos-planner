@@ -4,48 +4,74 @@ import {useAuth} from "../../contexts/AuthContext.jsx";
 import {createTask, tryCatchDecorator} from "../../scripts/api.js";
 import {ReactSortable} from "react-sortablejs";
 import {Form} from "react-router-dom";
-import {formDate} from "../../scripts/utils.js";
+import {formDate, toInputDateValue} from "../../scripts/utils.js";
+import { formatDayMonth, getAppLanguage, getLocale } from "../../scripts/i18n.js";
 
-const TaskList = ({date, active, last, maxTasks, tasksData, ind, reorderTasks}) => {
-
-    // TODO: implement sorting tasks between task lists by dragging them
-
-    const getDate = date => {
-        let day = date.getDate().toString(), month = (date.getMonth() + 1).toString();
-        if (day.length < 2) day = "0" + day;
-        if (month.length < 2) month = "0" + month;
-        return `${day}.${month}`;
-    }
-
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const day = days[date.getDay()];
-
+const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn}) => {
 
     const {currentUser} = useAuth();
+    const language = getAppLanguage(currentUser?.language);
+    const dateFormat = currentUser?.dateFormat || "DD-MM";
+    const [isDragOver, setIsDragOver] = React.useState(false);
+
+    const getDate = date => formatDayMonth(date, language, dateFormat);
+
+    const rawDay = new Intl.DateTimeFormat(getLocale(language), {
+        weekday: "long",
+    }).format(date);
+    const day = language === "ptBR"
+        ? rawDay.replace("-feira", "").replace(/^./, chr => chr.toUpperCase())
+        : rawDay;
 
     function handleClick(ev) {
         const thisTaskList = document.querySelector(`.task-list[data-date="${date.getDate()}"]`);
-        console.log(thisTaskList, thisTaskList.querySelector('.add-task'));
-
         const firstInput = thisTaskList.querySelector('.add-task #add-task-name');
         firstInput.focus();
+    }
+
+    function handleDragOver(ev) {
+        const taskId = ev.dataTransfer?.getData("text/plain");
+        if (!taskId) return;
+        ev.preventDefault();
+        setIsDragOver(true);
+    }
+
+    function handleDragLeave(ev) {
+        if (!ev.currentTarget.contains(ev.relatedTarget)) {
+            setIsDragOver(false);
+        }
+    }
+
+    async function handleDrop(ev) {
+        const taskId = ev.dataTransfer?.getData("text/plain");
+        setIsDragOver(false);
+        if (!taskId) return;
+
+        ev.preventDefault();
+        await moveTaskToColumn(taskId, ind)();
     }
 
     async function handleFocusOut(ev) {
         if (!ev.target.value) return;
         if (currentUser) {
             const formData = new FormData(ev.target.parentElement);
-            console.log("creating new task on blur", formData.get("add-task-name"));
             ev.target.value = "";
-            await tryCatchDecorator(createTask)({
+            const result = await tryCatchDecorator(createTask)({
                 name: formData.get("add-task-name"),
                 color: "white text-black dark:text-white dark:bg-black",
                 date: formDate(date),
                 uid: currentUser.uid,
+                agenda_id: currentUser.currentAgendaId,
                 done: false,
+                related_links: [],
                 order: tasksData.length,
             });
+
+            if (result.success && result.data) {
+                window.dispatchEvent(new CustomEvent("task-created", {
+                    detail: { task: result.data },
+                }));
+            }
         }
     }
 
@@ -56,20 +82,26 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, reorderTasks}) 
             if (curInput.value) {
                 if (currentUser) {
                     const formData = new FormData(curInput.parentElement);
-                    console.log("creating new task on keydown", formData.get("add-task-name"), formDate(date));
                     curInput.value = "";
-                    await tryCatchDecorator(createTask)({
+                    const result = await tryCatchDecorator(createTask)({
                         name: formData.get("add-task-name"),
                         color: "white text-black dark:text-white dark:bg-black",
                         date: formDate(date),
                         uid: currentUser.uid,
+                        agenda_id: currentUser.currentAgendaId,
                         done: false,
+                        related_links: [],
                         order: tasksData.length,
                     });
+
+                    if (result.success && result.data) {
+                        window.dispatchEvent(new CustomEvent("task-created", {
+                            detail: { task: result.data },
+                        }));
+                    }
                 } else {
                     const thisTaskList = curInput.parentElement.parentElement.parentElement;
                     if (thisTaskList.dataset.date == date.getDate()) {
-                        console.log(curInput.value)
                         const newTask = curInput.value
                     }
                     curInput.value = '';
@@ -86,9 +118,9 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, reorderTasks}) 
                                    tasksCol={tasksData.length}
                                    ind={i}/>);
     }
-    for (let i = 0; i < Math.max(0, (last ? maxTasks / 2 : maxTasks) - 1 - tasksData.length); ++i) {
+    for (let i = 0; i < Math.max(0, (last ? (maxTasks / 2) - 1 : maxTasks) - 1 - tasksData.length); ++i) {
         emptyComponents.push(
-            <div className="empty-task w-full py-2 border-b-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-black"
+            <div className="empty-task task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black"
                  key={i}
                  onClick={handleClick}>
                 <p className="opacity-0 cursor-default" onClick={handleClick}>sdasdfsdlk</p>
@@ -97,18 +129,38 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, reorderTasks}) 
     }
 
     return (
-        <div className="task-list flex flex-1 flex-col" data-date={date.getDate()}
+        <div className={`task-list flex flex-1 flex-col ${isDragOver ? "agenda-accent-soft-bg" : ""}`} data-date={date.getDate()} data-list-index={ind} data-date-key={formDate(date)}
+             onDragOver={handleDragOver}
+             onDragEnter={handleDragOver}
+             onDragLeave={handleDragLeave}
+             onDrop={handleDrop}
              onKeyDown={handleKeyDown}>
             <div
-                className={`flex justify-between items-center py-3 border-b-2 
-                ${active ? "border-blue-600" : "border-black dark:border-white"}`}>
-                <h2 className={`text-lg lg:text-xl font-bold  ${active ? "text-blue-600" : "text-gray-600"}`}>{getDate(date)}</h2>
-                <h3 className={`text-lg lg:text-xl ${active ? "text-blue-300" : "text-gray-300"}`}>{day.slice(0, 3)}</h3>
+                className={`flex justify-between items-center py-3 border-b-2
+                ${active ? "agenda-accent-border" : "border-black dark:border-white"}`}
+                style={active ? { borderColor: 'var(--agenda-accent)' } : undefined}
+            >
+                <h2
+                    className={`text-[21px] font-bold leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black dark:text-white"}`}
+                    style={active ? { color: 'var(--agenda-accent)' } : undefined}
+                >
+                    {getDate(date)}
+                </h2>
+                <h3
+                    className={`text-[21px] font-normal leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black dark:text-white opacity-20"}`}
+                    style={active ? { color: 'var(--agenda-accent)' } : undefined}
+                >
+                    {day}
+                </h3>
             </div>
 
-            <ReactSortable list={tasksData} setList={() => null}
-                           onUpdate={reorderTasks}
-                           onChoose={ev => console.log(ev.oldIndex < tasksData.length)}
+            <ReactSortable list={tasksData} setList={nextList => updateColumnTasks(ind, nextList)}
+                           group={{ name: "tasks", pull: true, put: true }}
+                           onEnd={ev => {
+                               const fromListInd = Number(ev.from.closest(".task-list")?.dataset.listIndex);
+                               const toListInd = Number(ev.to.closest(".task-list")?.dataset.listIndex);
+                               persistColumns([fromListInd, toListInd])();
+                           }}
                            ghostClass="sortable-ghost"
                            chosenClass="sortable-chosen"
                            dragClass="sortable-drag"
@@ -120,15 +172,13 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, reorderTasks}) 
                 <input type="text"
                        name="add-task-name"
                        id="add-task-name"
-                       className="w-full border-b dark:bg-black
-                       focus:outline-none focus:px-1.5 focus:shadow-lg focus:border dark:focus:border-none dark:focus:bg-stone-800
-                       py-2 indent-1.5 focus:rounded-md border-gray-300 dark:border-gray-700 focus:z-5"
+                     className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[14px] text-black outline-none transition-colors duration-150 dark:bg-transparent dark:text-white"
                        onBlur={handleFocusOut}
                 />
                 <input type="text" defaultValue="add-task-form" name="form-id" id="form-id" className="hidden"/>
 
 
-                <input type="date" defaultValue={date.toISOString().split("T")[0]} className="hidden" name="task-date"
+                <input type="date" defaultValue={toInputDateValue(date)} className="hidden" name="task-date"
                        id="task-date"/>
             </Form>
             {emptyComponents}

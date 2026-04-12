@@ -1,6 +1,8 @@
 import { Form, redirect, useSearchParams } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import { formTransition } from "../../scripts/utils.js";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
 
 export const action = (AuthContext) => async ({ request }) => {
     const formData = await request.formData();
@@ -11,12 +13,14 @@ export const action = (AuthContext) => async ({ request }) => {
     const passwordConfirm = formData.get("confirmPassword");
     const password = formData.get("password");
 
+    const language = formData.get("language") || "ptBR";
+
     if (password && password.length < 6) {
-        return redirect("/?errorMessage=Password must be at least 6 characters");
+        return redirect(`/?errorMessage=${encodeURIComponent(t(language, "passwordMinError"))}`);
     }
 
     if (passwordConfirm !== password) {
-        return redirect("/?errorMessage=Passwords don't match");
+        return redirect(`/?errorMessage=${encodeURIComponent(t(language, "passwordsDontMatch"))}`);
     }
 
     const result = await signup({ email, password, name });
@@ -30,82 +34,91 @@ export const action = (AuthContext) => async ({ request }) => {
 };
 
 export default function SignUpForm() {
+    const { currentUser } = useAuth();
+    const language = getAppLanguage(currentUser?.language);
     const [searchParams] = useSearchParams();
     const errorMessage = searchParams.get("errorMessage");
 
     return (
         <Blur type="signup-form">
             <div
-                className="signup-form relative top-10 bg-[#f8e8e2] rounded-xl p-4 lg:p-8 w-[28rem] max-w-screen-sm
-                z-20 text-gray-600 transition-all duration-500 ease-linear"
+                className="signup-form relative top-4 w-[28rem] max-w-screen-sm z-20 bg-stone-50 dark:bg-gray-800 rounded-xl p-6 shadow-lg text-gray-700 dark:text-gray-300"
                 onClick={ev => ev.stopPropagation()}
             >
-                <div className="w-full flex justify-between items-center mb-12">
-                    <h3 className="font-bold text-lg">Hello, nice to meet you!</h3>
+                <div className="w-full flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, "welcome")}</h3>
                     <button
                         type="button"
-                        className="border rounded-full border-gray-700 px-3 py-1 font-bold text-sm"
+                        className="btn btn-secondary text-sm"
                         onClick={() => formTransition("signup-form", "login-form")}
                     >
-                        Log in
+                        {t(language, "logIn")}
                     </button>
                 </div>
 
                 {errorMessage && (
-                    <h3 className="rounded-md px-2 text-sm bg-red-500 text-black py-3 my-1">
+                    <div className="rounded-lg px-4 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 py-4 mb-4 border border-red-300 dark:border-red-700">
                         {errorMessage}
-                    </h3>
+                    </div>
                 )}
 
-                <Form method="POST" className="relative" action="/signup">
+                <Form method="POST" className="relative space-y-4" action="/signup">
                     <input type="text" defaultValue="signup-form" name="form-id" id="form-id" className="hidden" />
+                    <input type="hidden" name="language" value={language} />
 
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        required
-                        placeholder="Name"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            required
+                            placeholder={t(language, "fullName")}
+                            className="input-base"
+                        />
+                    </div>
 
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        placeholder="Email"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            placeholder={t(language, "emailAddress")}
+                            className="input-base"
+                        />
+                    </div>
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        required
-                        placeholder="Password"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            placeholder={t(language, "passwordMin")}
+                            className="input-base"
+                        />
+                    </div>
 
-                    <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        required
-                        placeholder="Confirm Password"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            required
+                            placeholder={t(language, "confirmPassword")}
+                            className="input-base"
+                        />
+                    </div>
 
-                    <p className="text-xs text-gray-400">
-                        By proceeding, you agree to the Terms and Conditions & Privacy and Cookies Policy.
-                        (I don't have ones so you don't have to ;) )
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {t(language, "termsText")}
                     </p>
 
                     <button
                         type="submit"
-                        className="w-full my-2 py-1 border border-black bg-gray-700 text-gray-100 rounded-full font-bold"
+                        className="btn btn-primary w-full mt-4"
                     >
-                        Create account
+                        {t(language, "createAccount")}
                     </button>
                 </Form>
             </div>

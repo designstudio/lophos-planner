@@ -1,6 +1,8 @@
 import { Form, redirect, useActionData } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import { formTransition } from "../../scripts/utils.js";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
 
 export const action = (AuthContext) => async ({ request }) => {
     const { resetPassword } = AuthContext;
@@ -14,52 +16,55 @@ export const action = (AuthContext) => async ({ request }) => {
 
 export default function ResetPasswordForm() {
     const errorMessage = useActionData();
+    const { currentUser } = useAuth();
+    const language = getAppLanguage(currentUser?.language);
 
     return (
         <Blur type="reset-password-form">
             <div
-                className="task-menu relative top-26 bg-[#f8e8e2] rounded-xl p-4 lg:p-8 w-[28rem]
-                z-20 text-gray-600 transition-all duration-500 ease-linear"
+                className="task-menu relative top-4 w-[28rem] z-20 bg-stone-50 dark:bg-gray-800 rounded-xl p-6 shadow-lg text-gray-700 dark:text-gray-300"
                 onClick={ev => ev.stopPropagation()}
             >
-                <div className="w-full flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-xl tracking-tight">Forgot password?</h3>
+                <div className="w-full flex justify-between items-center mb-4">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, "resetPassword")}</h3>
                     <button
                         type="button"
-                        className="border rounded-full border-gray-700 px-3 py-1 font-bold text-sm"
+                        className="btn btn-secondary text-sm"
                         onClick={() => formTransition("reset-password-form", "login-form")}
                     >
-                        Log in
+                        {t(language, "back")}
                     </button>
                 </div>
 
-                <p className="mb-4 text-sm">
-                    Please enter your email to receive instructions on how to reset your password.
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    {t(language, "resetDescription")}
                 </p>
 
                 {errorMessage && typeof errorMessage === "string" && (
-                    <h3 className="rounded-md px-2 text-sm bg-red-500 text-black py-3 my-1">
+                    <div className="rounded-lg px-4 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 py-4 mb-4 border border-red-300 dark:border-red-700">
                         {errorMessage}
-                    </h3>
+                    </div>
                 )}
 
-                <Form method="POST" className="relative" action="/reset-password">
+                <Form method="POST" className="relative space-y-4" action="/reset-password">
                     <input type="text" defaultValue="login-form" name="form-id" id="form-id" className="hidden" />
 
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        placeholder="Email"
-                        className="w-full my-2 py-1 border-b border-gray-600 bg-transparent indent-1 focus:outline-none"
-                    />
+                    <div className="form-group">
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            required
+                            placeholder={t(language, "emailAddress")}
+                            className="input-base"
+                        />
+                    </div>
 
                     <button
                         type="submit"
-                        className="py-1 px-4 border border-black bg-gray-700 text-gray-100 rounded-full font-bold"
+                        className="btn btn-primary w-full"
                     >
-                        Send
+                        {t(language, "sendResetLink")}
                     </button>
                 </Form>
             </div>

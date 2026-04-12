@@ -27,12 +27,12 @@ export default function InvitePage() {
     const {currentUser} = useAuth();
 
     return (
-        <div className="invite fixed w-full h-full">
+        <div className="invite fixed inset-0 z-[80] h-full w-full pointer-events-none">
 
-            <div className="invite-blur bg-white bg-opacity-70 dark:bg-opacity-0 fixed top-0 left-0 h-full w-full z-15"
+            <div className="invite-blur bg-white bg-opacity-70 dark:bg-opacity-0 fixed top-0 left-0 h-full w-full z-[80]"
                  onClick={closeInvitePage}></div>
             <div className="invite-page fixed h-screen bg-[#dce1fd] w-[98%] mx-auto lg:w-[35rem] px-10 py-10 lg:top-0 top-2
-             lg:right-0 right-[1%] transition-all z-25">
+             lg:right-0 right-[1%] transition-all z-[90]">
                 <h1 className="text-3xl lg:text-5xl font-bold tracking-[-0.15rem] leading-[3.5rem]">
                     Tweek Calendar is a Minimal Weekly Planner & To-Do List App.</h1>
                 <div className="w-full border-b-2 border-black py-4 my-6 relative">

@@ -1,24 +1,42 @@
 import Blur from "../Blur.jsx";
 import React from "react";
-import { Form, useSubmit, useActionData } from "react-router-dom";
 import { getSearchedTasks } from "../../scripts/api.js";
 import SearchTask from "../tasks/SearchTask.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
+import { XCircle } from "@untitledui/icons";
 
 export default function SearchTaskForm() {
-    const submit = useSubmit();
-    const tasks = useActionData();
     const { currentUser } = useAuth();
+    const [tasks, setTasks] = React.useState([]);
 
-    function handleSearch(ev) {
-        if (ev.currentTarget.value) {
+    async function runSearch(query) {
+        if (!query || !currentUser?.uid || !currentUser?.currentAgendaId) {
+            setTasks([]);
+            return;
+        }
+
+        const results = await getSearchedTasks(currentUser.uid, currentUser.currentAgendaId, query);
+        setTasks(results || []);
+    }
+
+    function handleSearchChange(ev) {
+        const value = ev.currentTarget.value;
+
+        if (value) {
             const clearSearchBtn = document.querySelector(".clear-search");
             clearSearchBtn?.classList.remove("hidden");
         } else {
             document.querySelector(".clear-search")?.classList.add("hidden");
         }
 
-        submit(ev.currentTarget.parentElement, { method: "post", action: "/" });
+        runSearch(value.trim());
+    }
+
+    function clearSearch() {
+        const searchInput = document.getElementById("search-task-name");
+        if (searchInput) searchInput.value = "";
+        document.querySelector(".clear-search")?.classList.add("hidden");
+        setTasks([]);
     }
 
     return (
@@ -30,26 +48,23 @@ export default function SearchTaskForm() {
             >
                 <h3 className="font-bold text-xl tracking-tight">Search</h3>
 
-                <Form method="POST" className="relative">
+                <form className="relative" onSubmit={ev => ev.preventDefault()}>
                     <input
-                        className="my-6 border-b border-gray-500 w-full py-1 focus:outline-none focus:border-gray-400"
+                        className="text-field-border-bottom my-6 w-full py-1 focus:outline-none"
                         type="text"
                         name="search-task-name"
                         id="search-task-name"
-                        onChange={handleSearch}
+                        onChange={handleSearchChange}
                     />
 
                     <button
                         type="button"
                         className="clear-search absolute top-10 -translate-y-[50%] right-2 hidden"
-                        onClick={ev => {
-                            document.getElementById("search-task-name").value = "";
-                            ev.currentTarget.classList.add("hidden");
-                        }}
+                        onClick={clearSearch}
                     >
-                        <i className="fa-regular fa-circle-xmark"></i>
+                        <XCircle className="h-5 w-5" />
                     </button>
-                </Form>
+                </form>
 
                 <div className="search-results">
                     {Array.isArray(tasks) &&

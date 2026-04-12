@@ -1,27 +1,38 @@
-import { months } from "../../scripts/utils.js";
 import { Link } from "react-router-dom";
 import { closeForm } from "../../scripts/utils.js";
+import { toShortId } from "../../scripts/utils.js";
 import { ALLOWED_COLORS } from "./TaskMenuColorPicker.jsx";
+import { StickerSquare } from "@untitledui/icons";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import { formatDayMonth, getAppLanguage } from "../../scripts/i18n.js";
 
 export default function SearchTask({ data, date, }) {
-
-    const MAX_TASK_NAME_LENGTH = 20;
+    const MAX_TASK_NAME_LENGTH = 34;
+    const { currentUser } = useAuth();
+    const language = getAppLanguage(currentUser?.language);
+    const dateFormat = currentUser?.dateFormat || "DD-MM";
+    const weekStartsOn = currentUser?.weekStartsOn || "Monday";
 
     const taskDate = new Date(+date);
     const today = new Date();
     taskDate.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
-    const dayDiff = Math.floor((taskDate - today) / (1000 * 60 * 60 * 24));
-    const taskDayOfWeek = taskDate.getDay();
-    const todayDayOfWeek = today.getDay();
+
+    function getStartOfWeek(refDate) {
+        const start = new Date(refDate);
+        const weekStartIndex = weekStartsOn === "Sunday" ? 0 : 1;
+        const offset = (start.getDay() - weekStartIndex + 7) % 7;
+        start.setDate(start.getDate() - offset);
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }
 
 
     let searchParams;
-    let weekShift = Math.floor((dayDiff - todayDayOfWeek) / 7);
-    if (taskDayOfWeek <= todayDayOfWeek + 1) {
-        ++weekShift;
-    }
-    searchParams = `weekShift=${weekShift}&openedTask=${data.id}`;
+    const taskWeekStart = getStartOfWeek(taskDate);
+    const todayWeekStart = getStartOfWeek(today);
+    const weekShift = Math.round((taskWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
+    searchParams = `weekShift=${weekShift}&openedTask=${toShortId(data.id)}`;
 
     function handleClick(ev) {
         closeForm("search-form");
@@ -32,14 +43,13 @@ export default function SearchTask({ data, date, }) {
     // TODO: get week shift from task to current date
 
     return (
-        <Link to={`/?${searchParams}`}  className={`w-full border-b
-         border-gray-200 hover:border-gray-500 hover:border-b-0 group`} onClick={handleClick}>
-            <div className="task flex justify-between items-center py-2 px-3 cursor-pointer">
-                <h5 className={`task-title px-2 py-0.5 rounded-full text-sm bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}
-                >{ data.description && <i className="fa-regular fa-note-sticky"></i> } {data.name.slice(0, MAX_TASK_NAME_LENGTH) +
-                    (data.name.length > MAX_TASK_NAME_LENGTH ? "..." : "")}</h5>
+        <Link to={`/?${searchParams}`} className="group w-full border-b border-gray-300" onClick={handleClick}>
+            <div className="task flex justify-between items-center h-[41px] px-0 cursor-pointer">
+                <h5 className={`task-title min-w-0 flex-1 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}
+                >{ data.description && <StickerSquare className="h-4 w-4 shrink-0" /> } <span className="truncate">{data.name.slice(0, MAX_TASK_NAME_LENGTH) +
+                    (data.name.length > MAX_TASK_NAME_LENGTH ? "..." : "")}</span></h5>
                 <p className="text-gray-400">
-                    {`${date.getDate()} ${months[date.getMonth()].slice(0, 3)}.`}
+                    {formatDayMonth(date, language, dateFormat)}
                 </p>
 
             </div>

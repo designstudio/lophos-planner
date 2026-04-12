@@ -13,10 +13,9 @@ export default function TaskMenuProvider({ children }) {
         done: false,
         color: "",
         description: "",
+        relatedLinks: [],
         date: new Date(),
     });
-
-    console.log("In task provider", taskData);
 
     const value = {
         taskData,

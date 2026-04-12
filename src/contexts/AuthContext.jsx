@@ -1,6 +1,16 @@
 import React from 'react';
 import { supabase } from '../scripts/supabase.js';
-import { createUser, getCurrentUser, updateUserData } from '../scripts/api.js';
+import {
+    createUser,
+    getCurrentUser,
+    updateUserData,
+    deleteCurrentAccount,
+    ensureDefaultAgenda,
+    createAgenda as createAgendaApi,
+    updateAgendaName as updateAgendaNameApi,
+    setUserCurrentAgenda,
+    deleteAgenda as deleteAgendaApi,
+} from '../scripts/api.js';
 
 const AuthContext = React.createContext();
 
@@ -10,7 +20,10 @@ export function useAuth() {
 
 function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
+    const [agendas, setAgendas] = React.useState([]);
     const [isAuthReady, setIsAuthReady] = React.useState(false);
+    const loadedProfileIdRef = React.useRef(null);
+    const signOutTimerRef = React.useRef(null);
 
     function buildFallbackUser(sessionUser, profile = null) {
         if (!sessionUser) return null;
@@ -24,6 +37,10 @@ function AuthProvider({ children }) {
                 sessionUser.email?.split('@')[0] ??
                 'User',
             darkMode: profile?.darkMode ?? false,
+            language: profile?.language ?? 'ptBR',
+            dateFormat: profile?.dateFormat ?? 'DD-MM',
+            weekStartsOn: profile?.weekStartsOn ?? 'Monday',
+            currentAgendaId: profile?.currentAgendaId ?? null,
         };
     }
 
@@ -34,8 +51,6 @@ function AuthProvider({ children }) {
             const { data, error } = await supabase.auth.getSession();
             const sessionUser = data?.session?.user ?? null;
 
-            console.log('[AUTH] bootstrap getSession', { sessionUserId: sessionUser?.id ?? null, error });
-
             if (!mounted) return;
 
             if (sessionUser) {
@@ -44,23 +59,28 @@ function AuthProvider({ children }) {
                 setCurrentUser(fallbackUser);
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
+                localStorage.language = fallbackUser.language;
 
                 // Tenta enriquecer com o perfil público sem bloquear a UI
                 try {
                     const profile = await getCurrentUser(sessionUser.id);
-                    console.log('[AUTH] bootstrap profile', profile);
 
                     if (!mounted) return;
                     if (profile) {
+                        const ensured = await ensureDefaultAgenda(sessionUser.id, profile.currentAgendaId);
                         const mergedUser = buildFallbackUser(sessionUser, profile);
+                        mergedUser.currentAgendaId = ensured.currentAgendaId;
                         setCurrentUser(mergedUser);
+                        setAgendas(ensured.agendas);
                         localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
+                        localStorage.language = mergedUser.language;
                     }
                 } catch (err) {
                     console.error('[AUTH] bootstrap profile error', err);
                 }
             } else {
                 setCurrentUser(null);
+                setAgendas([]);
                 localStorage.isLoggedIn = 'false';
             }
 
@@ -71,52 +91,56 @@ function AuthProvider({ children }) {
 
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (event, session) => {
+        } = supabase.auth.onAuthStateChange((event, session) => {
             const sessionUser = session?.user ?? null;
-            console.log('[AUTH] onAuthStateChange', { event, sessionUserId: sessionUser?.id ?? null });
 
             if (sessionUser) {
-                const fallbackUser = buildFallbackUser(sessionUser);
                 if (!mounted) return;
 
-                // Libera a UI já
+                // Cancela sign-out pendente (Supabase v2 às vezes dispara SIGNED_OUT + SIGNED_IN no refresh de token)
+                if (signOutTimerRef.current) {
+                    clearTimeout(signOutTimerRef.current);
+                    signOutTimerRef.current = null;
+                }
+
+                if (loadedProfileIdRef.current === sessionUser.id) {
+                    setIsAuthReady(true);
+                    return;
+                }
+
+                loadedProfileIdRef.current = sessionUser.id;
+
+                const fallbackUser = buildFallbackUser(sessionUser);
                 setCurrentUser(fallbackUser);
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
-
-                // Tenta buscar perfil sem travar
-                try {
-                    const profile = await getCurrentUser(sessionUser.id);
-                    console.log('[AUTH] fetched profile from onAuthStateChange', profile);
-
-                    if (!mounted) return;
-                    if (profile) {
-                        const mergedUser = buildFallbackUser(sessionUser, profile);
-                        setCurrentUser(mergedUser);
-                        localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
-                    }
-                } catch (err) {
-                    console.error('[AUTH] onAuthStateChange profile error', err);
-                }
+                localStorage.language = fallbackUser.language;
+                setIsAuthReady(true);
+                // Fetch de perfil não feito aqui — bootstrapAuth e login() já cuidam disso
             } else {
                 if (!mounted) return;
-                setCurrentUser(null);
-                localStorage.isLoggedIn = 'false';
+                // Debounce: evita limpar o estado durante refresh de token (SIGNED_OUT seguido de SIGNED_IN)
+                signOutTimerRef.current = setTimeout(() => {
+                    if (!mounted) return;
+                    loadedProfileIdRef.current = null;
+                    setCurrentUser(null);
+                    setAgendas([]);
+                    localStorage.isLoggedIn = 'false';
+                    setIsAuthReady(true);
+                    signOutTimerRef.current = null;
+                }, 500);
             }
-
-            if (mounted) setIsAuthReady(true);
         });
 
         return () => {
             mounted = false;
             subscription.unsubscribe();
+            if (signOutTimerRef.current) clearTimeout(signOutTimerRef.current);
         };
     }, []);
 
     async function signup({ email, password, name }) {
         try {
-            console.log('[AUTH] signup start', { email, name });
-
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -126,8 +150,6 @@ function AuthProvider({ children }) {
             });
             if (error) throw error;
 
-            console.log('[AUTH] signup auth response', data);
-
             const sessionUser = data?.user;
             if (!sessionUser?.id) {
                 return { type: 'error', errorMessage: 'User was created without a valid id.' };
@@ -136,7 +158,6 @@ function AuthProvider({ children }) {
             // Tenta criar o perfil público, mas não bloqueia login
             try {
                 await createUser(sessionUser.id, { email, name });
-                console.log('[AUTH] profile row created');
             } catch (err) {
                 console.error('[AUTH] createUser error', err);
             }
@@ -145,11 +166,20 @@ function AuthProvider({ children }) {
                 email,
                 name,
                 darkMode: false,
+                language: 'ptBR',
+                dateFormat: 'DD-MM',
+                weekStartsOn: 'Monday',
+                currentAgendaId: null,
             });
 
+            const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
+            fallbackUser.currentAgendaId = ensured.currentAgendaId;
+
             setCurrentUser(fallbackUser);
+            setAgendas(ensured.agendas);
             localStorage.isLoggedIn = 'true';
             localStorage.theme = 'light';
+            localStorage.language = fallbackUser.language;
 
             return { type: 'success', data: fallbackUser };
         } catch (err) {
@@ -166,8 +196,6 @@ function AuthProvider({ children }) {
 
     async function login(email, password) {
         try {
-            console.log('[AUTH] login start', { email });
-
             const result = await Promise.race([
                 supabase.auth.signInWithPassword({ email, password }),
                 new Promise((_, reject) =>
@@ -178,27 +206,34 @@ function AuthProvider({ children }) {
             const { data, error } = result;
             if (error) throw error;
 
-            console.log('[AUTH] login auth response', data);
-
             const sessionUser = data?.user;
             if (!sessionUser?.id) {
                 return { type: 'error', errorMessage: 'Unable to retrieve authenticated user.' };
             }
 
             const fallbackUser = buildFallbackUser(sessionUser);
+
+            const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
+            fallbackUser.currentAgendaId = ensured.currentAgendaId;
+
             setCurrentUser(fallbackUser);
+            setAgendas(ensured.agendas);
             localStorage.isLoggedIn = 'true';
             localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
+            localStorage.language = fallbackUser.language;
 
             // Tenta enriquecer, mas não trava o login
             try {
                 const profile = await getCurrentUser(sessionUser.id);
-                console.log('[AUTH] profile after login', profile);
 
                 if (profile) {
+                    const ensuredFromProfile = await ensureDefaultAgenda(sessionUser.id, profile.currentAgendaId);
                     const mergedUser = buildFallbackUser(sessionUser, profile);
+                    mergedUser.currentAgendaId = ensuredFromProfile.currentAgendaId;
                     setCurrentUser(mergedUser);
+                    setAgendas(ensuredFromProfile.agendas);
                     localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
+                    localStorage.language = mergedUser.language;
                     return { type: 'success', data: mergedUser };
                 }
             } catch (err) {
@@ -213,9 +248,9 @@ function AuthProvider({ children }) {
     }
 
     async function logout() {
-        console.log('[AUTH] logout');
         await supabase.auth.signOut();
         setCurrentUser(null);
+        setAgendas([]);
         localStorage.isLoggedIn = 'false';
         localStorage.theme = 'light';
         return window.location.reload();
@@ -239,9 +274,13 @@ function AuthProvider({ children }) {
                 email,
                 name: data.name,
                 darkMode: data.darkMode,
+                language: data.language,
+                dateFormat: data.dateFormat,
+                weekStartsOn: data.weekStartsOn,
             }));
 
             localStorage.theme = data.darkMode ? 'dark' : 'light';
+            localStorage.language = data.language;
         } catch (err) {
             console.error('[AUTH] update user error', err);
             return err.message;
@@ -250,13 +289,97 @@ function AuthProvider({ children }) {
 
     async function resetPassword(email) {
         try {
-            console.log('[AUTH] reset password start', { email });
             const { error } = await supabase.auth.resetPasswordForEmail(email);
             if (error) throw error;
             return 'Check your inbox';
         } catch (err) {
             console.error('[AUTH] reset password error', err);
             return err.message;
+        }
+    }
+
+    async function deleteAccount() {
+        try {
+            if (!currentUser?.uid) {
+                return { type: 'error', errorMessage: 'User session not found.' };
+            }
+
+            await deleteCurrentAccount(currentUser.uid);
+            await supabase.auth.signOut();
+
+            setCurrentUser(null);
+            setAgendas([]);
+            localStorage.isLoggedIn = 'false';
+            localStorage.theme = 'light';
+            localStorage.language = 'ptBR';
+
+            window.location.href = '/';
+            return { type: 'success' };
+        } catch (err) {
+            console.error('[AUTH] delete account error', err);
+            return { type: 'error', errorMessage: err.message || 'Unable to delete account.' };
+        }
+    }
+
+    async function createAgenda(name, avatar = "", color = "#3b82f6") {
+        if (!currentUser?.uid) {
+            return { type: 'error', errorMessage: 'User session not found.' };
+        }
+
+        try {
+            const agenda = await createAgendaApi(currentUser.uid, name, { setAsCurrent: true, avatar, color });
+            const nextAgendas = [...agendas, agenda];
+            setAgendas(nextAgendas);
+            setCurrentUser(prev => ({
+                ...prev,
+                currentAgendaId: agenda.id,
+            }));
+            return { type: 'success', data: agenda };
+        } catch (err) {
+            return { type: 'error', errorMessage: err.message || 'Unable to create agenda.' };
+        }
+    }
+
+    async function switchAgenda(agendaId) {
+        if (!currentUser?.uid || !agendaId) return;
+        await setUserCurrentAgenda(currentUser.uid, agendaId);
+        setCurrentUser(prev => ({
+            ...prev,
+            currentAgendaId: agendaId,
+        }));
+    }
+
+    async function renameAgenda(agendaId, name, avatar = "", color = "#3b82f6", sortCompletedTasks = null) {
+        if (!currentUser?.uid || !agendaId) {
+            return { type: 'error', errorMessage: 'Agenda not found.' };
+        }
+
+        try {
+            const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks);
+            setAgendas(prev => prev.map(agenda => (
+                String(agenda.id) === String(updated.id) ? updated : agenda
+            )));
+            return { type: 'success', data: updated };
+        } catch (err) {
+            return { type: 'error', errorMessage: err.message || 'Unable to update agenda name.' };
+        }
+    }
+
+    async function deleteAgenda(agendaId) {
+        if (!currentUser?.uid || !agendaId) {
+            return { type: 'error', errorMessage: 'Agenda not found.' };
+        }
+
+        try {
+            const data = await deleteAgendaApi(currentUser.uid, agendaId);
+            setAgendas(data.agendas || []);
+            setCurrentUser(prev => ({
+                ...prev,
+                currentAgendaId: data.currentAgendaId,
+            }));
+            return { type: 'success', data };
+        } catch (err) {
+            return { type: 'error', errorMessage: err.message || 'Unable to delete agenda.' };
         }
     }
 
@@ -268,6 +391,12 @@ function AuthProvider({ children }) {
         logout,
         resetPassword,
         updateUser,
+        deleteAccount,
+        agendas,
+        createAgenda,
+        switchAgenda,
+        renameAgenda,
+        deleteAgenda,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
