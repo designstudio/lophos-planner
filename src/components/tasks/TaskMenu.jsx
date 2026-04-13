@@ -8,6 +8,7 @@ import { Heading01, Bold01, Italic01, Strikethrough01, Dotpoints01, Trash03, Cal
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import TurndownService from "turndown";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
@@ -34,12 +35,20 @@ function normalizeSearchText(text) {
         .trim();
 }
 
+function sanitizeTaskHtml(html) {
+    return DOMPurify.sanitize(html || "", {
+        USE_PROFILES: { html: true },
+        ADD_ATTR: ["class", "data-task-id", "contenteditable", "target", "rel"],
+    });
+}
+
 function renderTaskDescription(markdown) {
     const rawHtml = marked.parse(markdown || "");
-    return rawHtml.replace(
+    const htmlWithMentions = rawHtml.replace(
         /<a href="#task:([^"]+)">/g,
         '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">'
     );
+    return sanitizeTaskHtml(htmlWithMentions);
 }
 
 function startOfMonth(date) {
@@ -514,8 +523,8 @@ const TaskMenu = () => {
         if (!editorRef.current || !markdownInputRef.current) return;
 
         const previousMarkdown = markdownInputRef.current.value;
-        const html = editorRef.current.innerHTML;
-        const markdown = html === "<br>" ? "" : turndownService.turndown(html).trim();
+        const sanitizedHtml = sanitizeTaskHtml(editorRef.current.innerHTML);
+        const markdown = sanitizedHtml === "<br>" ? "" : turndownService.turndown(sanitizedHtml).trim();
         const linkedMarkdown = autoLinkMarkdownUrls(markdown);
 
         markdownInputRef.current.value = linkedMarkdown;
@@ -586,7 +595,7 @@ const TaskMenu = () => {
         ev.preventDefault();
 
         const markdown = html
-            ? turndownService.turndown(html).trim()
+            ? turndownService.turndown(sanitizeTaskHtml(html)).trim()
             : (text || "").trim();
 
         if (!markdown) return;

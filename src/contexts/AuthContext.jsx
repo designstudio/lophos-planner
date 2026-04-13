@@ -348,24 +348,6 @@ function AuthProvider({ children }) {
         }
     }
 
-    async function loginWithApple() {
-        try {
-            const redirectTo = `${window.location.origin}/`;
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'apple',
-                options: {
-                    redirectTo,
-                },
-            });
-
-            if (error) throw error;
-            return { type: 'success' };
-        } catch (err) {
-            console.error('[AUTH] loginWithApple error', err);
-            return { type: 'error', errorMessage: err.message || 'Unable to sign in with Apple.' };
-        }
-    }
-
     async function logout() {
         await supabase.auth.signOut();
         setCurrentUser(null);
@@ -445,7 +427,8 @@ function AuthProvider({ children }) {
 
     async function resetPassword(email) {
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email);
+            const redirectTo = `${window.location.origin}/`;
+            const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
             if (error) throw error;
             return 'Check your inbox';
         } catch (err) {
@@ -560,7 +543,6 @@ function AuthProvider({ children }) {
         signup,
         login,
         loginWithGoogle,
-        loginWithApple,
         logout,
         resetPassword,
         updateUser,
