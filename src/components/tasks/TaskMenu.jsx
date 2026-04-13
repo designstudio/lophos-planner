@@ -831,7 +831,7 @@ const TaskMenu = () => {
 
     return (
         <Blur type="task-menu">
-            <div className="task-menu task-menu-panel relative mb-20 w-[32rem] max-w-full z-20 text-gray-700 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg"
+            <div className="task-menu task-menu-panel relative mb-6 w-[32rem] max-w-full z-20 text-gray-700 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg"
                  onClick={ev => {
                      ev.stopPropagation();
                  }}>
@@ -919,7 +919,7 @@ const TaskMenu = () => {
                                       }));
                                       autoResizeTitle();
                                   }}
-                                  className={"task-menu-title w-full resize-none overflow-y-hidden border-b border-[rgba(0,0,0,0.15)] pr-12 pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
+                                  className={"task-menu-title w-full resize-none overflow-y-hidden pr-12 pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
                                       + ((done && "text-black/40") || '')}
                         />
                         <button type="button" className="absolute right-0 top-0 text-black transition-colors duration-200 hover:text-black/70"
@@ -936,7 +936,7 @@ const TaskMenu = () => {
 
                         </button>
                         <div ref={toolbarSentinelRef} className="task-menu-toolbar-sentinel" aria-hidden="true" />
-                        <div ref={toolbarRef} className={`task-menu-toolbar mt-4 ${isToolbarSticky ? "is-sticky" : ""}`}>
+                        <div ref={toolbarRef} className={`task-menu-toolbar ${isToolbarSticky ? "is-sticky" : ""}`}>
                             {editorToolbarButtons.map(({ key, label, icon: Icon, text, action, ordered = false }) => (
                                 <div key={key} className="relative group/task-btn">
                                 <button

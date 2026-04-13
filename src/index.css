@@ -232,7 +232,7 @@ select {
     }
 
     .task-menu-toolbar {
-        @apply flex items-center gap-1 border-b border-[rgba(0,0,0,0.15)] pt-0 pb-2;
+        @apply flex items-center gap-1 border-y border-[rgba(0,0,0,0.15)] py-2;
         transform-origin: left top;
         transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     }

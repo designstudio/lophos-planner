@@ -4,7 +4,7 @@ import {Form, useSearchParams } from "react-router-dom";
 import {createTask, toggleDoneTask, tryCatchDecorator} from "../../scripts/api.js";
 import {useAuth} from "../../contexts/AuthContext.jsx";
 import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
-import { matchesShortId, toShortId } from "../../scripts/utils.js";
+import { matchesShortId, toShortId, openForm } from "../../scripts/utils.js";
 import {ALLOWED_COLORS} from "./TaskMenuColorPicker.jsx";
 import { StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
 
@@ -105,6 +105,12 @@ export default function Task({taskListInd, ind, data, date, tasksCol}) {
     function openTaskMenu(ev) {
         ev.stopPropagation();
         if (isDraggingRef.current) return;
+
+        if (openedTask && matchesShortId(data.id, openedTask)) {
+            syncTaskMenuData();
+            openForm("task-menu");
+            return;
+        }
 
         setSearchParams(prevParams => {
             const nextParams = new URLSearchParams(prevParams);

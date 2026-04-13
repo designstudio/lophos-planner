@@ -21,7 +21,8 @@ export default function InvitePage() {
     return (
         <div className="invite fixed inset-0 z-[80] h-full w-full pointer-events-none">
 
-            <div className="invite-blur bg-white bg-opacity-70 dark:bg-opacity-0 fixed top-0 left-0 h-full w-full z-[80]"
+            <div className="invite-blur fixed top-0 left-0 h-full w-full z-[80]"
+                 style={{ backgroundColor: "rgba(5, 5, 5, 0.2)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
                  onClick={closeInvitePage}></div>
             <div className="invite-page fixed h-screen bg-[rgb(250,250,252)] w-[98%] mx-auto lg:w-[35rem] px-10 py-10 lg:top-0 top-2
              lg:right-0 right-[1%] transition-all z-[90]">
