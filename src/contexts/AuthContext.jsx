@@ -30,6 +30,27 @@ function AuthProvider({ children }) {
     const loadedProfileIdRef = React.useRef(null);
     const signOutTimerRef = React.useRef(null);
 
+    function stripAuthParamsFromUrl() {
+        if (typeof window === 'undefined') return;
+
+        const url = new URL(window.location.href);
+        const authParams = ['code', 'state', 'error', 'error_code', 'error_description'];
+        let changed = false;
+
+        for (const param of authParams) {
+            if (url.searchParams.has(param)) {
+                url.searchParams.delete(param);
+                changed = true;
+            }
+        }
+
+        if (!changed) return;
+
+        const nextSearch = url.searchParams.toString();
+        const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
+        window.history.replaceState({}, document.title, nextUrl);
+    }
+
     function getStoredDefaultAgendaId(userId) {
         if (!userId || typeof localStorage === 'undefined') return null;
         return localStorage.getItem(`defaultAgendaId:${userId}`);
@@ -123,6 +144,8 @@ function AuthProvider({ children }) {
             if (!mounted) return;
 
             if (sessionUser) {
+                stripAuthParamsFromUrl();
+
                 // Libera a UI imediatamente com fallback
                 const fallbackUser = buildFallbackUser(sessionUser);
                 setCurrentUser(fallbackUser);
@@ -164,6 +187,8 @@ function AuthProvider({ children }) {
 
             if (sessionUser) {
                 if (!mounted) return;
+
+                stripAuthParamsFromUrl();
 
                 // Cancela sign-out pendente (Supabase v2 às vezes dispara SIGNED_OUT + SIGNED_IN no refresh de token)
                 if (signOutTimerRef.current) {
