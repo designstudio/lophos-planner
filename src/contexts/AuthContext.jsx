@@ -486,25 +486,37 @@ function AuthProvider({ children }) {
         }
     }
 
-    async function createAgenda(name, avatar = "", color = "#3b82f6") {
+    async function createAgenda(name, avatar = "", color = "#3b82f6", options = {}) {
         if (!currentUser?.uid) {
             return { type: 'error', errorMessage: 'User session not found.' };
         }
 
         try {
-            const agenda = await createAgendaApi(currentUser.uid, name, { setAsCurrent: true, avatar, color });
-            const nextAgendas = [...agendas, agenda];
+            const { sortCompletedTasks = true, relatedLinksEnabled = true } = options;
+            const agenda = await createAgendaApi(currentUser.uid, name, {
+                setAsCurrent: true,
+                avatar,
+                color,
+                sortCompletedTasks,
+                relatedLinksEnabled,
+            });
+            const normalizedAgenda = {
+                ...agenda,
+                sort_completed_tasks: agenda?.sort_completed_tasks ?? sortCompletedTasks,
+                related_links_enabled: agenda?.related_links_enabled ?? relatedLinksEnabled,
+            };
+            const nextAgendas = [...agendas, normalizedAgenda];
             setAgendas(nextAgendas);
             setCurrentUser(prev => ({
                 ...prev,
-                currentAgendaId: agenda.id,
-                defaultAgendaId: prev?.defaultAgendaId ?? agenda.id,
+                currentAgendaId: normalizedAgenda.id,
+                defaultAgendaId: prev?.defaultAgendaId ?? normalizedAgenda.id,
             }));
             if (!currentUser?.defaultAgendaId) {
-                setStoredDefaultAgendaId(currentUser.uid, agenda.id);
-                await setUserDefaultAgenda(currentUser.uid, agenda.id);
+                setStoredDefaultAgendaId(currentUser.uid, normalizedAgenda.id);
+                await setUserDefaultAgenda(currentUser.uid, normalizedAgenda.id);
             }
-            return { type: 'success', data: agenda };
+            return { type: 'success', data: normalizedAgenda };
         } catch (err) {
             return { type: 'error', errorMessage: err.message || 'Unable to create agenda.' };
         }
@@ -519,17 +531,22 @@ function AuthProvider({ children }) {
         }));
     }
 
-    async function renameAgenda(agendaId, name, avatar = "", color = "#3b82f6", sortCompletedTasks = null) {
+    async function renameAgenda(agendaId, name, avatar = "", color = "#3b82f6", sortCompletedTasks = null, relatedLinksEnabled = null) {
         if (!currentUser?.uid || !agendaId) {
             return { type: 'error', errorMessage: 'Agenda not found.' };
         }
 
         try {
-            const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks);
+            const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks, relatedLinksEnabled);
+            const normalizedUpdated = {
+                ...updated,
+                ...(sortCompletedTasks !== null ? { sort_completed_tasks: sortCompletedTasks } : {}),
+                ...(relatedLinksEnabled !== null ? { related_links_enabled: relatedLinksEnabled } : {}),
+            };
             setAgendas(prev => prev.map(agenda => (
-                String(agenda.id) === String(updated.id) ? updated : agenda
+                String(agenda.id) === String(normalizedUpdated.id) ? normalizedUpdated : agenda
             )));
-            return { type: 'success', data: updated };
+            return { type: 'success', data: normalizedUpdated };
         } catch (err) {
             return { type: 'error', errorMessage: err.message || 'Unable to update agenda name.' };
         }

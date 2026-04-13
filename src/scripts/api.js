@@ -315,7 +315,7 @@ export async function getUserAgendas(userId) {
 }
 
 export async function createAgenda(userId, name, options = {}) {
-    const { setAsCurrent = true, avatar = null, color = '#3b82f6', sortCompletedTasks = true } = options;
+    const { setAsCurrent = true, avatar = null, color = '#3b82f6', sortCompletedTasks = true, relatedLinksEnabled = true } = options;
 
     const payload = {
         uid: userId,
@@ -323,6 +323,7 @@ export async function createAgenda(userId, name, options = {}) {
         avatar: (avatar || '').trim() || null,
         color: (color || '').trim() || '#3b82f6',
         sort_completed_tasks: sortCompletedTasks,
+        related_links_enabled: relatedLinksEnabled,
     };
 
     let agendaData = null;
@@ -334,10 +335,10 @@ export async function createAgenda(userId, name, options = {}) {
         .single();
 
     if (error) {
-        const shouldRetryWithoutColorOrSort = /column\s+"?(color|sort_completed_tasks)"?\s+of relation\s+"?agendas"? does not exist|Could not find the '(color|sort_completed_tasks)' column/i.test(error.message || '');
+        const shouldRetryWithoutColorOrSort = /column\s+"?(color|sort_completed_tasks|related_links_enabled)"?\s+of relation\s+"?agendas"? does not exist|Could not find the '(color|sort_completed_tasks|related_links_enabled)' column/i.test(error.message || '');
         if (!shouldRetryWithoutColorOrSort) throw error;
 
-        const { color: _ignoredColor, sort_completed_tasks: _ignoredSort, ...payloadWithoutColorOrSort } = payload;
+        const { color: _ignoredColor, sort_completed_tasks: _ignoredSort, related_links_enabled: _ignoredRelatedLinksEnabled, ...payloadWithoutColorOrSort } = payload;
         const retry = await supabase
             .from('agendas')
             .insert(payloadWithoutColorOrSort)
@@ -357,7 +358,7 @@ export async function createAgenda(userId, name, options = {}) {
     return agendaData;
 }
 
-export async function updateAgendaName(userId, agendaId, name, avatar = null, color = '#3b82f6', sortCompletedTasks = null) {
+export async function updateAgendaName(userId, agendaId, name, avatar = null, color = '#3b82f6', sortCompletedTasks = null, relatedLinksEnabled = null) {
     const nextName = (name || '').trim();
     if (!nextName) throw new Error('Agenda name is required.');
 
@@ -367,6 +368,9 @@ export async function updateAgendaName(userId, agendaId, name, avatar = null, co
     const fullPayload = { name: nextName, avatar: nextAvatar, color: nextColor };
     if (sortCompletedTasks !== null) {
         fullPayload.sort_completed_tasks = sortCompletedTasks;
+    }
+    if (relatedLinksEnabled !== null) {
+        fullPayload.related_links_enabled = relatedLinksEnabled;
     }
 
     let updatedData = null;
@@ -379,12 +383,13 @@ export async function updateAgendaName(userId, agendaId, name, avatar = null, co
         .single();
 
     if (firstTry.error) {
-        const shouldRetryWithoutColor = /column\s+"?color"?\s+of relation\s+"?agendas"? does not exist|Could not find the 'color' column/i.test(firstTry.error.message || '');
+        const shouldRetryWithoutColor = /column\s+"?(color|sort_completed_tasks|related_links_enabled)"?\s+of relation\s+"?agendas"? does not exist|Could not find the '(color|sort_completed_tasks|related_links_enabled)' column/i.test(firstTry.error.message || '');
         if (!shouldRetryWithoutColor) throw firstTry.error;
 
+        const fallbackPayload = { name: nextName, avatar: nextAvatar };
         const retry = await supabase
             .from('agendas')
-            .update({ name: nextName, avatar: nextAvatar })
+            .update(fallbackPayload)
             .eq('id', agendaId)
             .eq('uid', userId)
             .select('*')
@@ -624,6 +629,8 @@ export async function getPublicAgendaByShareToken(shareToken) {
             name: normalized?.agenda?.name,
             avatar: normalized?.agenda?.avatar || '',
             color: normalized?.agenda?.color || '#3b82f6',
+            sort_completed_tasks: normalized?.agenda?.sort_completed_tasks ?? true,
+            related_links_enabled: normalized?.agenda?.related_links_enabled ?? true,
         },
         tasks: (Array.isArray(normalized?.tasks) ? normalized.tasks : []).map(task => ({
             ...task,

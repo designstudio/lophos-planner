@@ -10,6 +10,8 @@ create table if not exists public.agendas (
     name text not null,
     avatar text,
     color text not null default '#3b82f6',
+    sort_completed_tasks boolean not null default true,
+    related_links_enabled boolean not null default true,
     share_token text,
     share_enabled boolean not null default false,
     created_at timestamptz not null default now()
@@ -20,6 +22,12 @@ alter table public.agendas
 
 alter table public.agendas
     add column if not exists color text not null default '#3b82f6';
+
+alter table public.agendas
+    add column if not exists sort_completed_tasks boolean not null default true;
+
+alter table public.agendas
+    add column if not exists related_links_enabled boolean not null default true;
 
 create unique index if not exists agendas_share_token_unique_idx
     on public.agendas (share_token)

@@ -183,6 +183,7 @@ export default function PublicSharePage() {
     const dateFormat = owner?.dateFormat || "DD-MM";
     const weekStartsOn = owner?.weekStartsOn || "Monday";
     const agendaAccent = agenda?.color || "#3b82f6";
+    const relatedLinksEnabled = agenda?.related_links_enabled ?? true;
 
     const now = new Date();
     const weekShift = Number(searchParams.get("weekShift") || 0);
@@ -497,7 +498,7 @@ export default function PublicSharePage() {
 
         return tasks
             .filter(task => {
-                const relatedLinks = normalizeRelatedLinks(task);
+                const relatedLinks = relatedLinksEnabled ? normalizeRelatedLinks(task) : [];
                 const haystack = normalizeSearchText([
                     task.name,
                     task.description,
@@ -508,11 +509,11 @@ export default function PublicSharePage() {
                 return queryTokens.every(token => haystack.includes(token));
             })
             .slice(0, 12);
-    }, [searchQuery, tasks]);
+    }, [searchQuery, tasks, relatedLinksEnabled]);
 
     const activeTaskDate = selectedTask?.date ? new Date(selectedTask.date) : null;
     const hasSelectedDescription = !!selectedTask?.description?.trim();
-    const selectedRelatedLinks = selectedTask ? normalizeRelatedLinks(selectedTask) : [];
+    const selectedRelatedLinks = selectedTask && relatedLinksEnabled ? normalizeRelatedLinks(selectedTask) : [];
     const hasSelectedRelatedLinks = selectedRelatedLinks.length > 0;
     const previewDateText = activeTaskDate
         ? new Intl.DateTimeFormat(getLocale(language), {
@@ -677,7 +678,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskPreview(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
                                     </div>
                                 </button>
                             ))}
@@ -722,7 +723,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskPreview(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
                                     </div>
                                 </button>
                             ))}
@@ -860,7 +861,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskFromSearch(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
                                         <p className="ml-4 shrink-0 text-gray-400">{formatDayMonth(new Date(task.date), language, dateFormat)}</p>
                                     </div>
                                 </button>

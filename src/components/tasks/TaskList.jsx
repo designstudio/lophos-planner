@@ -9,9 +9,11 @@ import { formatDayMonth, getAppLanguage, getLocale, t } from "../../scripts/i18n
 
 const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn, holidayName = ""}) => {
 
-    const {currentUser} = useAuth();
+    const {currentUser, agendas} = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const dateFormat = currentUser?.dateFormat || "DD-MM";
+    const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
+    const relatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
     const [isDragOver, setIsDragOver] = React.useState(false);
 
     const getDate = date => formatDayMonth(date, language, dateFormat);
@@ -116,7 +118,8 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
         tasksComponents.push(<Task key={tasksData[i].id} data={tasksData[i]}
                                    taskListInd={ind} date={date}
                                    tasksCol={tasksData.length}
-                                   ind={i}/>);
+                                   ind={i}
+                                   relatedLinksEnabled={relatedLinksEnabled}/>);
     }
     // Exibe apenas 1 linha vazia por dia no mobile, 10/4 no desktop
     const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;

@@ -25,7 +25,7 @@ begin
         return null;
     end if;
 
-    select a.id, a.uid, a.name, a.avatar, a.color
+    select a.id, a.uid, a.name, a.avatar, a.color, a.sort_completed_tasks, a.related_links_enabled
       into v_agenda
       from public.agendas a
          where a.share_token = v_token
@@ -69,7 +69,9 @@ begin
             'id', v_agenda.id,
             'name', v_agenda.name,
             'avatar', coalesce(v_agenda.avatar, ''),
-            'color', coalesce(v_agenda.color, '#3b82f6')
+            'color', coalesce(v_agenda.color, '#3b82f6'),
+            'sort_completed_tasks', coalesce(v_agenda.sort_completed_tasks, true),
+            'related_links_enabled', coalesce(v_agenda.related_links_enabled, true)
         ),
         'tasks', v_tasks
     );

@@ -12,7 +12,7 @@ function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
-export default function Task({taskListInd, ind, data, date, tasksCol}) {
+export default function Task({taskListInd, ind, data, date, tasksCol, relatedLinksEnabled = true}) {
     const MAX_TASK_NAME_LENGTH = 34;
     const isDraggingRef = React.useRef(false);
     const isTaskNameTruncated = data.name.length > MAX_TASK_NAME_LENGTH;
@@ -144,7 +144,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol}) {
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
-                        { relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
+                        { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
                     </h5>
                     {isTaskNameTruncated && (

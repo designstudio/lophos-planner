@@ -3,7 +3,7 @@ import Blur from "../Blur.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getShareSettings, setShareEnabled } from "../../scripts/api.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
-import { Camera01, MagicWand01, Check, Trash03 } from "@untitledui/icons";
+import { Camera01, MagicWand01, Check, Trash03, Link01 } from "@untitledui/icons";
 import { closeForm, openForm } from "../../scripts/utils.js";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
@@ -30,6 +30,7 @@ export default function ShareSettingsForm() {
     const [agendaAvatar, setAgendaAvatar] = React.useState("");
     const [agendaColor, setAgendaColor] = React.useState("#3b82f6");
     const [sortCompletedTasks, setSortCompletedTasks] = React.useState(true);
+    const [relatedLinksEnabled, setRelatedLinksEnabled] = React.useState(true);
     const [isRenamingAgenda, setIsRenamingAgenda] = React.useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [isDeletingAgenda, setIsDeletingAgenda] = React.useState(false);
@@ -69,7 +70,15 @@ export default function ShareSettingsForm() {
         setAgendaAvatar(currentAgenda?.avatar || "");
         setAgendaColor(currentAgenda?.color || "#3b82f6");
         setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
-    }, [currentAgenda?.id, currentAgenda?.name]);
+        setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
+    }, [
+        currentAgenda?.id,
+        currentAgenda?.name,
+        currentAgenda?.avatar,
+        currentAgenda?.color,
+        currentAgenda?.sort_completed_tasks,
+        currentAgenda?.related_links_enabled,
+    ]);
 
     React.useEffect(() => {
         const blurEl = document.querySelector("[data-id='share-settings-form']");
@@ -81,13 +90,22 @@ export default function ShareSettingsForm() {
             setAgendaAvatar(currentAgenda?.avatar || "");
             setAgendaColor(currentAgenda?.color || "#3b82f6");
             setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
+            setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
             setLocalShareEnabled(initialShareEnabled);
             setErrorMessage("");
         });
 
         observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
         return () => observer.disconnect();
-    }, [currentAgenda, initialShareEnabled]);
+    }, [
+        currentAgenda?.id,
+        currentAgenda?.name,
+        currentAgenda?.avatar,
+        currentAgenda?.color,
+        currentAgenda?.sort_completed_tasks,
+        currentAgenda?.related_links_enabled,
+        initialShareEnabled,
+    ]);
 
     React.useEffect(() => {
         if (!isDeleteModalOpen || !deleteModalRef.current) return;
@@ -165,14 +183,16 @@ export default function ShareSettingsForm() {
         const prevAvatar = (currentAgenda?.avatar || "").trim();
         const prevColor = (currentAgenda?.color || "#3b82f6").trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
+        const prevRelatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
 
         return (
             agendaName.trim() !== prevName ||
             agendaAvatar.trim() !== prevAvatar ||
             (agendaColor.trim() || "#3b82f6") !== prevColor ||
-            sortCompletedTasks !== prevSortCompletedTasks
+            sortCompletedTasks !== prevSortCompletedTasks ||
+            relatedLinksEnabled !== prevRelatedLinksEnabled
         );
-    }, [agendaName, agendaAvatar, agendaColor, sortCompletedTasks, currentAgenda]);
+    }, [agendaName, agendaAvatar, agendaColor, sortCompletedTasks, relatedLinksEnabled, currentAgenda]);
 
     const hasShareChanges = shareEnabled !== initialShareEnabled;
     const hasPendingChanges = hasAgendaChanges || hasShareChanges;
@@ -186,6 +206,7 @@ export default function ShareSettingsForm() {
         const prevAvatar = (currentAgenda?.avatar || "").trim();
         const prevColor = (currentAgenda?.color || "#3b82f6").trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
+        const prevRelatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
         if (!nextName || !hasPendingChanges) return;
 
         setIsRenamingAgenda(true);
@@ -205,7 +226,7 @@ export default function ShareSettingsForm() {
         }
 
         if (hasAgendaChanges) {
-            const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks);
+            const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks, relatedLinksEnabled);
             if (result?.type === "error") {
                 setErrorMessage(result.errorMessage || t(language, "agendaRenameError"));
                 setIsRenamingAgenda(false);
@@ -408,6 +429,33 @@ export default function ShareSettingsForm() {
                                         : "translate-x-0 bg-black"
                                 }`}>
                                     {sortCompletedTasks && (
+                                        <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Link01 className="h-4 w-4 text-black" />
+                                <span className="text-[16px] leading-[1.333333] text-black">Adicionar links relacionados</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setRelatedLinksEnabled(!relatedLinksEnabled)}
+                                className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
+                                    relatedLinksEnabled
+                                        ? "bg-black border-black"
+                                        : "bg-[rgb(250,250,252)] border-black"
+                                }`}
+                                aria-pressed={relatedLinksEnabled}
+                                aria-label="Adicionar links relacionados"
+                            >
+                                <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
+                                    relatedLinksEnabled
+                                        ? "translate-x-[20px] bg-[rgb(250,250,252)]"
+                                        : "translate-x-0 bg-black"
+                                }`}>
+                                    {relatedLinksEnabled && (
                                         <Check className="h-3 w-3 text-black" strokeWidth={3} />
                                     )}
                                 </div>

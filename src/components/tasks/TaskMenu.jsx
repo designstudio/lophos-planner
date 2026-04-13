@@ -145,10 +145,12 @@ const TaskMenu = () => {
 
     const {taskData, setTaskData} = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { currentUser } = useAuth();
+    const { currentUser, agendas } = useAuth();
     const {id: taskId, date, color, name, done, description} = taskData;
     const language = getAppLanguage(currentUser?.language);
     const locale = getLocale(language);
+    const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
+    const relatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
     const selectedDate = React.useMemo(() => {
         if (!date) return null;
         return parseDateOnly(date);
@@ -1014,6 +1016,7 @@ const TaskMenu = () => {
                                 )}
                             </div>
                         )}
+                        {relatedLinksEnabled && (
                         <section className="mt-4 border-t border-[rgba(0,0,0,0.15)] pt-4">
                             <h4 className="text-sm font-semibold text-black">{t(language, "relatedLinks")}</h4>
                             <div className="task-menu-related-links-card mt-4">
@@ -1110,6 +1113,7 @@ const TaskMenu = () => {
                                 ))}
                             </ul>
                         </section>
+                        )}
                         <textarea ref={markdownInputRef} name="task-description" id="task-description" className="hidden" defaultValue={description || ""}
                                   cols="30" rows="10" readOnly></textarea>
                         <input type="hidden" name="task-initial-description" value={initialDescriptionSnapshot} readOnly />
