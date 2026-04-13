@@ -44,11 +44,15 @@ export function matchesShortId(fullValue, shortValue) {
     return normalizedFullValue.startsWith(normalizedShortValue);
 }
 
-export const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+export const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 let modalAnimationToken = 0;
 const modalCloseTimers = new WeakMap();
 let modalRecoveryListenersBound = false;
 let modalRecoveryRafId = null;
+const MODAL_OPEN_DURATION_MS = 160;
+const MODAL_CLOSE_DURATION_MS = 160;
+const MODAL_CLOSE_FALLBACK_MS = 200;
+const MODAL_TRANSLATE_Y_PX = 24;
 
 function scheduleRecoverZombieBlurs() {
     if (typeof window === "undefined") return;
@@ -76,6 +80,8 @@ function hardResetBlurState(blurEl, blurId) {
         panel.style.transform = "";
         panel.style.opacity = "";
         panel.style.top = "";
+        panel.style.transition = "";
+        panel.style.willChange = "";
     }
 }
 
@@ -106,7 +112,6 @@ function ensureModalRecoveryListeners() {
     modalRecoveryListenersBound = true;
 
     window.addEventListener("focus", recoverZombieBlurs);
-    // Run recovery before click handlers to prevent ghost overlays from stealing interaction.
     window.addEventListener("pointerdown", scheduleRecoverZombieBlurs, true);
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
@@ -115,12 +120,16 @@ function ensureModalRecoveryListeners() {
     });
 }
 
-const formBlurDict = {
-    "login-form": "login-form",
-    "task-menu": "task-menu",
-    "update-user-form": "update-user-form",
-    "signup-form": "signup-form",
-    "share-settings-form": "share-settings-form",
+function resetPanelAfterOpen(formBlur, formElement) {
+    window.setTimeout(() => {
+        if (!formBlur.classList.contains("active")) return;
+        if (formBlur.dataset.closing === "true") return;
+
+        formElement.style.transition = "";
+        formElement.style.willChange = "";
+        formElement.style.transform = "";
+        formElement.style.opacity = "";
+    }, MODAL_OPEN_DURATION_MS);
 }
 
 export async function formTransition(from, to) {
@@ -134,12 +143,11 @@ export function openForm(formBlurId) {
     document.querySelector(".profile-menu")?.classList.remove("active");
     document.querySelector(".extras-menu")?.classList.remove("active");
 
-    // Close every other active modal instantly (hard reset), but never touch the target.
-    document.querySelectorAll('.blur-bg').forEach(blurEl => {
-        const blurId = blurEl.getAttribute('data-id');
+    document.querySelectorAll(".blur-bg").forEach(blurEl => {
+        const blurId = blurEl.getAttribute("data-id");
         if (!blurId || blurId === formBlurId) return;
 
-        if (blurEl.classList.contains('active') || blurEl.dataset.closing === "true") {
+        if (blurEl.classList.contains("active") || blurEl.dataset.closing === "true") {
             hardResetBlurState(blurEl, blurId);
         }
     });
@@ -147,7 +155,6 @@ export function openForm(formBlurId) {
     const formBlur = document.querySelector(`[data-id='${formBlurId}']`);
     if (!formBlur) return;
 
-    // Cancel any in-flight close timer for the target modal.
     const pendingCloseTimer = modalCloseTimers.get(formBlur);
     if (pendingCloseTimer) {
         clearTimeout(pendingCloseTimer);
@@ -160,7 +167,6 @@ export function openForm(formBlurId) {
     const panelOpacity = formElement ? Number(window.getComputedStyle(formElement).opacity) : 1;
     const isInvisibleGhost = panelOpacity < 0.05;
 
-    // If the modal is already fully visible and healthy, just ensure scroll/overflow state.
     if (isAlreadyActive && !isClosing && !isInvisibleGhost) {
         formBlur.scrollTop = 0;
         formElement?.scrollTo?.(0, 0);
@@ -168,39 +174,35 @@ export function openForm(formBlurId) {
         return;
     }
 
-    // Hard-reset the target to clear any stale animation state.
     hardResetBlurState(formBlur, formBlurId);
-    void formBlur.offsetHeight; // force reflow so CSS transitions restart cleanly
+    void formBlur.offsetHeight;
 
     formBlur.dataset.animationToken = String(++modalAnimationToken);
     formBlur.dataset.closing = "false";
-    formBlur.classList.add('active');
+    formBlur.classList.add("active");
     formBlur.scrollTop = 0;
     document.body.style.overflowY = "hidden";
 
     if (!formElement) return;
 
     formElement.getAnimations().forEach(animation => animation.cancel());
-    formElement.style.transform = "";
-    formElement.style.opacity = "";
+    formElement.style.transition = "none";
+    formElement.style.transform = `translateY(${MODAL_TRANSLATE_Y_PX}px)`;
+    formElement.style.opacity = "0";
     formElement.style.top = "";
+    formElement.style.willChange = "transform, opacity";
     formElement.scrollTop = 0;
 
-    const openAnimation = formElement.animate(
-        [
-            { top: "6rem", opacity: 0.5 },
-            { top: "3.5rem", opacity: 1 },
-        ],
-        { duration: 300, fill: "forwards" }
-    );
+    requestAnimationFrame(() => {
+        if (!formBlur.classList.contains("active")) return;
+        if (formBlur.dataset.closing === "true") return;
 
-    // After the animation completes, remove the inline top so CSS class takes over again.
-    openAnimation.finished.then(() => {
-        formElement.style.top = "";
-        formElement.style.opacity = "";
-    }).catch(() => {
-        // Animation was cancelled — nothing to do.
+        formElement.style.transition = `transform ${MODAL_OPEN_DURATION_MS}ms ease, opacity ${MODAL_OPEN_DURATION_MS}ms ease`;
+        formElement.style.transform = "translateY(0)";
+        formElement.style.opacity = "1";
     });
+
+    resetPanelAfterOpen(formBlur, formElement);
 }
 
 export function closeForm(formBlurId) {
@@ -231,7 +233,6 @@ export function closeForm(formBlurId) {
     fromForm.dataset.closeStartedAt = String(Date.now());
 
     const formElement = fromForm.querySelector(`.${formBlurId}`);
-    const animations = [];
     let finalized = false;
 
     const finalizeClose = () => {
@@ -244,14 +245,12 @@ export function closeForm(formBlurId) {
             modalCloseTimers.delete(fromForm);
         }
 
-        // If modal was reopened while close animation was running, ignore stale close completion.
         if (fromForm.dataset.animationToken !== animationToken) {
             return;
         }
 
-        // Cancel all animations and wipe every inline style so the modal starts clean next open.
-        fromForm.getAnimations().forEach(a => a.cancel());
-        formElement?.getAnimations().forEach(a => a.cancel());
+        fromForm.getAnimations().forEach(animation => animation.cancel());
+        formElement?.getAnimations().forEach(animation => animation.cancel());
 
         fromForm.scrollTop = 0;
         if (formElement) {
@@ -259,6 +258,8 @@ export function closeForm(formBlurId) {
             formElement.style.transform = "";
             formElement.style.opacity = "";
             formElement.style.top = "";
+            formElement.style.transition = "";
+            formElement.style.willChange = "";
         }
         fromForm.style.opacity = "";
         fromForm.classList.remove("active");
@@ -269,42 +270,23 @@ export function closeForm(formBlurId) {
         }
     };
 
-    animations.push(
-        fromForm.animate(
-            [
-                { opacity: 1 },
-                { opacity: 0 },
-            ],
-            {
-                duration: 220,
-                easing: "ease-in",
-                fill: "forwards",
-            }
-        ).finished
-    );
-
     if (formElement) {
-        animations.push(
-            formElement.animate(
-                [
-                    { transform: "translateY(0)", opacity: 1 },
-                    { transform: "translateY(24px)", opacity: 0 },
-                ],
-                {
-                    duration: 220,
-                    easing: "ease-in",
-                    fill: "forwards",
-                }
-            ).finished
-        );
+        formElement.getAnimations().forEach(animation => animation.cancel());
+        formElement.style.transition = `transform ${MODAL_CLOSE_DURATION_MS}ms ease, opacity ${MODAL_CLOSE_DURATION_MS}ms ease`;
+        formElement.style.transform = `translateY(${MODAL_TRANSLATE_Y_PX}px)`;
+        formElement.style.opacity = "0";
+        formElement.style.willChange = "transform, opacity";
     }
 
-    const closeTimeout = setTimeout(() => {
-        finalizeClose();
-    }, 300);
+    const closeTimeout = setTimeout(finalizeClose, MODAL_CLOSE_FALLBACK_MS);
     modalCloseTimers.set(fromForm, closeTimeout);
 
-    return Promise.allSettled(animations).finally(finalizeClose);
+    return new Promise(resolve => {
+        setTimeout(() => {
+            finalizeClose();
+            resolve();
+        }, MODAL_CLOSE_DURATION_MS);
+    });
 }
 
 export function clearOpenedTaskFromUrl() {

@@ -1,21 +1,17 @@
 import { useRef, useEffect } from 'react';
-import { useSearchParams } from "react-router-dom";
 import { updateTask, tryCatchDecorator } from "../scripts/api.js";
-import { closeForm } from "../scripts/utils.js";
+import { clearOpenedTaskFromUrl, closeForm } from "../scripts/utils.js";
 
 export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
     const blurRef = useRef(null);
     const openedAtRef = useRef(0);
-    const [, setSearchParams] = useSearchParams();
+    const topSpacingClass = ["task-menu", "search-form", "share-settings-form", "update-user-form"].includes(type)
+        ? "pt-16"
+        : "pt-6";
 
     function clearOpenedTaskInUrl() {
         if (type !== "task-menu") return;
-
-        setSearchParams(prev => {
-            const next = new URLSearchParams(prev);
-            next.delete("openedTask");
-            return next;
-        });
+        clearOpenedTaskFromUrl();
     }
 
     useEffect(() => {
@@ -42,9 +38,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         };
     }, [forceActive]);
 
-    async function handleTaskMenuClose(ev) {
-        if (ev.target !== ev.currentTarget) return;
-
+    async function closeModal() {
         const selection = typeof window !== "undefined" ? window.getSelection?.() : null;
         if (selection && !selection.isCollapsed && String(selection).trim()) return;
 
@@ -53,19 +47,15 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         // Prevent opener click bleed-through for other modals.
         if (type !== "task-menu" && Date.now() - openedAtRef.current < 120) return;
 
-        ev.stopPropagation();
-        if (!forceActive) {
-            closeForm(type);
-        }
-
-        const colorPicker = ev.target.querySelector(".task-menu-color-picker");
+        const rootEl = blurRef.current;
+        const colorPicker = rootEl?.querySelector(".task-menu-color-picker");
         if (colorPicker) {
             colorPicker.classList.remove("active");
         }
 
         clearOpenedTaskInUrl();
 
-        const form = ev.target.querySelector(".task-menu-form");
+        const form = rootEl?.querySelector(".task-menu-form");
         if (form) {
             const formData = new FormData(form);
             const rawRelatedLinks = formData.get("task-related-links");
@@ -101,12 +91,43 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
 
             tryCatchDecorator(updateTask)(taskId, updates);
         }
+
+        if (!forceActive) {
+            await closeForm(type);
+        }
         document.body.style.overflowY = 'auto';
     }
 
+    async function handleTaskMenuClose(ev) {
+        if (ev.target !== ev.currentTarget) return;
+        ev.stopPropagation();
+        await closeModal();
+    }
+
+    useEffect(() => {
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+
+            const el = blurRef.current;
+            if (!el?.classList.contains("active")) return;
+
+            ev.preventDefault();
+            closeModal();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [forceActive, type]);
+
     return (
-        <div ref={blurRef} data-id={type} className={`blur-bg ${forceActive ? "active" : ""} bg-black bg-opacity-20 dark:bg-opacity-40 fixed inset-0 z-10
-        overflow-y-auto overscroll-contain px-4 pt-6 pb-10 transition-all duration-300 ease-linear cursor-default flex justify-center items-start`} onClick={handleTaskMenuClose} >
+        <div ref={blurRef} data-id={type} className={`blur-bg ${forceActive ? "active" : ""} fixed inset-0 z-10
+        overflow-y-auto overscroll-contain px-4 ${topSpacingClass} pb-10 transition-all duration-[160ms] ease-linear cursor-default flex justify-center items-start`}
+             style={{
+                 backgroundColor: "rgba(5, 5, 5, 0.2)",
+                 backdropFilter: "blur(2px)",
+                 WebkitBackdropFilter: "blur(2px)",
+             }}
+             onClick={handleTaskMenuClose} >
             { children }
         </div>
     )

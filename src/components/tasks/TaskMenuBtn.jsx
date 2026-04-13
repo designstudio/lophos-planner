@@ -1,11 +1,11 @@
 import React from 'react'
 
-export default function TaskMenuBtn({icon: Icon, iconClassName, onClick, disabled, tooltip = null}) {
+export default function TaskMenuBtn({icon: Icon, iconClassName, onClick, disabled, tooltip = null, buttonClassName = ""}) {
     return (
         <div className="inline rounded-full border border-transparent cursor-pointer">
             <button
                 type="button"
-                className={`task-menu-icon-btn relative group/task-btn`}
+                className={`task-menu-icon-btn relative group/task-btn ${buttonClassName}`}
                 onClick={ev => {
                     ev.preventDefault();
                     ev.stopPropagation();

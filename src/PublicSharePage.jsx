@@ -87,7 +87,7 @@ function isImageAvatar(value) {
     return typeof value === "string" && (value.startsWith("data:image/") || value.startsWith("http://") || value.startsWith("https://"));
 }
 
-const MODAL_EXIT_DURATION_MS = 220;
+const MODAL_EXIT_DURATION_MS = 140;
 
 export default function PublicSharePage() {
     const { shareToken } = useParams();
@@ -334,6 +334,26 @@ export default function PublicSharePage() {
             requestAnimationFrame(() => setIsTaskPreviewVisible(true));
         }
     }, [openedTaskId, tasks]);
+
+    React.useEffect(() => {
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+
+            if (isSearchOpen) {
+                ev.preventDefault();
+                closeSearchModal();
+                return;
+            }
+
+            if (isTaskPreviewOpen) {
+                ev.preventDefault();
+                closeTaskPreview();
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isSearchOpen, isTaskPreviewOpen]);
 
     function getStartOfWeek(refDate) {
         const start = new Date(refDate);
@@ -674,11 +694,16 @@ export default function PublicSharePage() {
 
             {isTaskPreviewOpen && selectedTask && (
                 <div
-                    className={`fixed inset-0 z-20 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pb-10 pt-6 transition-opacity duration-200 ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-20 flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    style={{
+                        backgroundColor: "rgba(5, 5, 5, 0.2)",
+                        backdropFilter: "blur(2px)",
+                        WebkitBackdropFilter: "blur(2px)",
+                    }}
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel relative top-14 mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#dfe2ff] px-6 py-7 text-gray-700 shadow-lg transition-all duration-200 ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="mb-6 flex w-full items-center justify-between text-sm">
@@ -690,7 +715,7 @@ export default function PublicSharePage() {
                                 <button
                                     type="button"
                                     onClick={closeTaskPreview}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition-colors duration-150 hover:bg-[rgba(255,255,255,0.45)]"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition-colors duration-150 hover:bg-[rgba(237,237,242,1)]"
                                     aria-label="Fechar"
                                     title="Fechar"
                                 >
@@ -702,7 +727,7 @@ export default function PublicSharePage() {
                             </div>
                         </div>
 
-                        <h3 className={`task-menu-title w-full border-b border-[#aeb5dd] pb-4 pr-10 text-[24px] leading-[1.3] text-black ${selectedTask.done ? "text-black/40" : ""}`}>
+                        <h3 className={`task-menu-title w-full border-b border-[rgba(0,0,0,0.15)] pb-4 pr-10 text-[24px] leading-[1.3] text-black ${selectedTask.done ? "text-black/40" : ""}`}>
                             {selectedTask.name}
                         </h3>
 
@@ -714,11 +739,11 @@ export default function PublicSharePage() {
                         )}
 
                         {hasSelectedRelatedLinks && (
-                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-[#aeb5dd]" : "mt-3"}`}>
+                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-[rgba(0,0,0,0.15)]" : "mt-3"}`}>
                                 <h4 className="text-sm font-semibold text-black">{t(language, "relatedLinks")}</h4>
                                 <ul className="mt-4 max-h-32 space-y-2 overflow-auto pr-1">
                                     {selectedRelatedLinks.map((link, index) => (
-                                        <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[#edf0ff] px-4 py-3">
+                                        <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[rgba(237,237,242,1)] px-4 py-3">
                                             <a
                                                 href={normalizeLinkUrl(link.url)}
                                                 target="_blank"
@@ -728,9 +753,9 @@ export default function PublicSharePage() {
                                             >
                                                 <div className="min-w-0 flex-1">
                                                     <p className="truncate text-sm font-medium text-black">{link.name || normalizeLinkUrl(link.url)}</p>
-                                                    <p className="truncate text-xs text-[#4b5688]">{link.url}</p>
+                                                    <p className="truncate text-xs text-[#6b7280]">{link.url}</p>
                                                 </div>
-                                                <LinkExternal01 className="h-4 w-4 shrink-0 text-[#4b5688]" />
+                                                <LinkExternal01 className="h-4 w-4 shrink-0 text-[#6b7280]" />
                                             </a>
                                         </li>
                                     ))}
@@ -743,22 +768,28 @@ export default function PublicSharePage() {
 
             {isSearchOpen && (
                 <div
-                    className={`fixed inset-0 z-30 flex items-start justify-center bg-black/20 px-4 pb-10 pt-6 transition-opacity duration-200 ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-30 flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    style={{
+                        backgroundColor: "rgba(5, 5, 5, 0.2)",
+                        backdropFilter: "blur(2px)",
+                        WebkitBackdropFilter: "blur(2px)",
+                    }}
                     onClick={closeSearchModal}
                 >
                     <div
-                        className={`search-form relative top-14 z-20 w-[28rem] rounded-xl bg-white p-4 text-gray-600 transition-all duration-200 ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`search-form relative z-20 w-[28rem] rounded-xl bg-[rgb(250,250,252)] p-4 text-gray-600 transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <h3 className="text-xl font-bold tracking-tight text-black">{t(language, "search")}</h3>
 
                         <div className="relative">
                             <input
-                                className="my-6 w-full border-b border-[rgba(0,0,0,0.15)] py-1 text-black focus:outline-none"
+                                className="my-6 w-full border-b py-1 focus:outline-none bg-transparent"
                                 type="text"
                                 autoFocus
                                 value={searchQuery}
                                 onChange={ev => setSearchQuery(ev.target.value)}
+                                style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
                             />
 
                             <button

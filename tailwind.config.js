@@ -23,7 +23,7 @@ export default {
         lavender: {
           50: "#FAF9FE",
           100: "#F5F3FE",
-          200: "#E5D7FA",
+          200: "#edeae3",
           300: "#D5BBF6",
           400: "#C59FF2",
           500: "#B583EE",

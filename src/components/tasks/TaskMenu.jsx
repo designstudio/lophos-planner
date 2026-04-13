@@ -10,7 +10,7 @@ import TurndownService from "turndown";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
-import { parseDateOnly, toShortId } from "../../scripts/utils.js";
+import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
 const turndownService = new TurndownService({
@@ -221,6 +221,11 @@ const TaskMenu = () => {
         setSelectedMentionIndex(0);
         mentionStateRef.current = null;
     }, [openedTaskId, taskId, selectedDate]);
+
+    useEffect(() => {
+        if (!openedTaskId) return;
+        openForm("task-menu");
+    }, [openedTaskId]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -741,6 +746,7 @@ const TaskMenu = () => {
             onClick: delTask,
             disabled: false,
             tooltip: t(language, "taskMenuDelete"),
+            buttonClassName: "task-menu-delete-btn",
         },
     ]
 
@@ -824,12 +830,12 @@ const TaskMenu = () => {
     }
 
     return (
-        <Blur type="task-menu" forceActive>
-            <div className="task-menu task-menu-panel relative mb-20 w-[32rem] max-w-full z-20 text-gray-700 bg-[#dfe2ff] rounded-[28px] px-6 py-7 shadow-lg"
+        <Blur type="task-menu">
+            <div className="task-menu task-menu-panel relative mb-20 w-[32rem] max-w-full z-20 text-gray-700 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg"
                  onClick={ev => {
                      ev.stopPropagation();
                  }}>
-                <div className="w-full flex justify-between text-sm mb-6">
+                <div className="mb-4 flex w-full items-center justify-between text-sm">
                     <div ref={datePickerContainerRef} className="relative">
                         <button
                             type="button"
@@ -913,10 +919,10 @@ const TaskMenu = () => {
                                       }));
                                       autoResizeTitle();
                                   }}
-                                  className={"task-menu-title w-full resize-none overflow-y-hidden border-b border-[#aeb5dd] pr-12 pt-1 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
+                                  className={"task-menu-title w-full resize-none overflow-y-hidden border-b border-[rgba(0,0,0,0.15)] pr-12 pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
                                       + ((done && "text-black/40") || '')}
                         />
-                        <button type="button" className="absolute right-0 top-1 text-black transition-colors duration-200 hover:text-blue-600"
+                        <button type="button" className="absolute right-0 top-0 text-black transition-colors duration-200 hover:text-black/70"
                                 onClick={ev => {
                                     ev.preventDefault();
                                     ev.stopPropagation();
@@ -930,7 +936,7 @@ const TaskMenu = () => {
 
                         </button>
                         <div ref={toolbarSentinelRef} className="task-menu-toolbar-sentinel" aria-hidden="true" />
-                        <div ref={toolbarRef} className={`task-menu-toolbar ${isToolbarSticky ? "is-sticky" : ""}`}>
+                        <div ref={toolbarRef} className={`task-menu-toolbar mt-4 ${isToolbarSticky ? "is-sticky" : ""}`}>
                             {editorToolbarButtons.map(({ key, label, icon: Icon, text, action, ordered = false }) => (
                                 <div key={key} className="relative group/task-btn">
                                 <button
@@ -956,7 +962,7 @@ const TaskMenu = () => {
                         </div>
                         <div
                             ref={editorRef}
-                            className="task-menu-editor mt-5"
+                            className="task-menu-editor mt-4"
                             contentEditable
                             suppressContentEditableWarning
                             data-placeholder={t(language, "notesPlaceholder")}
@@ -1008,7 +1014,7 @@ const TaskMenu = () => {
                                 )}
                             </div>
                         )}
-                        <section className="mt-5 border-t border-[#aeb5dd] pt-4">
+                        <section className="mt-4 border-t border-[rgba(0,0,0,0.15)] pt-4">
                             <h4 className="text-sm font-semibold text-black">{t(language, "relatedLinks")}</h4>
                             <div className="task-menu-related-links-card mt-4">
                                 <label className="task-menu-related-links-field">
@@ -1044,17 +1050,17 @@ const TaskMenu = () => {
                                 <button
                                     type="button"
                                     onClick={cancelEditingRelatedLink}
-                                    className="mt-2 text-xs text-[#4b5688] underline underline-offset-2"
+                                    className="mt-2 text-xs text-[#6b7280] underline underline-offset-2"
                                 >
                                     {t(language, "cancelEdit")}
                                 </button>
                             )}
                             <ul className="mt-4 space-y-2">
                                 {relatedLinks.length === 0 && (
-                                    <li className="text-xs text-[#6f79a8]">{t(language, "noLinks")}</li>
+                                    <li className="text-xs text-[#6b7280]">{t(language, "noLinks")}</li>
                                 )}
                                 {relatedLinks.map((link, index) => (
-                                    <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[#edf0ff] px-4 py-3">
+                                    <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[rgba(237,237,242,1)] px-4 py-3">
                                         <a
                                             href={normalizeLinkUrl(link.url)}
                                             target="_blank"
@@ -1063,7 +1069,7 @@ const TaskMenu = () => {
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium text-black">{link.name || t(language, "untitledLink")}</p>
-                                                <p className="truncate text-xs text-[#4b5688]">{link.url}</p>
+                                                <p className="truncate text-xs text-[#6b7280]">{link.url}</p>
                                             </div>
                                             <div className="flex items-center gap-2 opacity-0 transition-opacity duration-150 group-hover/link-row:opacity-100">
                                                 <div className="relative group/edit-link">
@@ -1073,7 +1079,7 @@ const TaskMenu = () => {
                                                             ev.preventDefault();
                                                             startEditingRelatedLink(index);
                                                         }}
-                                                        className="text-black transition-colors hover:text-blue-600"
+                                                        className="text-black transition-colors hover:text-black/70"
                                                         aria-label={t(language, "editLink")}
                                                     >
                                                         <Edit02 className="h-[14px] w-[14px]" />
@@ -1089,7 +1095,7 @@ const TaskMenu = () => {
                                                             ev.preventDefault();
                                                             removeRelatedLink(index);
                                                         }}
-                                                        className="text-black transition-colors hover:text-blue-600"
+                                                        className="text-black transition-colors hover:text-black/70"
                                                         aria-label={t(language, "removeLink")}
                                                     >
                                                         <X className="h-[14px] w-[14px]" />

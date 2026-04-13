@@ -22,6 +22,7 @@ export default function ShareSettingsForm() {
 
     const [loading, setLoading] = React.useState(false);
     const [shareEnabled, setLocalShareEnabled] = React.useState(false);
+    const [initialShareEnabled, setInitialShareEnabled] = React.useState(false);
     const [shareToken, setShareToken] = React.useState("");
     const [copied, setCopied] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState("");
@@ -48,6 +49,7 @@ export default function ShareSettingsForm() {
                 if (!mounted) return;
                 setShareToken(data.shareToken || "");
                 setLocalShareEnabled(!!data.shareEnabled);
+                setInitialShareEnabled(!!data.shareEnabled);
             } catch (err) {
                 if (!mounted) return;
                 setErrorMessage(err.message || t(language, "shareError"));
@@ -70,41 +72,54 @@ export default function ShareSettingsForm() {
     }, [currentAgenda?.id, currentAgenda?.name]);
 
     React.useEffect(() => {
+        const blurEl = document.querySelector("[data-id='share-settings-form']");
+        if (!blurEl) return;
+
+        const observer = new MutationObserver(() => {
+            if (!blurEl.classList.contains("active")) return;
+            setAgendaName(currentAgenda?.name || "");
+            setAgendaAvatar(currentAgenda?.avatar || "");
+            setAgendaColor(currentAgenda?.color || "#3b82f6");
+            setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
+            setLocalShareEnabled(initialShareEnabled);
+            setErrorMessage("");
+        });
+
+        observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, [currentAgenda, initialShareEnabled]);
+
+    React.useEffect(() => {
         if (!isDeleteModalOpen || !deleteModalRef.current) return;
 
-        deleteModalRef.current.animate(
-            [
-                {
-                    top: "6rem",
-                    opacity: 0.5,
-                },
-                {
-                    top: "3.5rem",
-                    opacity: 1,
-                },
-            ],
-            {
-                duration: 300,
-                fill: "forwards",
-            }
-        );
+        const modalEl = deleteModalRef.current;
+        modalEl.style.transition = "none";
+        modalEl.style.transform = "translateY(24px)";
+        modalEl.style.opacity = "0";
+
+        requestAnimationFrame(() => {
+            modalEl.style.transition = "transform 160ms ease, opacity 160ms ease";
+            modalEl.style.transform = "translateY(0)";
+            modalEl.style.opacity = "1";
+        });
     }, [isDeleteModalOpen]);
 
-    async function handleToggleShare() {
-        if (!currentAgenda?.id) return;
+    React.useEffect(() => {
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+            if (!isDeleteModalOpen || isDeletingAgenda) return;
 
-        const next = !shareEnabled;
-        setLocalShareEnabled(next);
-        setErrorMessage("");
-
-        try {
-            const data = await setShareEnabled(currentAgenda.id, next);
-            setShareToken(data.shareToken || "");
-            setLocalShareEnabled(!!data.shareEnabled);
-        } catch (err) {
-            setLocalShareEnabled(!next);
-            setErrorMessage(err.message || t(language, "shareError"));
+            ev.preventDefault();
+            closeDeleteAgendaModal();
         }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDeleteModalOpen, isDeletingAgenda]);
+
+    function handleToggleShare() {
+        setLocalShareEnabled(prev => !prev);
+        setErrorMessage("");
     }
 
     async function copyShareUrl() {
@@ -145,6 +160,23 @@ export default function ShareSettingsForm() {
         requestAnimationFrame(() => openForm("share-settings-form"));
     }
 
+    const hasAgendaChanges = React.useMemo(() => {
+        const prevName = (currentAgenda?.name || "").trim();
+        const prevAvatar = (currentAgenda?.avatar || "").trim();
+        const prevColor = (currentAgenda?.color || "#3b82f6").trim();
+        const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
+
+        return (
+            agendaName.trim() !== prevName ||
+            agendaAvatar.trim() !== prevAvatar ||
+            (agendaColor.trim() || "#3b82f6") !== prevColor ||
+            sortCompletedTasks !== prevSortCompletedTasks
+        );
+    }, [agendaName, agendaAvatar, agendaColor, sortCompletedTasks, currentAgenda]);
+
+    const hasShareChanges = shareEnabled !== initialShareEnabled;
+    const hasPendingChanges = hasAgendaChanges || hasShareChanges;
+
     async function handleSaveAgendaName() {
         if (!currentAgenda?.id) return;
         const nextName = agendaName.trim();
@@ -154,16 +186,31 @@ export default function ShareSettingsForm() {
         const prevAvatar = (currentAgenda?.avatar || "").trim();
         const prevColor = (currentAgenda?.color || "#3b82f6").trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
-        if (!nextName || (nextName === prevName && nextAvatar === prevAvatar && nextColor === prevColor && sortCompletedTasks === prevSortCompletedTasks)) return;
+        if (!nextName || !hasPendingChanges) return;
 
         setIsRenamingAgenda(true);
         setErrorMessage("");
 
-        const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks);
-        if (result?.type === "error") {
-            setErrorMessage(result.errorMessage || t(language, "agendaRenameError"));
-            setIsRenamingAgenda(false);
-            return;
+        if (hasShareChanges) {
+            try {
+                const shareData = await setShareEnabled(currentAgenda.id, shareEnabled);
+                setShareToken(shareData.shareToken || "");
+                setLocalShareEnabled(!!shareData.shareEnabled);
+                setInitialShareEnabled(!!shareData.shareEnabled);
+            } catch (err) {
+                setErrorMessage(err.message || t(language, "shareError"));
+                setIsRenamingAgenda(false);
+                return;
+            }
+        }
+
+        if (hasAgendaChanges) {
+            const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks);
+            if (result?.type === "error") {
+                setErrorMessage(result.errorMessage || t(language, "agendaRenameError"));
+                setIsRenamingAgenda(false);
+                return;
+            }
         }
 
         setIsRenamingAgenda(false);
@@ -203,7 +250,7 @@ export default function ShareSettingsForm() {
         {!isDeleteModalOpen && (
         <Blur type="share-settings-form">
             <div
-                className="share-settings-form relative mb-20 w-[32rem] max-w-full z-20 bg-[#e5d7fa] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="share-settings-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "agendaSettingsTitle")}</h3>
@@ -219,8 +266,8 @@ export default function ShareSettingsForm() {
                             type="button"
                             className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
                                 shareEnabled
-                                    ? "bg-[#e5d7fa] border-[#e5d7fa]"
-                                    : "bg-black border-[#e5d7fa]"
+                                    ? "bg-[rgb(250,250,252)] border-[rgb(250,250,252)]"
+                                    : "bg-black border-[rgb(250,250,252)]"
                             }`}
                             onClick={handleToggleShare}
                             disabled={loading}
@@ -228,15 +275,15 @@ export default function ShareSettingsForm() {
                             <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                 shareEnabled
                                     ? "translate-x-[20px] bg-black"
-                                    : "translate-x-0 bg-[#e5d7fa]"
+                                    : "translate-x-0 bg-[rgb(250,250,252)]"
                             }`}>
-                                {shareEnabled && <Check className="h-3 w-3 text-[#e5d7fa]" strokeWidth={3} />}
+                                {shareEnabled && <Check className="h-3 w-3 text-[rgb(250,250,252)]" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
 
                     {shareEnabled && (
-                        <div className="mt-4 flex items-center gap-2 rounded-md bg-[#e5d7fa] p-2">
+                        <div className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(250,250,252)] p-2">
                             <input
                                 type="text"
                                 value={publicShareUrl}
@@ -352,12 +399,12 @@ export default function ShareSettingsForm() {
                                 className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
                                     sortCompletedTasks
                                         ? "bg-black border-black"
-                                        : "bg-[#e5d7fa] border-black"
+                                        : "bg-[rgb(250,250,252)] border-black"
                                 }`}
                             >
                                 <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                     sortCompletedTasks
-                                    ? "translate-x-[20px] bg-[#e5d7fa]"
+                                    ? "translate-x-[20px] bg-[rgb(250,250,252)]"
                                         : "translate-x-0 bg-black"
                                 }`}>
                                     {sortCompletedTasks && (
@@ -374,17 +421,13 @@ export default function ShareSettingsForm() {
                 )}
 
                 <div className="mt-6 w-full flex justify-between items-center">
-                    <button
-                        type="button"
-                        onClick={handleSaveAgendaName}
-                        disabled={
-                            isRenamingAgenda ||
+                        <button
+                            type="button"
+                            onClick={handleSaveAgendaName}
+                            disabled={
+                                isRenamingAgenda ||
                             !agendaName.trim() ||
-                            (
-                                agendaName.trim() === (currentAgenda?.name || "").trim() &&
-                                agendaAvatar.trim() === (currentAgenda?.avatar || "").trim() &&
-                                agendaColor.trim() === (currentAgenda?.color || "#3b82f6").trim()
-                            )
+                            !hasPendingChanges
                         }
                         className="app-button-hover py-1.5 px-5 border border-black bg-black text-white rounded-full font-bold disabled:opacity-20"
                     >
@@ -403,10 +446,10 @@ export default function ShareSettingsForm() {
         )}
 
         {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-6 pb-10" onClick={closeDeleteAgendaModal}>
+            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAgendaModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative top-14 mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
                     onClick={ev => ev.stopPropagation()}
                 >
                     <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">

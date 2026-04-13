@@ -107,7 +107,13 @@ export async function getSearchedTasks(userId, agendaId, query) {
             return null;
         })
         .filter(Boolean)
-        .sort((a, b) => a.score - b.score)
+        .sort((a, b) => {
+            if (a.score !== b.score) return a.score - b.score;
+
+            const dateA = new Date(a.task.date).getTime();
+            const dateB = new Date(b.task.date).getTime();
+            return dateB - dateA;
+        })
         .map(item => item.task)
         .slice(0, 10);
 }

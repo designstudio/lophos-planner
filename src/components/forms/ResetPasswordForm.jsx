@@ -28,7 +28,7 @@ export default function ResetPasswordForm() {
     return (
         <Blur type="reset-password-form">
             <div
-                className="reset-password-form relative top-4 z-20 mx-auto w-full max-w-[512px] rounded-[24px] bg-[#f8e8e2] p-6 text-black shadow-lg outline-none"
+                className="reset-password-form relative top-4 z-20 mx-auto w-full max-w-[512px] rounded-[24px] bg-[rgb(250,250,252)] p-6 text-black shadow-lg outline-none"
                 onClick={ev => ev.stopPropagation()}
             >
                 <div className="w-full flex justify-between items-center mb-6">

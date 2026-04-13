@@ -4,10 +4,53 @@ import { getSearchedTasks } from "../../scripts/api.js";
 import SearchTask from "../tasks/SearchTask.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { XCircle } from "@untitledui/icons";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
 
 export default function SearchTaskForm() {
-    const { currentUser } = useAuth();
+    const { currentUser, appLanguage } = useAuth();
     const [tasks, setTasks] = React.useState([]);
+    const language = appLanguage || getAppLanguage(currentUser?.language);
+    const inputRef = React.useRef(null);
+    const modalRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const focusInput = () => {
+            inputRef.current?.focus();
+            inputRef.current?.select?.();
+        };
+
+        const blurEl = modalRef.current?.closest('.blur-bg[data-id="search-form"]');
+        if (!blurEl) return undefined;
+
+        let rafId = null;
+        let timeoutId = null;
+
+        const scheduleFocus = () => {
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+
+            rafId = requestAnimationFrame(focusInput);
+            timeoutId = window.setTimeout(focusInput, 180);
+        };
+
+        if (blurEl.classList.contains("active")) {
+            scheduleFocus();
+        }
+
+        const observer = new MutationObserver(() => {
+            if (blurEl.classList.contains("active")) {
+                scheduleFocus();
+            }
+        });
+
+        observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
+
+        return () => {
+            observer.disconnect();
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+        };
+    }, []);
 
     async function runSearch(query) {
         if (!query || !currentUser?.uid || !currentUser?.currentAgendaId) {
@@ -42,19 +85,22 @@ export default function SearchTaskForm() {
     return (
         <Blur bgColor="bg-black" type="search-form">
             <div
-                className="search-form relative top-16 bg-white rounded-xl p-4 lg:p-8 w-[28rem]
-                z-20 text-gray-600 transition-all duration-500 ease-linear"
+                ref={modalRef}
+                className="search-form relative bg-white rounded-xl p-4 lg:p-8 w-[28rem]
+                z-20 text-gray-600 transition-all duration-[160ms] ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
-                <h3 className="font-bold text-xl tracking-tight">Search</h3>
+                <h3 className="font-bold text-xl tracking-tight">{t(language, "search")}</h3>
 
                 <form className="relative" onSubmit={ev => ev.preventDefault()}>
                     <input
-                        className="text-field-border-bottom my-6 w-full py-1 focus:outline-none"
+                        ref={inputRef}
+                        className="my-6 w-full border-b bg-transparent py-1 focus:outline-none"
                         type="text"
                         name="search-task-name"
                         id="search-task-name"
                         onChange={handleSearchChange}
+                        style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
                     />
 
                     <button

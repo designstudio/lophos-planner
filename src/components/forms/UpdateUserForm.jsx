@@ -75,23 +75,30 @@ export default function UpdateUserForm() {
     React.useEffect(() => {
         if (!isDeleteModalOpen || !deleteModalRef.current) return;
 
-        deleteModalRef.current.animate(
-            [
-                {
-                    top: "6rem",
-                    opacity: 0.5,
-                },
-                {
-                    top: "3.5rem",
-                    opacity: 1,
-                },
-            ],
-            {
-                duration: 300,
-                fill: "forwards",
-            }
-        );
+        const modalEl = deleteModalRef.current;
+        modalEl.style.transition = "none";
+        modalEl.style.transform = "translateY(24px)";
+        modalEl.style.opacity = "0";
+
+        requestAnimationFrame(() => {
+            modalEl.style.transition = "transform 160ms ease, opacity 160ms ease";
+            modalEl.style.transform = "translateY(0)";
+            modalEl.style.opacity = "1";
+        });
     }, [isDeleteModalOpen]);
+
+    React.useEffect(() => {
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+            if (!isDeleteModalOpen || isDeletingAccount) return;
+
+            ev.preventDefault();
+            closeDeleteAccountModal();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDeleteModalOpen, isDeletingAccount]);
 
     React.useEffect(() => {
         if (navigation.state === "submitting") {
@@ -161,7 +168,7 @@ export default function UpdateUserForm() {
         {!isDeleteModalOpen && (
         <Blur type="update-user-form">
             <div
-                className="update-user-form relative mb-20 w-[32rem] max-w-full z-20 bg-[#e5d7fa] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="update-user-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "settingsTitle")}</h3>
@@ -184,8 +191,8 @@ export default function UpdateUserForm() {
                             type="button"
                             className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
                                 formValues.darkMode
-                                    ? "bg-[#e5d7fa] border-[#e5d7fa]"
-                                    : "bg-black border-[#e5d7fa]"
+                                    ? "bg-[#edeae3] border-[#edeae3]"
+                                    : "bg-black border-[#edeae3]"
                             }`}
                             onClick={() => {
                                 const next = !formValues.darkMode;
@@ -196,9 +203,9 @@ export default function UpdateUserForm() {
                             <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                 formValues.darkMode
                                     ? "translate-x-[20px] bg-black"
-                                    : "translate-x-0 bg-[#e5d7fa]"
+                                    : "translate-x-0 bg-[#edeae3]"
                             }`}>
-                                {formValues.darkMode && <Check className="h-3 w-3 text-[#e5d7fa]" strokeWidth={3} />}
+                                {formValues.darkMode && <Check className="h-3 w-3 text-[#edeae3]" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
@@ -230,25 +237,27 @@ export default function UpdateUserForm() {
                         className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                     />
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder={t(language, "password")}
-                        value={formValues.password}
-                        onChange={ev => updateField("password", ev.target.value)}
-                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
-                    />
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder={t(language, "password")}
+                            value={formValues.password}
+                            onChange={ev => updateField("password", ev.target.value)}
+                            className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                        />
 
-                    <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        placeholder={t(language, "confirmPassword")}
-                        value={formValues.confirmPassword}
-                        onChange={ev => updateField("confirmPassword", ev.target.value)}
-                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
-                    />
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            placeholder={t(language, "confirmPassword")}
+                            value={formValues.confirmPassword}
+                            onChange={ev => updateField("confirmPassword", ev.target.value)}
+                            className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                        />
+                    </div>
 
                     <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Configurações do sistema</h4>
 
@@ -344,10 +353,10 @@ export default function UpdateUserForm() {
         )}
 
         {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-6 pb-10" onClick={closeDeleteAccountModal}>
+            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAccountModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative top-14 mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
                     onClick={ev => ev.stopPropagation()}
                 >
                     <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">

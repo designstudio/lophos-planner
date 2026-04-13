@@ -78,7 +78,7 @@ export default function CreateAgendaForm() {
     return (
         <Blur type="create-agenda-form">
             <div
-                className="create-agenda-form relative mb-20 w-[32rem] max-w-full z-20 bg-[#e5d7fa] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="create-agenda-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "newAgenda")}</h3>
@@ -150,12 +150,12 @@ export default function CreateAgendaForm() {
                                 className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
                                     sortCompletedTasks
                                         ? "bg-black border-black"
-                                        : "bg-[#e5d7fa] border-black"
+                                        : "bg-[rgb(250,250,252)] border-black"
                                 }`}
                             >
                                 <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                     sortCompletedTasks
-                                    ? "translate-x-[20px] bg-[#e5d7fa]"
+                                    ? "translate-x-[20px] bg-[rgb(250,250,252)]"
                                         : "translate-x-0 bg-black"
                                 }`}>
                                     {sortCompletedTasks && (

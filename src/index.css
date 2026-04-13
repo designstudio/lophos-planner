@@ -222,7 +222,7 @@ select {
     }
 
     .task-menu-panel {
-        --color-bg-primary: #dfe2ff;
+        --color-bg-primary: rgb(250, 250, 252);
     }
 
     .task-menu-toolbar-sentinel {
@@ -232,19 +232,19 @@ select {
     }
 
     .task-menu-toolbar {
-        @apply flex items-center gap-1 border-b border-[#aeb5dd] pt-0 pb-2;
+        @apply flex items-center gap-1 border-b border-[rgba(0,0,0,0.15)] pt-0 pb-2;
         transform-origin: left top;
         transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .task-menu-toolbar.is-sticky {
-        @apply sticky z-20 inline-flex items-center gap-1 rounded-full border border-[#aeb5dd] px-1 py-1;
+        @apply sticky z-20 inline-flex items-center gap-1 rounded-full border border-[rgba(0,0,0,0.15)] px-1 py-1;
         top: 0.75rem;
         width: fit-content;
         max-width: 100%;
         --tw-backdrop-blur: blur(8px);
         backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);
-        background-color: color-mix(in srgb, var(--color-bg-primary, #dfe2ff) 20%, transparent);
+        background-color: color-mix(in srgb, var(--color-bg-primary, rgb(250, 250, 252)) 35%, transparent);
         box-shadow: 0 8px 28px rgba(17, 17, 17, .035);
     }
 
@@ -261,11 +261,15 @@ select {
     }
 
     .task-menu-icon-btn:hover {
-        background-color: rgba(255, 255, 255, 0.45);
+        background-color: rgba(237, 237, 242, 1);
     }
 
     .task-menu-icon-btn.is-active {
-        background-color: rgba(255, 255, 255, 0.45);
+        background-color: rgba(237, 237, 242, 1);
+    }
+
+    .task-menu-delete-btn:hover {
+        background-color: rgba(237, 237, 242, 1);
     }
 
     .task-menu-date-trigger {
@@ -273,7 +277,7 @@ select {
     }
 
     .task-menu-date-trigger:hover {
-        background-color: rgba(255, 255, 255, 0.45);
+        background-color: rgba(237, 237, 242, 1);
     }
 
     .header-month-trigger {
@@ -291,7 +295,7 @@ select {
 
     .task-menu-calendar {
         width: 220px;
-        @apply absolute left-0 top-10 z-20 rounded-md border border-black bg-[#eef1ff] p-3 shadow-lg;
+        @apply absolute left-0 top-10 z-20 rounded-md border border-[rgba(0,0,0,0.15)] bg-[rgb(250,250,252)] p-3 shadow-lg;
     }
 
     .header-month-calendar {
@@ -315,7 +319,7 @@ select {
     }
 
     .task-menu-calendar-weekdays {
-        @apply mb-1 grid grid-cols-7 gap-y-1 text-center text-[12px] text-[#7c86b4];
+        @apply mb-1 grid grid-cols-7 gap-y-1 text-center text-[12px] text-[#6b7280];
     }
 
     .task-menu-calendar-grid {
@@ -327,7 +331,7 @@ select {
     }
 
     .task-menu-calendar-day:hover {
-        background-color: rgba(59, 130, 246, 0.12);
+        background-color: rgba(237, 237, 242, 1);
     }
 
     .task-menu-calendar-day.is-selected {
@@ -346,7 +350,7 @@ select {
         width: 0.25rem;
         height: 0.25rem;
         border-radius: 9999px;
-        background-color: rgba(59, 130, 246, 0.55);
+        background-color: var(--agenda-accent, #3b82f6);
         position: absolute;
         bottom: 0.2rem;
     }
@@ -367,9 +371,9 @@ select {
     .task-menu-related-links-card {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        border: 1px solid #aeb5dd;
+        border: 1px solid rgba(0, 0, 0, 0.15);
         border-radius: 14px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(237, 240, 255, 0.72));
+        background: rgba(246, 246, 249, 1);
         overflow: hidden;
     }
 
@@ -381,7 +385,7 @@ select {
     }
 
     .task-menu-related-links-field + .task-menu-related-links-field {
-        border-top: 1px solid #aeb5dd;
+        border-top: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     .task-menu-related-links-input {
@@ -396,7 +400,7 @@ select {
     }
 
     .task-menu-related-links-input::placeholder {
-        color: #7c86b4;
+        color: #6b7280;
     }
 
     .task-menu-related-links-submit {
@@ -404,8 +408,8 @@ select {
         align-items: center;
         justify-content: center;
         gap: 0.375rem;
-        border-top: 1px solid #aeb5dd;
-        background: rgba(217, 222, 255, 0.72);
+        border-top: 1px solid rgba(0, 0, 0, 0.15);
+        background: rgba(240, 240, 245, 1);
         font-size: 0.875rem;
         font-weight: 600;
         color: #000;
@@ -413,7 +417,7 @@ select {
     }
 
     .task-menu-related-links-submit:hover {
-        background: rgba(207, 214, 255, 0.95);
+        background: rgba(233, 233, 239, 1);
     }
 
     @media (min-width: 1024px) {
@@ -423,12 +427,12 @@ select {
 
         .task-menu-related-links-field + .task-menu-related-links-field {
             border-top: 0;
-            border-left: 1px solid #aeb5dd;
+            border-left: 1px solid rgba(0, 0, 0, 0.15);
         }
 
         .task-menu-related-links-submit {
             border-top: 0;
-            border-left: 1px solid #aeb5dd;
+            border-left: 1px solid rgba(0, 0, 0, 0.15);
             padding: 0 1rem;
         }
     }
@@ -454,7 +458,7 @@ select {
 
     .task-menu-editor:empty::before {
         content: attr(data-placeholder);
-        color: #7c86b4;
+        color: #6b7280;
     }
 
     .task-menu-editor p,
@@ -511,8 +515,8 @@ select {
         display: inline-block;
         max-width: min(200px, 100%);
         border-radius: 9999px;
-        background: rgba(124, 134, 180, 0.16);
-        color: #30406f;
+        background: rgba(237, 237, 242, 1);
+        color: #374151;
         padding: 0.1rem 0.5rem;
         font-weight: 600;
         text-decoration: none;
@@ -523,7 +527,7 @@ select {
     }
 
     .task-mention:hover {
-        background: rgba(124, 134, 180, 0.24);
+        background: rgba(226, 226, 232, 0.92);
     }
 
     .task-mention-menu {
@@ -532,9 +536,9 @@ select {
         width: min(22rem, calc(100vw - 4rem));
         max-height: 16rem;
         overflow-y: auto;
-        border: 1px solid #aeb5dd;
+        border: 1px solid rgba(0, 0, 0, 0.15);
         border-radius: 18px;
-        background: rgba(246, 248, 255, 0.98);
+        background: rgba(250, 250, 252, 0.98);
         box-shadow: 0 18px 45px rgba(17, 17, 17, 0.12);
         backdrop-filter: blur(10px);
     }
@@ -552,12 +556,12 @@ select {
     }
 
     .task-mention-option + .task-mention-option {
-        border-top: 1px solid rgba(174, 181, 221, 0.7);
+        border-top: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     .task-mention-option:hover,
     .task-mention-option.is-active {
-        background: rgba(223, 226, 255, 0.92);
+        background: rgba(237, 237, 242, 1);
     }
 
     .task-mention-option-label {
@@ -570,7 +574,7 @@ select {
     .task-mention-empty {
         font-size: 0.78rem;
         line-height: 1rem;
-        color: #5f6992;
+        color: #6b7280;
     }
 
     .task-mention-empty {
@@ -578,7 +582,7 @@ select {
     }
 
     .task-menu-panel .EasyMDEContainer .CodeMirror-placeholder {
-        color: #7c86b4;
+        color: #6b7280;
         opacity: 1;
     }
 
@@ -588,11 +592,11 @@ select {
 
     /* Existing component overrides */
     .blur-bg.active > .task-menu {
-        @apply top-0;
+        @apply top-auto;
     }
 
     .blur-bg:not(.active) > .task-menu {
-        @apply top-12;
+        @apply top-24;
     }
 
     .profile-menu.active, .extras-menu.active, .task-menu-color-picker.active,

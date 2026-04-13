@@ -12,7 +12,7 @@ export function TaskMenuColorPicker({ setColor }) {
     const colors = [...ALLOWED_COLORS];
 
     return (
-        <div className="task-menu-color-picker bg-[#dfe2ff] border border-[#aeb5dd] rounded-xl w-20 py-4 z-20 -translate-x-[50%] text-center"
+        <div className="task-menu-color-picker bg-[rgb(250,250,252)] border border-[rgba(0,0,0,0.15)] rounded-xl w-20 py-4 z-20 -translate-x-[50%] text-center"
              onClick={ev => ev.stopPropagation()}>
             <div className="flex gap-2 flex-wrap justify-center">
                 {
