@@ -184,6 +184,8 @@ export default function PublicSharePage() {
     const weekStartsOn = owner?.weekStartsOn || "Monday";
     const agendaAccent = agenda?.color || "#3b82f6";
     const relatedLinksEnabled = agenda?.related_links_enabled ?? true;
+    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const publicTaskTitleMaxLength = isMobile ? 40 : 34;
 
     const now = new Date();
     const weekShift = Number(searchParams.get("weekShift") || 0);
@@ -678,7 +680,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskPreview(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0, publicTaskTitleMaxLength)}
                                     </div>
                                 </button>
                             ))}
@@ -723,7 +725,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskPreview(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0, publicTaskTitleMaxLength)}
                                     </div>
                                 </button>
                             ))}
@@ -861,7 +863,7 @@ export default function PublicSharePage() {
                                     onClick={() => openTaskFromSearch(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
-                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0)}
+                                        {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0, publicTaskTitleMaxLength)}
                                         <p className="ml-4 shrink-0 text-gray-400">{formatDayMonth(new Date(task.date), language, dateFormat)}</p>
                                     </div>
                                 </button>

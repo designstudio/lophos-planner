@@ -13,7 +13,8 @@ function formDate(date) {
 }
 
 export default function Task({taskListInd, ind, data, date, tasksCol, relatedLinksEnabled = true}) {
-    const MAX_TASK_NAME_LENGTH = 34;
+    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const MAX_TASK_NAME_LENGTH = isMobile ? 40 : 34;
     const isDraggingRef = React.useRef(false);
     const isTaskNameTruncated = data.name.length > MAX_TASK_NAME_LENGTH;
     const visibleTaskName = data.name.slice(0, MAX_TASK_NAME_LENGTH) +
