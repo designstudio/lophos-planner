@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import Lottie from 'lottie-react';
+import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../scripts/supabase.js";
@@ -14,6 +16,7 @@ const TaskListContainer = () => {
     const [tasks, setTasks] = useState([]);
     const [maxTasks, setMaxTasks] = React.useState(10);
     const [loading, setLoading] = useState(true);
+    const [minLoadingDone, setMinLoadingDone] = useState(false);
     const [holidayNamesByDate, setHolidayNamesByDate] = useState({});
     const tasksRef = React.useRef([]);
     const fetchTimeoutRef = React.useRef(null);
@@ -70,6 +73,11 @@ const TaskListContainer = () => {
     useEffect(() => {
         tasksRef.current = tasks;
     }, [tasks]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setMinLoadingDone(true), 700);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         function handleTaskDeleted(ev) {
@@ -373,10 +381,10 @@ const TaskListContainer = () => {
         changeMaxTasks(tasksData[formDate(newDate)].length + 1);
     }
 
-    if (loading) {
+    if (loading || !minLoadingDone) {
         return (
-            <div className="w-full py-20 text-center text-2xl font-bold dark:text-white">
-                {t(language, "loadingTasks")}
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black">
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
     }

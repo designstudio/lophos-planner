@@ -47,6 +47,8 @@ function HomePage() {
     }, [currentAgenda?.id, currentAgenda?.color]);
 
     useEffect(() => {
+        if (!isAuthReady) return;
+
         const loginBlur = document.querySelector('[data-id="login-form"]');
         const signupBlur = document.querySelector('[data-id="signup-form"]');
         const resetBlur = document.querySelector('[data-id="reset-password-form"]');
@@ -59,7 +61,7 @@ function HomePage() {
         } else {
             loginBlur?.classList.add('active');
         }
-    }, [currentUser]);
+    }, [currentUser, isAuthReady]);
 
     if (!isAuthReady) {
         return (

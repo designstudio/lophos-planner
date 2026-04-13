@@ -1,4 +1,6 @@
 import React from "react";
+import Lottie from "lottie-react";
+import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02 } from "@untitledui/icons";
 import { marked } from "marked";
@@ -94,6 +96,7 @@ export default function PublicSharePage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [loading, setLoading] = React.useState(true);
+    const [minLoadingDone, setMinLoadingDone] = React.useState(false);
     const [owner, setOwner] = React.useState(null);
     const [agenda, setAgenda] = React.useState(null);
     const [tasks, setTasks] = React.useState([]);
@@ -108,6 +111,11 @@ export default function PublicSharePage() {
     const calendarRef = React.useRef(null);
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const timer = setTimeout(() => setMinLoadingDone(true), 700);
+        return () => clearTimeout(timer);
+    }, []);
 
     React.useEffect(() => () => {
         if (taskPreviewCloseTimeoutRef.current) {
@@ -488,8 +496,12 @@ export default function PublicSharePage() {
         }).format(activeTaskDate).replaceAll(".", "")
         : t(language, "taskMenuDateFallback");
 
-    if (loading) {
-        return <div className="min-h-screen bg-white px-5 py-8 text-2xl font-bold text-black">Loading...</div>;
+    if (loading || !minLoadingDone) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
+            </div>
+        );
     }
 
     if (!owner) {
