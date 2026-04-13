@@ -11,7 +11,3 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         flowType: 'pkce',
     },
 });
-
-if (typeof window !== 'undefined') {
-    window.supabase = supabase;
-}

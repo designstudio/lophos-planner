@@ -2,10 +2,10 @@ import React from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02 } from "@untitledui/icons";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
 import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
-import { formDate, matchesShortId, parseDateOnly, toShortId } from "./scripts/utils.js";
-import { supabase } from "./scripts/supabase.js";
+import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -44,6 +44,22 @@ function normalizeSearchText(text) {
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
+}
+
+function sanitizePublicHtml(html) {
+    return DOMPurify.sanitize(html || "", {
+        USE_PROFILES: { html: true },
+        ADD_ATTR: ["class", "data-task-id", "contenteditable", "target", "rel"],
+    });
+}
+
+function renderPublicDescription(markdown) {
+    const rawHtml = marked.parse(markdown || "");
+    const htmlWithMentions = rawHtml.replace(
+        /<a href="#task:([^"]+)">/g,
+        '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">'
+    );
+    return sanitizePublicHtml(htmlWithMentions);
 }
 
 function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
@@ -89,7 +105,6 @@ export default function PublicSharePage() {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
-    const refreshTimeoutRef = React.useRef(null);
     const calendarRef = React.useRef(null);
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
@@ -108,8 +123,11 @@ export default function PublicSharePage() {
     React.useEffect(() => {
         let mounted = true;
 
-        async function loadAgenda() {
-            setLoading(true);
+        async function refreshPublicAgenda(showLoading = false) {
+            if (showLoading) {
+                setLoading(true);
+            }
+
             try {
                 const data = await getPublicAgendaByShareToken(shareToken);
                 if (!mounted) return;
@@ -118,90 +136,34 @@ export default function PublicSharePage() {
                     setOwner(null);
                     setAgenda(null);
                     setTasks([]);
-                    setLoading(false);
                     return;
                 }
 
-                setOwner(data.owner);
+                setOwner(data.owner || null);
                 setAgenda(data.agenda || null);
-                setTasks(data.tasks);
-                setLoading(false);
+                setTasks(Array.isArray(data.tasks) ? data.tasks : []);
             } catch {
                 if (!mounted) return;
                 setOwner(null);
                 setAgenda(null);
                 setTasks([]);
-                setLoading(false);
+            } finally {
+                if (mounted && showLoading) {
+                    setLoading(false);
+                }
             }
         }
 
-        loadAgenda();
+        refreshPublicAgenda(true);
+        const intervalId = setInterval(() => {
+            refreshPublicAgenda(false);
+        }, 15000);
+
         return () => {
             mounted = false;
+            clearInterval(intervalId);
         };
     }, [shareToken]);
-
-    React.useEffect(() => {
-        if (!agenda?.id || !owner?.id) return undefined;
-
-        let disposed = false;
-
-        async function refreshPublicTasks() {
-            const { data, error } = await supabase
-                .from("tasks")
-                .select("*")
-                .eq("uid", owner.id)
-                .eq("agenda_id", agenda.id)
-                .order("order");
-
-            if (disposed || error) return;
-
-            setTasks((data || []).map(task => ({
-                ...task,
-                date: parseDateOnly(task.date),
-            })));
-        }
-
-        const scheduleRefresh = () => {
-            if (refreshTimeoutRef.current) {
-                clearTimeout(refreshTimeoutRef.current);
-            }
-
-            refreshTimeoutRef.current = setTimeout(() => {
-                refreshTimeoutRef.current = null;
-                refreshPublicTasks();
-            }, 40);
-        };
-
-        const channel = supabase
-            .channel(`public-share-tasks:${agenda.id}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "*",
-                    schema: "public",
-                    table: "tasks",
-                    filter: `agenda_id=eq.${agenda.id}`,
-                },
-                scheduleRefresh
-            )
-            .subscribe();
-
-        // Fallback leve caso realtime atrase ou esteja indisponivel.
-        const intervalId = setInterval(refreshPublicTasks, 15000);
-
-        return () => {
-            disposed = true;
-
-            if (refreshTimeoutRef.current) {
-                clearTimeout(refreshTimeoutRef.current);
-                refreshTimeoutRef.current = null;
-            }
-
-            clearInterval(intervalId);
-            supabase.removeChannel(channel);
-        };
-    }, [agenda?.id, owner?.id]);
 
     React.useEffect(() => {
         const baseTitle = "Lophos Planner";
@@ -747,7 +709,7 @@ export default function PublicSharePage() {
                         {hasSelectedDescription && (
                             <div
                                 className="task-menu-editor mt-5"
-                                dangerouslySetInnerHTML={{ __html: marked.parse(selectedTask.description || "").replace(/<a href="#task:([^"]+)">/g, '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">') }}
+                                dangerouslySetInnerHTML={{ __html: renderPublicDescription(selectedTask.description || "") }}
                             />
                         )}
 

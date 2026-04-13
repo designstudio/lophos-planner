@@ -584,47 +584,44 @@ export async function setShareEnabled(agendaId, enabled) {
 }
 
 export async function getPublicAgendaByShareToken(shareToken) {
-    const { data: agenda, error: agendaError } = await supabase
-        .from('agendas')
-        .select('*')
-        .eq('share_token', shareToken)
-        .maybeSingle();
+    const { data, error } = await supabase.rpc('get_public_agenda_by_share_token', {
+        p_share_token: shareToken,
+    });
 
-    if (agendaError) throw agendaError;
-    if (!agenda || !agenda.share_enabled) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-    const { data: owner, error: ownerError } = await supabase
-        .from('users')
-        .select('id, name, language, date_format, week_starts_on')
-        .eq('id', agenda.uid)
-        .maybeSingle();
+    let normalized = data;
+    if (Array.isArray(normalized)) {
+        normalized = normalized[0] ?? null;
+    }
 
-    if (ownerError) throw ownerError;
-    if (!owner) return null;
+    if (typeof normalized === 'string') {
+        try {
+            normalized = JSON.parse(normalized);
+        } catch {
+            normalized = null;
+        }
+    }
 
-    const { data: tasks, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('uid', owner.id)
-        .eq('agenda_id', agenda.id)
-        .order('order');
-
-    if (tasksError) throw tasksError;
+    if (!normalized || typeof normalized !== 'object') return null;
 
     return {
         owner: {
-            id: owner.id,
-            name: owner.name,
-            language: owner.language || 'ptBR',
-            dateFormat: owner.date_format || 'DD-MM',
-            weekStartsOn: owner.week_starts_on || 'Monday',
+            name: normalized?.owner?.name,
+            language: normalized?.owner?.language || 'ptBR',
+            dateFormat: normalized?.owner?.dateFormat || 'DD-MM',
+            weekStartsOn: normalized?.owner?.weekStartsOn || 'Monday',
         },
         agenda: {
-            id: agenda.id,
-            name: agenda.name,
-            avatar: agenda.avatar || '',
-            color: agenda.color || '#3b82f6',
+            id: normalized?.agenda?.id,
+            name: normalized?.agenda?.name,
+            avatar: normalized?.agenda?.avatar || '',
+            color: normalized?.agenda?.color || '#3b82f6',
         },
-        tasks: (tasks || []).map(task => ({ ...task, date: parseDateOnly(task.date) })),
+        tasks: (Array.isArray(normalized?.tasks) ? normalized.tasks : []).map(task => ({
+            ...task,
+            date: parseDateOnly(task.date),
+        })),
     };
 }
