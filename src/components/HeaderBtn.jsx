@@ -3,7 +3,7 @@ import React from 'react'
 export function HeaderBtn({textColor, bgColor, icon: Icon, onClick, tooltip=null, style, className=""}) {
   return (
     <button
-        className={`${bgColor} ${className} app-button-hover rounded-full flex justify-center
+        className={`${bgColor} ${className} app-button-hover header-menu-btn rounded-full flex justify-center
         items-center w-8 h-8 lg:w-10 lg:h-10 flex-1 relative group`}
         onClick={onClick}
         style={style}

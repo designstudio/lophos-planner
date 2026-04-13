@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import HomePage from './HomePage';
 import NotFound from "./components/NotFound";
 import './index.css';
+import './mobile.css';
 import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
 import TaskMenuContext from "./contexts/TaskMenuContext";

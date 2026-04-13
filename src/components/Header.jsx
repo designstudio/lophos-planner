@@ -295,8 +295,7 @@ const Header = () => {
     const monthName = new Intl.DateTimeFormat(locale, { month: "long" }).format(newDate);
     return (
         <header
-            className="max-container flex justify-between max-lg:border-b max-lg:border-gray-200
-            items-center w-full gap-6 padding-x py-4 lg:py-5 bg-white max-lg:fixed top-0 left-0 z-50
+            className="max-container flex justify-between items-center w-full gap-6 padding-x py-4 lg:py-5 max-lg:py-6 bg-white max-lg:sticky max-lg:top-0 z-50
             dark:bg-gray-800 dark:text-white dark:border-gray-700">
             <div className="relative" ref={calendarRef}>
                 <button
@@ -363,7 +362,7 @@ const Header = () => {
             <div className="flex gap-2">
 
                 {currentUser ?
-                    <button className="app-button-hover relative group flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
                         <h2 className="text-sm font-semibold leading-none">{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
         opacity-0 group-hover:opacity-100 transition ease-linear duration-200

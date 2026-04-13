@@ -71,7 +71,7 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
 
     return (
         <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
-            <h5 className={`min-w-0 flex items-center gap-1 text-[14px] font-normal leading-[41px] text-black ${task.done ? "opacity-40 line-through" : ""}`}>
+            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-black ${task.done ? "opacity-40 line-through" : ""}`}>
                 {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                 {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -288,6 +288,22 @@ export default function PublicSharePage() {
         }, MODAL_EXIT_DURATION_MS);
     }
 
+    function openReferencedTask(taskId) {
+        if (!taskId) return;
+
+        const referencedTask = tasks.find(item => String(item.id) === String(taskId));
+        if (referencedTask) {
+            openTaskPreview(referencedTask);
+            return;
+        }
+
+        setSearchParams(prev => {
+            const nextParams = new URLSearchParams(prev);
+            nextParams.set("openedTask", toShortId(taskId));
+            return nextParams;
+        });
+    }
+
     function openSearchModal() {
         if (searchCloseTimeoutRef.current) {
             clearTimeout(searchCloseTimeoutRef.current);
@@ -462,6 +478,17 @@ export default function PublicSharePage() {
         setSearchQuery("");
     }
 
+    function handleTaskMentionClick(ev) {
+        const mentionLink = ev.target.closest?.("a[data-task-id]");
+        if (!mentionLink) return;
+
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        const referencedTaskId = mentionLink.getAttribute("data-task-id");
+        openReferencedTask(referencedTaskId);
+    }
+
     const filteredSearchTasks = React.useMemo(() => {
         const query = normalizeSearchText(searchQuery);
         if (!query) return [];
@@ -506,7 +533,7 @@ export default function PublicSharePage() {
 
     if (!owner) {
         return (
-            <div className="min-h-screen bg-white px-5 py-8 text-xl font-semibold text-black">
+            <div className="min-h-screen bg-white px-6 py-8 text-xl font-semibold text-black">
                 {t(language, "publicAgendaUnavailable")}
             </div>
         );
@@ -516,13 +543,13 @@ export default function PublicSharePage() {
 
     return (
         <div
-            className="min-w-screen min-h-screen bg-white text-black"
+            className="public-share-page min-w-screen min-h-screen bg-white text-black"
             style={{
                 '--agenda-accent': agendaAccent,
                 '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'rgba(59, 130, 246, 0.2)',
             }}
         >
-            <header className="max-container flex items-center justify-between gap-6 bg-white px-4 py-4 lg:px-5 lg:py-5">
+            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-white px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
                 <div className="relative" ref={calendarRef}>
                     <button
                         type="button"
@@ -622,7 +649,7 @@ export default function PublicSharePage() {
                 </div>
             </header>
 
-            <main className="w-full px-4 pb-6 pt-4 lg:grid lg:grid-cols-6 lg:gap-6 lg:px-5 lg:pt-10">
+            <main className="w-full flex flex-col gap-[30px] px-6 pb-6 pt-4 lg:grid lg:grid-cols-6 lg:gap-6 lg:px-6 lg:pt-10">
                 {dates.slice(0, 5).map((date, index) => {
                     const dateKey = formDate(date);
                     const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
@@ -632,12 +659,12 @@ export default function PublicSharePage() {
                     const active = formDate(new Date()) === dateKey;
 
                     return (
-                        <div className="min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
+                        <div className="public-day-block min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`text-[21px] font-bold leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`text-[21px] font-normal leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
@@ -655,14 +682,19 @@ export default function PublicSharePage() {
                                 </button>
                             ))}
 
-                            {Array.from({ length: Math.max(0, 10 - tasksData[dateKey].length) }).map((_, emptyIndex) => (
-                                <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
-                            ))}
+                            {/* Apenas 1 linha vazia por dia no mobile, 10 no desktop */}
+                            {(() => {
+                                const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+                                const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 10 - tasksData[dateKey].length);
+                                return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
+                                    <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
+                                ));
+                            })()}
                         </div>
                     );
                 })}
 
-                <div className="mt-6 min-w-0 flex flex-col gap-[30px] lg:mt-0">
+                <div className="min-w-0 flex flex-col gap-[30px]">
                     {dates.slice(5).map((date, index) => {
                         const dateKey = formDate(date);
                         const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
@@ -672,32 +704,37 @@ export default function PublicSharePage() {
                         const active = formDate(new Date()) === dateKey;
 
                         return (
-                            <div className="min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
-                                <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                    <h2 className={`text-[21px] font-bold leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
-                                        {formatDayMonth(date, language, dateFormat)}
-                                    </h2>
-                                    <h3 className={`text-[21px] font-normal leading-[28px] tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
-                                        {label}
-                                    </h3>
-                                </div>
+                            <div className="public-day-block min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
+                            <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                    {formatDayMonth(date, language, dateFormat)}
+                                </h2>
+                                <h3 className={`public-weekday-label tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                    {label}
+                                </h3>
+                            </div>
 
-                                {tasksData[dateKey].map(task => (
-                                    <button
-                                        type="button"
-                                        className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
-                                        key={task.id}
-                                        onClick={() => openTaskPreview(task)}
-                                    >
-                                        <div className="task flex h-[41px] items-center justify-between px-0">
-                                            {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
-                                        </div>
-                                    </button>
-                                ))}
+                            {tasksData[dateKey].map(task => (
+                                <button
+                                    type="button"
+                                    className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
+                                    key={task.id}
+                                    onClick={() => openTaskPreview(task)}
+                                >
+                                    <div className="task flex h-[41px] items-center justify-between px-0">
+                                        {renderPublicTaskTitle(task, normalizeRelatedLinks(task).length)}
+                                    </div>
+                                </button>
+                            ))}
 
-                                {Array.from({ length: Math.max(0, 4 - tasksData[dateKey].length) }).map((_, emptyIndex) => (
-                                    <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
-                                ))}
+                            {/* Apenas 1 linha vazia por dia no mobile, 4 no desktop */}
+                                {(() => {
+                                    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+                                    const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 4 - tasksData[dateKey].length);
+                                    return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
+                                        <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
+                                    ));
+                                })()}
                             </div>
                         );
                     })}
@@ -706,7 +743,7 @@ export default function PublicSharePage() {
 
             {isTaskPreviewOpen && selectedTask && (
                 <div
-                    className={`fixed inset-0 z-20 flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
                         backgroundColor: "rgba(5, 5, 5, 0.2)",
                         backdropFilter: "blur(2px)",
@@ -715,7 +752,7 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel relative z-[80] mb-20 w-[32rem] max-w-full rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="mb-6 flex w-full items-center justify-between text-sm">
@@ -746,6 +783,7 @@ export default function PublicSharePage() {
                         {hasSelectedDescription && (
                             <div
                                 className="task-menu-editor mt-5"
+                                onClick={handleTaskMentionClick}
                                 dangerouslySetInnerHTML={{ __html: renderPublicDescription(selectedTask.description || "") }}
                             />
                         )}
@@ -780,7 +818,7 @@ export default function PublicSharePage() {
 
             {isSearchOpen && (
                 <div
-                    className={`fixed inset-0 z-30 flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-[70] flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
                         backgroundColor: "rgba(5, 5, 5, 0.2)",
                         backdropFilter: "blur(2px)",
@@ -789,7 +827,7 @@ export default function PublicSharePage() {
                     onClick={closeSearchModal}
                 >
                     <div
-                        className={`search-form relative z-20 w-[28rem] rounded-xl bg-[rgb(250,250,252)] p-4 text-gray-600 transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`search-form relative z-[80] w-[28rem] rounded-xl bg-[rgb(250,250,252)] p-4 text-gray-600 transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <h3 className="text-xl font-bold tracking-tight text-black">{t(language, "search")}</h3>

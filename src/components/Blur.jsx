@@ -120,7 +120,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
     }, [forceActive, type]);
 
     return (
-        <div ref={blurRef} data-id={type} className={`blur-bg ${forceActive ? "active" : ""} fixed inset-0 z-10
+        <div ref={blurRef} data-id={type} className={`blur-bg ${forceActive ? "active" : ""} fixed inset-0 z-[60]
         overflow-y-auto overscroll-contain px-4 ${topSpacingClass} pb-10 transition-all duration-[160ms] ease-linear cursor-default flex justify-center items-start`}
              style={{
                  backgroundColor: "rgba(5, 5, 5, 0.2)",

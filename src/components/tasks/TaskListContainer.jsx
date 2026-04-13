@@ -390,7 +390,7 @@ const TaskListContainer = () => {
     }
 
     return (
-        <div className="w-full padding-x flex flex-col gap-6 py-4 lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10 max-lg:mt-20 dark:bg-black dark:text-white">
+        <div className="w-full padding-x flex flex-col gap-6 py-4 lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10 dark:bg-black dark:text-white">
             {dates.slice(0, 5).map((date, index) => (
                 <TaskList
                     date={date}

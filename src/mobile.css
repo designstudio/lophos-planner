@@ -1,0 +1,58 @@
+/* src/mobile.css - CSS exclusivo para mobile (até 1023px) */
+
+@media (max-width: 1023px) {
+  /* Nome do mês na visão geral (privado e público) */
+  .header-month-trigger,
+  .public-share-page .header-month-trigger,
+  .public-share-page header .header-month-trigger,
+  .public-share-page header span {
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    line-height: 28px !important;
+  }
+
+  /* Botões do menu do header */
+  .header-menu-btn,
+  .profile-menu-btn {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    max-width: 2.5rem !important;
+    max-height: 2.5rem !important;
+  }
+
+  /* Data das colunas e dia da semana */
+  .task-list h2, .task-list h3,
+  /* Datas e dias da semana na visão pública */
+  .public-share-page main h2,
+  .public-share-page main h3 {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    line-height: 28px !important;
+    letter-spacing: -0.5px !important;
+  }
+
+  /* Tarefas */
+  .task-title, .task-list .task h5,
+  /* Tarefas na visão pública */
+  .public-share-page main .task h5,
+  .public-share-page main h5 {
+    font-size: 16px !important;
+    line-height: 22px !important;
+    font-weight: 400 !important;
+  }
+
+  /* Linhas do calendário: garantir apenas 1 linha vazia por dia */
+  .empty-task {
+    min-height: 41px !important;
+    max-height: 41px !important;
+    height: 41px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    background: #fff !important;
+  }
+  .dark .empty-task {
+    background: #000 !important;
+    border-bottom: 1px solid #374151 !important;
+  }
+}

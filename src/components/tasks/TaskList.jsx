@@ -118,8 +118,16 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                                    tasksCol={tasksData.length}
                                    ind={i}/>);
     }
+    // Exibe apenas 1 linha vazia por dia no mobile, 10/4 no desktop
+    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
     const fixedRows = 1 + (holidayName ? 1 : 0);
-    for (let i = 0; i < Math.max(0, (last ? (maxTasks / 2) - 1 : maxTasks) - fixedRows - tasksData.length); ++i) {
+    let emptyRows = 0;
+    if (isMobile) {
+        emptyRows = Math.max(0, 1 - fixedRows - tasksData.length);
+    } else {
+        emptyRows = Math.max(0, (last ? (maxTasks / 2) - 1 : maxTasks) - fixedRows - tasksData.length);
+    }
+    for (let i = 0; i < emptyRows; ++i) {
         emptyComponents.push(
             <div className="empty-task task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black"
                  key={i}

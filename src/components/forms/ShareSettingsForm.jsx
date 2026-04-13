@@ -446,7 +446,7 @@ export default function ShareSettingsForm() {
         )}
 
         {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAgendaModal}>
+            <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAgendaModal}>
                 <div
                     ref={deleteModalRef}
                     className="relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
