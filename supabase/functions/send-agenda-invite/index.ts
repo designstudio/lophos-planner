@@ -22,71 +22,6 @@ function normalizeEmail(value: unknown) {
   return String(value || "").trim().toLowerCase();
 }
 
-function buildInviteEmail(language: "ptBR" | "enUS", params: {
-  agendaName: string;
-  inviteLink: string;
-  expiresAt: string;
-}) {
-  const isEnglish = language === "enUS";
-  const agendaLabel = params.agendaName || (isEnglish ? "an agenda" : "uma agenda");
-  const subject = isEnglish
-    ? `You're invited to collaborate on ${agendaLabel}`
-    : `Voc\u00ea foi convidado(a) para colaborar em ${agendaLabel}`;
-  const intro = isEnglish
-    ? `You've been invited to collaborate on ${agendaLabel}.`
-    : `Voc\u00ea foi convidado(a) para colaborar na agenda ${agendaLabel}.`;
-  const body = isEnglish
-    ? "Click the button below to accept the invitation, create your account, and access the agenda."
-    : "Clique no bot\u00e3o abaixo para aceitar o convite, criar sua conta e acessar a agenda.";
-  const buttonLabel = isEnglish ? "Accept invitation" : "Aceitar convite";
-  const fallback = isEnglish
-    ? "If the button doesn't work, copy and paste this link into your browser:"
-    : "Se o bot\u00e3o n\u00e3o funcionar, copie e cole este link no navegador:";
-
-  const html = `<!doctype html>
-<html lang="${isEnglish ? "en" : "pt-BR"}">
-  <body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
-      <div style="background:#ffffff;border-radius:20px;padding:32px;border:1px solid #e5e7eb;">
-        <div style="font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:16px;">
-          Lophos Planner
-        </div>
-        <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;color:#111827;">${subject}</h1>
-        <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#374151;">${intro}</p>
-        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#374151;">${body}</p>
-        <div style="margin:0 0 24px;">
-          <a href="${params.inviteLink}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;padding:14px 22px;border-radius:999px;font-weight:700;font-size:16px;">
-            ${buttonLabel}
-          </a>
-        </div>
-        <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#6b7280;">
-          ${fallback}
-        </p>
-        <p style="margin:0 0 16px;word-break:break-all;font-size:13px;line-height:1.5;color:#111827;">
-          ${params.inviteLink}
-        </p>
-        <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">
-          ${isEnglish ? "This invitation expires on" : "Este convite expira em"} ${params.expiresAt}.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>`;
-
-  const text = [
-    subject,
-    "",
-    intro,
-    body,
-    "",
-    `${fallback} ${params.inviteLink}`,
-    "",
-    `${isEnglish ? "Expires on" : "Expira em"} ${params.expiresAt}`,
-  ].join("\n");
-
-  return { subject, html, text };
-}
-
 async function sendInviteEmail(params: {
   apiKey: string;
   fromEmail: string;
@@ -96,11 +31,10 @@ async function sendInviteEmail(params: {
   inviteLink: string;
   expiresAt: string;
 }) {
-  const email = buildInviteEmail(params.language, {
-    agendaName: params.agendaName,
-    inviteLink: params.inviteLink,
-    expiresAt: params.expiresAt,
-  });
+  const templateId =
+    params.language === "enUS"
+      ? Deno.env.get("RESEND_INVITE_TEMPLATE_EN_US") || "invites_en-us"
+      : Deno.env.get("RESEND_INVITE_TEMPLATE_PT_BR") || "invites_pt-br";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -112,9 +46,14 @@ async function sendInviteEmail(params: {
     body: JSON.stringify({
       from: params.fromEmail,
       to: params.inviteeEmail,
-      subject: email.subject,
-      html: email.html,
-      text: email.text,
+      template: {
+        id: templateId,
+        variables: {
+          AGENDA_NAME: params.agendaName,
+          INVITE_LINK: params.inviteLink,
+          EXPIRES_AT: params.expiresAt,
+        },
+      },
       tags: [
         { name: "app", value: "lophos-planner" },
         { name: "type", value: "agenda-invite" },
