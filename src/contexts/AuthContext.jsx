@@ -113,6 +113,13 @@ function AuthProvider({ children }) {
         return inviteToken;
     }
 
+    function detectPasswordRecoveryFromUrl() {
+        if (typeof window === 'undefined') return false;
+
+        const url = new URL(window.location.href);
+        return url.searchParams.get('type') === 'recovery' || url.hash.includes('type=recovery');
+    }
+
     async function applyPendingAgendaInvite(userId) {
         const inviteToken = getPendingAgendaInviteToken();
         if (!inviteToken || !userId) return null;
@@ -215,10 +222,12 @@ function AuthProvider({ children }) {
         async function bootstrapAuth() {
             const { data, error } = await supabase.auth.getSession();
             const sessionUser = data?.session?.user ?? null;
+            const isRecoveryUrl = detectPasswordRecoveryFromUrl();
 
             if (!mounted) return;
 
             captureInviteTokenFromUrl();
+            setIsPasswordRecovery(isRecoveryUrl);
 
             if (sessionUser) {
                 stripAuthParamsFromUrl();
@@ -230,6 +239,7 @@ function AuthProvider({ children }) {
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
                 localStorage.language = fallbackUser.language;
                 setAppLanguage(fallbackUser.language);
+                setIsPasswordRecovery(isRecoveryUrl);
 
                 // Tenta enriquecer com o perfil público sem bloquear a UI
                 try {
@@ -362,6 +372,7 @@ function AuthProvider({ children }) {
             fallbackUser.currentAgendaId = ensured.currentAgendaId;
             fallbackUser.defaultAgendaId = ensured.currentAgendaId;
             setStoredDefaultAgendaId(sessionUser.id, ensured.currentAgendaId);
+            setIsPasswordRecovery(false);
 
                 setCurrentUser(fallbackUser);
                 setAgendas(ensured.agendas);
@@ -427,6 +438,7 @@ function AuthProvider({ children }) {
             localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
             localStorage.language = fallbackUser.language;
             setAppLanguage(fallbackUser.language);
+            setIsPasswordRecovery(false);
 
             // Tenta enriquecer, mas não trava o login
             try {
@@ -579,13 +591,18 @@ function AuthProvider({ children }) {
 
     async function resetPassword(email) {
         try {
-            const redirectTo = `${window.location.origin}/`;
+            const redirectTo = `${window.location.origin}/reset-password`;
             const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
             if (error) throw error;
             return { type: 'success' };
         } catch (err) {
             console.error('[AUTH] reset password error', err);
-            return { type: 'error', errorMessage: err.message };
+            const cooldownMatch = String(err?.message || '').match(/after\s+(\d+)\s+seconds?/i);
+            return {
+                type: 'error',
+                errorMessage: err.message,
+                cooldownSeconds: cooldownMatch ? Number(cooldownMatch[1]) : null,
+            };
         }
     }
 

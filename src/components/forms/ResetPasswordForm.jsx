@@ -37,23 +37,51 @@ export const action = (AuthContext) => async ({ request }) => {
         return result.errorMessage || "Unable to send reset email right now.";
     }
 
-    return redirect("/");
+    return { type: "success" };
 };
 
 export default function ResetPasswordForm() {
-    const errorMessage = useActionData();
+    const actionData = useActionData();
     const navigation = useNavigation();
     const { currentUser, isPasswordRecovery } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [confirmPassword, setConfirmPassword] = React.useState("");
+    const [cooldownRemaining, setCooldownRemaining] = React.useState(0);
 
     const isSubmitting = navigation.state === "submitting";
     const isRecoveryMode = isPasswordRecovery;
+    const actionIsError = typeof actionData === "object" && actionData?.type === "error";
+    const actionIsSuccess = typeof actionData === "object" && actionData?.type === "success";
+    const successMessage = actionIsSuccess ? t(language, "resetEmailSent") : "";
+    const errorMessage = typeof actionData === "string"
+        ? actionData
+        : actionIsError
+            ? actionData.errorMessage
+            : "";
+    const cooldownSeconds = actionIsError ? Number(actionData?.cooldownSeconds || 0) : 0;
+
+    React.useEffect(() => {
+        if (!cooldownSeconds || isRecoveryMode) return undefined;
+
+        setCooldownRemaining(cooldownSeconds);
+        const timerId = window.setInterval(() => {
+            setCooldownRemaining(prev => (prev > 1 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => window.clearInterval(timerId);
+    }, [cooldownSeconds, isRecoveryMode]);
+
+    React.useEffect(() => {
+        if (actionIsSuccess) {
+            setCooldownRemaining(0);
+        }
+    }, [actionIsSuccess]);
+
     const canSubmit = isRecoveryMode
         ? password.trim() && confirmPassword.trim()
-        : email.trim();
+        : email.trim() && cooldownRemaining === 0;
 
     return (
         <Blur type="reset-password-form">
@@ -81,9 +109,23 @@ export default function ResetPasswordForm() {
                     {isRecoveryMode ? t(language, "resetRecoveryDescription") : t(language, "resetDescription")}
                 </p>
 
-                {errorMessage && typeof errorMessage === "string" && (
+                {successMessage && (
+                    <div className="mb-4 rounded-[18px] border border-green-300 bg-green-100 px-4 py-4 text-sm text-green-700">
+                        {successMessage}
+                    </div>
+                )}
+
+                {errorMessage && (
                     <div className="mb-4 rounded-[18px] border border-red-300 bg-red-100 px-4 py-4 text-sm text-red-700">
                         {errorMessage}
+                    </div>
+                )}
+
+                {!isRecoveryMode && cooldownRemaining > 0 && (
+                    <div className="mb-4 rounded-[18px] border border-amber-300 bg-amber-100 px-4 py-4 text-sm text-amber-800">
+                        {language === "enUS"
+                            ? `Please wait ${cooldownRemaining} seconds before trying again.`
+                            : `Aguarde ${cooldownRemaining} segundos antes de tentar novamente.`}
                     </div>
                 )}
 
