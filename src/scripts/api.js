@@ -620,6 +620,36 @@ export async function acceptAgendaInvite(token) {
     if (error) throw error;
     return data;
 }
+export async function getAgendaInviteDetails(token) {
+    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, '')}/functions/v1/send-agenda-invite?invite=${encodeURIComponent(token)}`;
+
+    const response = await fetch(functionUrl, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    const text = await response.text();
+    let payload = null;
+
+    try {
+        payload = text ? JSON.parse(text) : null;
+    } catch {
+        payload = null;
+    }
+
+    if (!response.ok) {
+        const message =
+            payload?.error ||
+            payload?.message ||
+            text ||
+            `Request failed with status ${response.status}.`;
+        throw new Error(message);
+    }
+
+    return payload;
+}
 
 export async function getAgendaMembers(agendaId) {
     if (!agendaId) return [];

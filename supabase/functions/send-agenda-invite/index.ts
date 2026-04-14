@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Max-Age": "86400",
   Vary: "Origin",
 };
@@ -81,13 +81,53 @@ async function sendInviteEmail(params: {
   return payload && typeof payload === "object" ? payload : { id: null };
 }
 
+async function getInviteDetails(supabaseUrl: string, serviceRoleKey: string, token: string) {
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const { data: invite, error: inviteError } = await supabase
+    .from("agenda_invites")
+    .select("agenda_id, invitee_email, expires_at, status")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (inviteError) {
+    throw inviteError;
+  }
+
+  if (!invite || invite.status !== "pending") {
+    return null;
+  }
+
+  const expiresAt = invite.expires_at || null;
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+    return null;
+  }
+
+  const { data: agenda, error: agendaError } = await supabase
+    .from("agendas")
+    .select("name")
+    .eq("id", invite.agenda_id)
+    .maybeSingle();
+
+  if (agendaError) {
+    throw agendaError;
+  }
+
+  return {
+    inviteeEmail: normalizeEmail(invite.invitee_email),
+    agendaName: String(agenda?.name || ""),
+    expiresAt,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed." }, 405);
   }
 
   try {
@@ -98,6 +138,29 @@ Deno.serve(async (req) => {
 
     if (!supabaseUrl || !serviceRoleKey || !resendApiKey || !resendFromEmail) {
       return json({ error: "Missing required environment variables." }, 500);
+    }
+
+    const url = new URL(req.url);
+
+    if (req.method === "GET") {
+      const inviteToken = String(url.searchParams.get("invite") || url.searchParams.get("token") || "").trim();
+      if (!inviteToken) {
+        return json({ error: "invite is required." }, 400);
+      }
+
+      const details = await getInviteDetails(supabaseUrl, serviceRoleKey, inviteToken);
+      if (!details) {
+        return json({ error: "Invite not found or expired." }, 404);
+      }
+
+      return json({
+        success: true,
+        ...details,
+      });
+    }
+
+    if (req.method !== "POST") {
+      return json({ error: "Method not allowed." }, 405);
     }
 
     const authHeader = req.headers.get("Authorization") || "";
@@ -230,7 +293,7 @@ Deno.serve(async (req) => {
       inviteRow = data;
     }
 
-    const redirectTo = `${origin}/?invite=${encodeURIComponent(inviteRow.token)}&email=${encodeURIComponent(inviteeEmail)}`;
+    const redirectTo = `${origin}/?invite=${encodeURIComponent(inviteRow.token)}`;
     const emailResult = await sendInviteEmail({
       apiKey: resendApiKey,
       fromEmail: resendFromEmail,

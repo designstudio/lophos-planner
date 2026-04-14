@@ -10,6 +10,7 @@ import {
     ensureDefaultAgenda,
     createAgenda as createAgendaApi,
     acceptAgendaInvite as acceptAgendaInviteApi,
+    getAgendaInviteDetails as getAgendaInviteDetailsApi,
     updateAgendaName as updateAgendaNameApi,
     setUserCurrentAgenda,
     setUserDefaultAgenda,
@@ -119,21 +120,30 @@ function AuthProvider({ children }) {
         setPendingAgendaInviteEmailState(null);
     }
 
-    function captureInviteTokenFromUrl() {
+    async function captureInviteTokenFromUrl() {
         if (typeof window === 'undefined') return null;
 
         const url = new URL(window.location.href);
         const inviteToken = (url.searchParams.get('invite') || '').trim();
         if (!inviteToken) return null;
 
-        const inviteEmail = (url.searchParams.get('email') || '').trim();
         setPendingAgendaInviteToken(inviteToken);
-        setPendingAgendaInviteEmail(inviteEmail);
+        clearPendingAgendaInviteEmail();
         url.searchParams.delete('invite');
         url.searchParams.delete('email');
         const nextSearch = url.searchParams.toString();
         const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
         window.history.replaceState({}, document.title, nextUrl);
+
+        try {
+            const inviteDetails = await getAgendaInviteDetailsApi(inviteToken);
+            if (inviteDetails?.inviteeEmail) {
+                setPendingAgendaInviteEmail(inviteDetails.inviteeEmail);
+            }
+        } catch (err) {
+            console.error('[AUTH] invite details lookup error', err);
+        }
+
         return inviteToken;
     }
 
@@ -251,7 +261,7 @@ function AuthProvider({ children }) {
 
             if (!mounted) return;
 
-            captureInviteTokenFromUrl();
+            await captureInviteTokenFromUrl();
             setIsPasswordRecovery(isRecoveryUrl);
 
             if (sessionUser) {
