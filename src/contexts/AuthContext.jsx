@@ -33,6 +33,9 @@ function AuthProvider({ children }) {
     const [pendingAgendaInviteToken, setPendingAgendaInviteTokenState] = React.useState(() => (
         (typeof localStorage !== 'undefined' && localStorage.getItem('pendingAgendaInviteToken')) || null
     ));
+    const [pendingAgendaInviteEmail, setPendingAgendaInviteEmailState] = React.useState(() => (
+        (typeof localStorage !== 'undefined' && localStorage.getItem('pendingAgendaInviteEmail')) || null
+    ));
     const loadedProfileIdRef = React.useRef(null);
     const signOutTimerRef = React.useRef(null);
 
@@ -92,10 +95,28 @@ function AuthProvider({ children }) {
         setPendingAgendaInviteTokenState(nextToken);
     }
 
+    function setPendingAgendaInviteEmail(email) {
+        if (typeof localStorage === 'undefined') return;
+        if (!email) {
+            localStorage.removeItem('pendingAgendaInviteEmail');
+            setPendingAgendaInviteEmailState(null);
+            return;
+        }
+        const nextEmail = String(email).trim();
+        localStorage.setItem('pendingAgendaInviteEmail', nextEmail);
+        setPendingAgendaInviteEmailState(nextEmail);
+    }
+
     function clearPendingAgendaInviteToken() {
         if (typeof localStorage === 'undefined') return;
         localStorage.removeItem('pendingAgendaInviteToken');
         setPendingAgendaInviteTokenState(null);
+    }
+
+    function clearPendingAgendaInviteEmail() {
+        if (typeof localStorage === 'undefined') return;
+        localStorage.removeItem('pendingAgendaInviteEmail');
+        setPendingAgendaInviteEmailState(null);
     }
 
     function captureInviteTokenFromUrl() {
@@ -105,8 +126,11 @@ function AuthProvider({ children }) {
         const inviteToken = (url.searchParams.get('invite') || '').trim();
         if (!inviteToken) return null;
 
+        const inviteEmail = (url.searchParams.get('email') || '').trim();
         setPendingAgendaInviteToken(inviteToken);
+        setPendingAgendaInviteEmail(inviteEmail);
         url.searchParams.delete('invite');
+        url.searchParams.delete('email');
         const nextSearch = url.searchParams.toString();
         const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
         window.history.replaceState({}, document.title, nextUrl);
@@ -127,6 +151,7 @@ function AuthProvider({ children }) {
         try {
             const invite = await acceptAgendaInviteApi(inviteToken);
             clearPendingAgendaInviteToken();
+            clearPendingAgendaInviteEmail();
 
             const nextAgendas = await getUserAgendas(userId);
             return {
@@ -513,6 +538,8 @@ function AuthProvider({ children }) {
         setCurrentUser(null);
         setAgendas([]);
         clearStoredDefaultAgendaId(currentUser?.uid);
+        clearPendingAgendaInviteToken();
+        clearPendingAgendaInviteEmail();
         localStorage.isLoggedIn = 'false';
         localStorage.theme = 'light';
         const nextLanguage = localStorage.language || detectBrowserLanguage();
@@ -746,6 +773,7 @@ function AuthProvider({ children }) {
         isAuthReady,
         isPasswordRecovery,
         pendingAgendaInviteToken,
+        pendingAgendaInviteEmail,
         signup,
         login,
         loginWithGoogle,

@@ -36,11 +36,13 @@ export const action = (AuthContext) => async ({ request }) => {
     return redirect("/");
 };
 
-export default function UpdateUserForm() {
+export default function UpdateUserForm({ recoveryMode = false }) {
     const errorMessage = useActionData();
     const navigation = useNavigation();
     const { currentUser, agendas, deleteAccount } = useAuth();
     const language = getAppLanguage(currentUser?.language);
+    const passwordInputRef = React.useRef(null);
+    const confirmPasswordInputRef = React.useRef(null);
 
     const initialFormValues = React.useMemo(() => ({
         name: currentUser?.name || "",
@@ -79,6 +81,11 @@ export default function UpdateUserForm() {
     React.useEffect(() => {
         setFormValues(initialFormValues);
     }, [initialFormValues]);
+
+    React.useEffect(() => {
+        if (!recoveryMode) return;
+        passwordInputRef.current?.focus?.();
+    }, [recoveryMode]);
 
     React.useEffect(() => {
         if (!isDeleteModalOpen || !deleteModalRef.current) return;
@@ -208,6 +215,14 @@ export default function UpdateUserForm() {
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "settingsTitle")}</h3>
 
+                {recoveryMode && (
+                    <div className="mt-3 rounded-[18px] border border-blue-300 bg-blue-100 px-4 py-4 text-sm text-blue-800">
+                        {language === "enUS"
+                            ? "Set your new password here to finish recovering your account."
+                            : "Defina sua nova senha aqui para concluir a recuperação da conta."}
+                    </div>
+                )}
+
                 {errorMessage && typeof errorMessage === "string" && (
                     <h3 className="mt-2 rounded-md px-3 py-2 text-sm bg-red-400 text-black">
                         {errorMessage}
@@ -322,6 +337,7 @@ export default function UpdateUserForm() {
                             type="password"
                             id="password"
                             name="password"
+                            ref={passwordInputRef}
                             placeholder={t(language, "password")}
                             value={formValues.password}
                             onChange={ev => updateField("password", ev.target.value)}
@@ -332,6 +348,7 @@ export default function UpdateUserForm() {
                             type="password"
                             id="confirmPassword"
                             name="confirmPassword"
+                            ref={confirmPasswordInputRef}
                             placeholder={t(language, "confirmPassword")}
                             value={formValues.confirmPassword}
                             onChange={ev => updateField("confirmPassword", ev.target.value)}

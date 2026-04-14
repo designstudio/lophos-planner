@@ -54,11 +54,13 @@ function HomePage() {
         const loginBlur = document.querySelector('[data-id="login-form"]');
         const signupBlur = document.querySelector('[data-id="signup-form"]');
         const resetBlur = document.querySelector('[data-id="reset-password-form"]');
+        const updateUserBlur = document.querySelector('[data-id="update-user-form"]');
 
-        if (isPasswordRecovery) {
+        if (isPasswordRecovery && currentUser) {
             loginBlur?.classList.remove('active');
             signupBlur?.classList.remove('active');
-            resetBlur?.classList.add('active');
+            resetBlur?.classList.remove('active');
+            updateUserBlur?.classList.add('active');
             document.body.style.overflowY = 'hidden';
         } else if (currentUser) {
             loginBlur?.classList.remove('active');
@@ -67,7 +69,7 @@ function HomePage() {
             document.body.style.overflowY = 'auto';
         } else {
             if (pendingAgendaInviteToken) {
-                openForm("login-form");
+                openForm("signup-form");
             } else {
                 loginBlur?.classList.add('active');
             }
@@ -94,7 +96,7 @@ function HomePage() {
                     <>
                         <TaskListContainer />
                         <SearchTaskForm />
-                        <UpdateUserForm />
+                        <UpdateUserForm recoveryMode={isPasswordRecovery} />
                         <CreateAgendaForm />
                         <ShareSettingsForm />
                         <InviteCollaboratorForm />

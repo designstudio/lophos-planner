@@ -35,16 +35,22 @@ export const action = (AuthContext) => async ({ request }) => {
 };
 
 export default function SignUpForm() {
-    const { loginWithGoogle, currentUser } = useAuth();
+    const { loginWithGoogle, currentUser, pendingAgendaInviteEmail } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const [searchParams] = useSearchParams();
     const errorMessage = searchParams.get("errorMessage");
     const [socialErrorMessage, setSocialErrorMessage] = React.useState("");
     const [isGoogleSubmitting, setIsGoogleSubmitting] = React.useState(false);
     const [name, setName] = React.useState("");
-    const [email, setEmail] = React.useState("");
+    const [email, setEmail] = React.useState(() => pendingAgendaInviteEmail || "");
     const [password, setPassword] = React.useState("");
     const [confirmPassword, setConfirmPassword] = React.useState("");
+
+    React.useEffect(() => {
+        if (pendingAgendaInviteEmail && !email) {
+            setEmail(pendingAgendaInviteEmail);
+        }
+    }, [pendingAgendaInviteEmail, email]);
 
     const canSubmit = (
         name.trim() &&

@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       inviteRow = data;
     }
 
-    const redirectTo = `${origin}/?invite=${encodeURIComponent(inviteRow.token)}`;
+    const redirectTo = `${origin}/?invite=${encodeURIComponent(inviteRow.token)}&email=${encodeURIComponent(inviteeEmail)}`;
 
     const { data: inviteResult, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(inviteeEmail, {
       redirectTo,
@@ -204,4 +204,5 @@ Deno.serve(async (req) => {
     );
   }
 });
+
 

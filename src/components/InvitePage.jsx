@@ -10,12 +10,17 @@ export default function InvitePage() {
         openForm("login-form");
     }
 
+    function openSignupForm() {
+        closeInvitePage();
+        openForm("signup-form");
+    }
+
     function closeInvitePage() {
         const invitePage = document.querySelector(".invite");
         invitePage.classList.remove("active");
     }
 
-    const { currentUser, appLanguage } = useAuth();
+    const { currentUser, appLanguage, pendingAgendaInviteToken } = useAuth();
     const language = appLanguage || getAppLanguage(currentUser?.language);
 
     return (
@@ -50,17 +55,34 @@ export default function InvitePage() {
                 </p>
 
                 <div className="flex gap-6 justify-center my-2">
-                    <button
-                        className="py-2 px-8 border border-black bg-black text-gray-100 rounded-full font-bold"
-                        onClick={closeInvitePage}
-
-                    >{t(language, "startNow")}
-                    </button>
-                    {!currentUser &&
+                    {pendingAgendaInviteToken && !currentUser ? (
+                        <button
+                            className="py-2 px-8 border border-black bg-black text-gray-100 rounded-full font-bold"
+                            onClick={openSignupForm}
+                        >
+                            {t(language, "acceptInvite")}
+                        </button>
+                    ) : (
+                        <button
+                            className="py-2 px-8 border border-black bg-black text-gray-100 rounded-full font-bold"
+                            onClick={closeInvitePage}
+                        >
+                            {t(language, "startNow")}
+                        </button>
+                    )}
+                    {!currentUser && !pendingAgendaInviteToken &&
                         <button
                             className="py-2 px-8 border border-black text-gray-700 rounded-full font-bold"
                             onClick={openLoginForm}
                         >{t(language, "logIn")}
+                        </button>
+                    }
+                    {pendingAgendaInviteToken && !currentUser &&
+                        <button
+                            className="py-2 px-8 border border-black text-gray-700 rounded-full font-bold"
+                            onClick={openLoginForm}
+                        >
+                            {t(language, "logIn")}
                         </button>
                     }
 
