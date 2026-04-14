@@ -6,6 +6,7 @@ import {ReactSortable} from "react-sortablejs";
 import {Form} from "react-router-dom";
 import {formDate, toInputDateValue} from "../../scripts/utils.js";
 import { formatDayMonth, getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
+import { Umbrella03 } from "@untitledui/icons";
 
 const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn, holidayName = ""}) => {
 
@@ -169,7 +170,10 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
             {holidayName && (
                 <div className="task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black">
                     <p className="task-holiday-item">
-                        <span className="task-holiday-badge">{t(language, "holidayLabel")} - {holidayName}</span>
+                        <span className="task-holiday-badge gap-1">
+                            <Umbrella03 className="h-4 w-4 shrink-0" />
+                            <span>{t(language, "holidayLabel")} - {holidayName}</span>
+                        </span>
                     </p>
                 </div>
             )}
