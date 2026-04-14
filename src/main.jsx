@@ -28,8 +28,12 @@ function App() {
                 element={<PublicSharePage />}
                 errorElement={<Error />}
             />
+            <Route
+                path="/reset-password"
+                element={<HomePage />}
+                action={resetPasswordAction(authContext)}
+            />
             <Route path="/signup" action={signupAction(authContext)} />
-            <Route path="/reset-password" action={resetPasswordAction(authContext)} />
             <Route path="/update-user" action={updateUserAction(authContext)} />
             <Route path="*" element={<NotFound />} />
         </>

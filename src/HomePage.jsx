@@ -16,7 +16,7 @@ import { getAppLanguage, getLocale } from "./scripts/i18n.js";
 import { openForm } from "./scripts/utils.js";
 
 function HomePage() {
-    const { currentUser, agendas, isAuthReady, pendingAgendaInviteToken } = useAuth();
+    const { currentUser, agendas, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
 
@@ -55,7 +55,12 @@ function HomePage() {
         const signupBlur = document.querySelector('[data-id="signup-form"]');
         const resetBlur = document.querySelector('[data-id="reset-password-form"]');
 
-        if (currentUser) {
+        if (isPasswordRecovery) {
+            loginBlur?.classList.remove('active');
+            signupBlur?.classList.remove('active');
+            resetBlur?.classList.add('active');
+            document.body.style.overflowY = 'hidden';
+        } else if (currentUser) {
             loginBlur?.classList.remove('active');
             signupBlur?.classList.remove('active');
             resetBlur?.classList.remove('active');
@@ -67,7 +72,7 @@ function HomePage() {
                 loginBlur?.classList.add('active');
             }
         }
-    }, [currentUser, isAuthReady, pendingAgendaInviteToken]);
+    }, [currentUser, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery]);
 
     if (!isAuthReady) {
         return (

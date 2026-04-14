@@ -26,6 +26,7 @@ function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = React.useState(null);
     const [agendas, setAgendas] = React.useState([]);
     const [isAuthReady, setIsAuthReady] = React.useState(false);
+    const [isPasswordRecovery, setIsPasswordRecovery] = React.useState(false);
     const [appLanguage, setAppLanguage] = React.useState(() => (
         (typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()
     ));
@@ -297,6 +298,7 @@ function AuthProvider({ children }) {
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
                 localStorage.language = fallbackUser.language;
                 setAppLanguage(fallbackUser.language);
+                setIsPasswordRecovery(event === 'PASSWORD_RECOVERY');
                 setIsAuthReady(true);
                 // Fetch de perfil não feito aqui — bootstrapAuth e login() já cuidam disso
             } else {
@@ -307,6 +309,7 @@ function AuthProvider({ children }) {
                     loadedProfileIdRef.current = null;
                     setCurrentUser(null);
                     setAgendas([]);
+                    setIsPasswordRecovery(false);
                     localStorage.isLoggedIn = 'false';
                     setIsAuthReady(true);
                     signOutTimerRef.current = null;
@@ -579,10 +582,25 @@ function AuthProvider({ children }) {
             const redirectTo = `${window.location.origin}/`;
             const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
             if (error) throw error;
-            return 'Check your inbox';
+            return { type: 'success' };
         } catch (err) {
             console.error('[AUTH] reset password error', err);
-            return err.message;
+            return { type: 'error', errorMessage: err.message };
+        }
+    }
+
+    async function completePasswordRecovery(password) {
+        try {
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
+
+            setIsPasswordRecovery(false);
+            stripAuthParamsFromUrl();
+
+            return { type: 'success' };
+        } catch (err) {
+            console.error('[AUTH] complete password recovery error', err);
+            return { type: 'error', errorMessage: err.message };
         }
     }
 
@@ -709,12 +727,14 @@ function AuthProvider({ children }) {
         currentUser,
         appLanguage,
         isAuthReady,
+        isPasswordRecovery,
         pendingAgendaInviteToken,
         signup,
         login,
         loginWithGoogle,
         logout,
         resetPassword,
+        completePasswordRecovery,
         updateUser,
         deleteAccount,
         agendas,
