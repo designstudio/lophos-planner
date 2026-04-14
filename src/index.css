@@ -159,7 +159,7 @@ select {
             border-bottom-color: #e5e5e5 !important;
         }
 
-    .task-row-border:hover {
+    .task-item-row:hover {
         border-bottom-color: var(--agenda-accent) !important;
     }
 

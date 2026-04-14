@@ -130,7 +130,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
 
 
     return (
-        <div className="group agenda-accent-hover-border task-row-border w-full border-b transition-colors duration-150 dark:border-gray-700" data-ind={ind} data-task-id={data.id} draggable
+        <div className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700" data-ind={ind} data-task-id={data.id} draggable
              onDragStart={ev => {
                  isDraggingRef.current = true;
                  ev.dataTransfer.setData("text/plain", String(data.id));
