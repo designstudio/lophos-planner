@@ -275,6 +275,7 @@ function AuthProvider({ children }) {
                     if (user) {
                         setCurrentUser(user);
                         setAgendas(nextAgendas);
+                        loadedProfileIdRef.current = sessionUser.id;
                         localStorage.isLoggedIn = 'true';
                         localStorage.theme = user.darkMode ? 'dark' : 'light';
                         localStorage.language = user.language;
@@ -324,7 +325,8 @@ function AuthProvider({ children }) {
                     signOutTimerRef.current = null;
                 }
 
-                if (loadedProfileIdRef.current === sessionUser.id) {
+                if (loadedProfileIdRef.current === sessionUser.id || currentUser?.uid === sessionUser.id) {
+                    loadedProfileIdRef.current = sessionUser.id;
                     setIsAuthReady(true);
                     return;
                 }
@@ -406,6 +408,7 @@ function AuthProvider({ children }) {
 
                 setCurrentUser(fallbackUser);
                 setAgendas(ensured.agendas);
+                loadedProfileIdRef.current = sessionUser.id;
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = 'light';
                 localStorage.language = fallbackUser.language;
@@ -477,6 +480,7 @@ function AuthProvider({ children }) {
                     setStoredDefaultAgendaId(sessionUser.id, mergedUser.defaultAgendaId);
                     setCurrentUser(mergedUser);
                     setAgendas(ensuredFromProfile.agendas);
+                    loadedProfileIdRef.current = sessionUser.id;
                     localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
                     localStorage.language = mergedUser.language;
                     setAppLanguage(mergedUser.language);
@@ -494,6 +498,7 @@ function AuthProvider({ children }) {
                 setStoredDefaultAgendaId(sessionUser.id, fallbackUser.defaultAgendaId);
                 setCurrentUser(fallbackUser);
                 setAgendas(ensured.agendas);
+                loadedProfileIdRef.current = sessionUser.id;
                 localStorage.isLoggedIn = 'true';
                 localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
                 localStorage.language = fallbackUser.language;
