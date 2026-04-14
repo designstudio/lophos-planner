@@ -78,7 +78,7 @@ export default function CreateAgendaForm() {
     return (
         <Blur type="create-agenda-form">
             <div
-                className="create-agenda-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="create-agenda-form relative mb-6 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "newAgenda")}</h3>
@@ -212,7 +212,7 @@ export default function CreateAgendaForm() {
                             type="button"
                             disabled={loading}
                             onClick={() => closeForm("create-agenda-form")}
-                            className="app-button-hover rounded-full border border-black px-5 py-1.5 font-bold text-black disabled:opacity-60"
+                            className="app-button-hover rounded-full border border-black px-5 py-1.5 font-bold text-black disabled:opacity-20"
                         >
                             {t(language, "cancel")}
                         </button>

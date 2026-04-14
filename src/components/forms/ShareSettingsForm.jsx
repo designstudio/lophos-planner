@@ -1,9 +1,9 @@
-import React from "react";
+﻿import React from "react";
 import Blur from "../Blur.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { getShareSettings, setShareEnabled } from "../../scripts/api.js";
+import { getAgendaMembers, getShareSettings, setShareEnabled } from "../../scripts/api.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
-import { Camera01, MagicWand01, Check, Trash03, Link01 } from "@untitledui/icons";
+import { Camera01, MagicWand01, Check, Trash03, Link01, ImageUserPlus, Plus } from "@untitledui/icons";
 import { closeForm, openForm } from "../../scripts/utils.js";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
@@ -31,6 +31,8 @@ export default function ShareSettingsForm() {
     const [agendaColor, setAgendaColor] = React.useState("#3b82f6");
     const [sortCompletedTasks, setSortCompletedTasks] = React.useState(true);
     const [relatedLinksEnabled, setRelatedLinksEnabled] = React.useState(true);
+    const [agendaMembers, setAgendaMembers] = React.useState([]);
+    const [membersLoading, setMembersLoading] = React.useState(false);
     const [isRenamingAgenda, setIsRenamingAgenda] = React.useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [isDeletingAgenda, setIsDeletingAgenda] = React.useState(false);
@@ -79,6 +81,36 @@ export default function ShareSettingsForm() {
         currentAgenda?.sort_completed_tasks,
         currentAgenda?.related_links_enabled,
     ]);
+
+    React.useEffect(() => {
+        let mounted = true;
+
+        async function loadAgendaMembers() {
+            if (!currentAgenda?.id) {
+                setAgendaMembers([]);
+                setMembersLoading(false);
+                return;
+            }
+
+            try {
+                setMembersLoading(true);
+                const members = await getAgendaMembers(currentAgenda.id);
+                if (!mounted) return;
+                setAgendaMembers(Array.isArray(members) ? members : []);
+            } catch (err) {
+                if (!mounted) return;
+                console.error("[SHARE SETTINGS] load agenda members error", err);
+                setAgendaMembers([]);
+            } finally {
+                if (mounted) setMembersLoading(false);
+            }
+        }
+
+        loadAgendaMembers();
+        return () => {
+            mounted = false;
+        };
+    }, [currentAgenda?.id]);
 
     React.useEffect(() => {
         const blurEl = document.querySelector("[data-id='share-settings-form']");
@@ -265,13 +297,63 @@ export default function ShareSettingsForm() {
     }
 
     const publicShareUrl = shareToken ? `${window.location.origin}/share/${shareToken}` : "";
+    const canManageAgenda = (currentAgenda?.role || "owner") === "owner";
+    const membersCopy = language === "enUS"
+        ? {
+            title: "Members",
+            invite: "Invite",
+            creator: "Creator",
+            member: "Member",
+            empty: "No members yet.",
+        }
+        : {
+            title: "Membros",
+            invite: "Convidar",
+            creator: "Criador",
+            member: "Membro",
+            empty: "Nenhum membro ainda.",
+        };
+    const orderedAgendaMembers = React.useMemo(() => {
+        return [...agendaMembers].sort((left, right) => {
+            if (left?.role === right?.role) return 0;
+            if (left?.role === "owner") return -1;
+            if (right?.role === "owner") return 1;
+            return 0;
+        });
+    }, [agendaMembers]);
+    const displayAgendaMembers = React.useMemo(() => {
+        const members = Array.isArray(orderedAgendaMembers) ? [...orderedAgendaMembers] : [];
+        const ownerUid = currentAgenda?.uid || currentUser?.uid || null;
+        const hasOwner = members.some(member => member?.role === "owner" || String(member?.uid) === String(ownerUid));
+
+        if (!hasOwner && ownerUid) {
+            members.unshift({
+                uid: ownerUid,
+                name: currentUser?.name || currentAgenda?.name || (language === "enUS" ? "Creator" : "Criador"),
+                email: currentUser?.email || "",
+                avatar: currentUser?.avatar || "",
+                role: "owner",
+                created_at: currentAgenda?.created_at || null,
+            });
+        }
+
+        return members;
+    }, [orderedAgendaMembers, currentAgenda?.uid, currentAgenda?.created_at, currentAgenda?.name, currentUser?.uid, currentUser?.name, currentUser?.email, currentUser?.avatar, language]);
+    const hasDisplayAgendaMembers = displayAgendaMembers.length > 0;
+
+    function getMemberInitials(member) {
+        const source = (member?.name || member?.email || "M").trim();
+        const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+        const initials = parts.map(part => part[0]?.toUpperCase()).join("");
+        return initials || "M";
+    }
 
     return (
         <>
         {!isDeleteModalOpen && (
         <Blur type="share-settings-form">
             <div
-                className="share-settings-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="share-settings-form relative mb-6 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "agendaSettingsTitle")}</h3>
@@ -315,7 +397,7 @@ export default function ShareSettingsForm() {
                                 type="button"
                                 onClick={copyShareUrl}
                                 disabled={!shareToken}
-                                className="app-button-hover rounded-full bg-black px-4 py-1.5 text-[14px] font-bold text-white disabled:opacity-40"
+                                className="app-button-hover rounded-full bg-black px-4 py-1.5 text-[14px] font-bold text-white disabled:opacity-20"
                             >
                                 {copied ? t(language, "copied") : t(language, "copy")}
                             </button>
@@ -378,7 +460,7 @@ export default function ShareSettingsForm() {
                     <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
 
                     <div className="mt-6">
-                        <p className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "agendaColor")}</p>
+                        <p className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">Cor da agenda</p>
                         <div className="mt-3 flex items-center gap-2">
                             {AGENDA_COLORS.map(item => (
                                 <button
@@ -402,6 +484,63 @@ export default function ShareSettingsForm() {
                                     className="min-w-0 flex-1 bg-transparent text-sm text-black placeholder:text-black/45 focus:outline-none"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
+
+                    <div className="mt-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h4 className="text-[16px] font-bold leading-[1.333333] text-black">{membersCopy.title}</h4>
+                            </div>
+                        </div>
+
+                        <div className="mt-4">
+                            {membersLoading ? (
+                                <p className="text-sm text-black/60">
+                                    {language === "enUS" ? "Loading..." : "Carregando..."}
+                                </p>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => canManageAgenda && openForm("invite-collaborator-form")}
+                                    disabled={!canManageAgenda}
+                                    className="inline-flex w-auto items-center bg-transparent p-0 text-left shadow-none disabled:cursor-default disabled:opacity-20"
+                                >
+                                    <div className="flex items-center gap-0 pr-1">
+                                        {displayAgendaMembers.slice(0, 4).map((member, index) => {
+                                            const isOwner = member.role === "owner";
+                                            const displayName = (member.name || member.email || (language === "enUS" ? "Member" : "Membro")).trim();
+
+                                            return (
+                                                <div
+                                                    key={member.uid || member.email || displayName}
+                                                    className={`relative h-9 w-9 overflow-hidden rounded-full border-2 border-white ${index === 0 ? "" : "-ml-2.5"}`}
+                                                    title={displayName}
+                                                >
+                                                    {member.avatar ? (
+                                                        <img
+                                                            src={member.avatar}
+                                                            alt={displayName}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className={`flex h-full w-full items-center justify-center text-[12px] font-bold ${isOwner ? "bg-black text-white" : "bg-[rgb(250,250,252)] text-black"}`}>
+                                                            {getMemberInitials(member)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="ml-[3px] flex min-h-10 flex-1 items-center justify-center gap-1 rounded-[200px] border-0 bg-[rgba(0,0,0,.05)] px-4 py-[0.4rem] text-[14px] font-bold text-black transition-opacity hover:opacity-70">
+                                        <Plus className="h-4 w-4 shrink-0" />
+                                        <span>{membersCopy.invite}</span>
+                                    </div>
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -452,7 +591,7 @@ export default function ShareSettingsForm() {
                             >
                                 <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                     relatedLinksEnabled
-                                        ? "translate-x-[20px] bg-[rgb(250,250,252)]"
+                                    ? "translate-x-[20px] bg-[rgb(250,250,252)]"
                                         : "translate-x-0 bg-black"
                                 }`}>
                                     {relatedLinksEnabled && (
@@ -462,8 +601,8 @@ export default function ShareSettingsForm() {
                             </button>
                         </div>
                     </div>
-                </div>
 
+                    </div>
                 {errorMessage && (
                     <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
                 )}
@@ -497,7 +636,7 @@ export default function ShareSettingsForm() {
             <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAgendaModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="relative mb-6 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
                     onClick={ev => ev.stopPropagation()}
                 >
                     <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
@@ -518,7 +657,7 @@ export default function ShareSettingsForm() {
                             type="button"
                             disabled={isDeletingAgenda}
                             onClick={handleDeleteAgenda}
-                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-60"
+                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-20"
                         >
                             {t(language, "confirmDeleteAgenda")}
                         </button>
@@ -526,7 +665,7 @@ export default function ShareSettingsForm() {
                             type="button"
                             disabled={isDeletingAgenda}
                             onClick={closeDeleteAgendaModal}
-                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-60"
+                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-20"
                         >
                             {t(language, "cancelDeleteAgenda")}
                         </button>
@@ -537,3 +676,6 @@ export default function ShareSettingsForm() {
         </>
     );
 }
+
+
+

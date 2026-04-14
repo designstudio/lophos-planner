@@ -3,9 +3,11 @@ import Blur from "../Blur.jsx";
 import React from "react";
 
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { Moon02, Check, Trash03, ChevronDown } from "@untitledui/icons";
+import { Moon02, Camera01, Check, Trash03, ChevronDown } from "@untitledui/icons";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { closeForm, openForm } from "../../scripts/utils.js";
+
+const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
 
 export const action = (AuthContext) => async ({ request }) => {
     const formData = await request.formData();
@@ -13,6 +15,7 @@ export const action = (AuthContext) => async ({ request }) => {
 
     const name = formData.get("name");
     const email = formData.get("email");
+    const avatar = formData.get("avatar");
     const password = formData.get("password");
     const passwordConfirm = formData.get("confirmPassword");
     const darkMode = formData.get("dark-mode") === "on";
@@ -29,7 +32,7 @@ export const action = (AuthContext) => async ({ request }) => {
         return "Passwords don't match";
     }
 
-    await updateUser(email, password, { name, darkMode, language, dateFormat, weekStartsOn, defaultAgendaId });
+    await updateUser(email, password, { name, avatar, darkMode, language, dateFormat, weekStartsOn, defaultAgendaId });
     return redirect("/");
 };
 
@@ -42,6 +45,7 @@ export default function UpdateUserForm() {
     const initialFormValues = React.useMemo(() => ({
         name: currentUser?.name || "",
         email: currentUser?.email || "",
+        avatar: currentUser?.avatar || "",
         password: "",
         confirmPassword: "",
         darkMode: !!currentUser?.darkMode,
@@ -52,6 +56,7 @@ export default function UpdateUserForm() {
     }), [
         currentUser?.name,
         currentUser?.email,
+        currentUser?.avatar,
         currentUser?.darkMode,
         currentUser?.dateFormat,
         currentUser?.weekStartsOn,
@@ -65,7 +70,10 @@ export default function UpdateUserForm() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [isDeletingAccount, setIsDeletingAccount] = React.useState(false);
     const [deleteAccountError, setDeleteAccountError] = React.useState("");
+    const [avatarErrorMessage, setAvatarErrorMessage] = React.useState("");
+    const [avatarLoading, setAvatarLoading] = React.useState(false);
     const deleteModalRef = React.useRef(null);
+    const avatarInputRef = React.useRef(null);
     const wasSubmittingRef = React.useRef(false);
 
     React.useEffect(() => {
@@ -119,6 +127,7 @@ export default function UpdateUserForm() {
         return (
             formValues.name !== initialFormValues.name ||
             formValues.email !== initialFormValues.email ||
+            formValues.avatar !== initialFormValues.avatar ||
             formValues.darkMode !== initialFormValues.darkMode ||
             formValues.dateFormat !== initialFormValues.dateFormat ||
             formValues.weekStartsOn !== initialFormValues.weekStartsOn ||
@@ -134,6 +143,32 @@ export default function UpdateUserForm() {
             ...prev,
             [field]: value,
         }));
+    }
+
+    async function handleAvatarChange(ev) {
+        const file = ev.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > MAX_AVATAR_SIZE_BYTES) {
+            setAvatarErrorMessage(t(language, "agendaAvatarMaxSizeError"));
+            ev.target.value = "";
+            return;
+        }
+
+        setAvatarLoading(true);
+        try {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result || "");
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            updateField("avatar", typeof dataUrl === "string" ? dataUrl : "");
+            setAvatarErrorMessage("");
+        } finally {
+            setAvatarLoading(false);
+        }
     }
 
     async function handleDeleteAccount() {
@@ -168,7 +203,7 @@ export default function UpdateUserForm() {
         {!isDeleteModalOpen && (
         <Blur type="update-user-form">
             <div
-                className="update-user-form relative mb-20 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="update-user-form relative mb-6 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "settingsTitle")}</h3>
@@ -215,27 +250,72 @@ export default function UpdateUserForm() {
 
                     <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
 
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        required
-                        placeholder={t(language, "name")}
-                        value={formValues.name}
-                        onChange={ev => updateField("name", ev.target.value)}
-                        className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
-                    />
+                    <input type="hidden" name="avatar" value={formValues.avatar} />
 
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        placeholder={t(language, "email")}
-                        value={formValues.email}
-                        onChange={ev => updateField("email", ev.target.value)}
-                        className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
-                    />
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+                        <div className="relative flex-shrink-0 self-start">
+                                <input
+                                    ref={avatarInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                                    onChange={handleAvatarChange}
+                                    className="hidden"
+                                    id="profile-avatar-upload"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => avatarInputRef.current?.click()}
+                                    className="relative block h-14 w-14 overflow-hidden rounded-full"
+                                >
+                                    {formValues.avatar ? (
+                                        <img src={formValues.avatar} alt="Profile avatar" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-white text-sm font-bold text-black/30">
+                                            {(formValues.name || currentUser?.name || "U")[0].toUpperCase()}
+                                        </div>
+                                    )}
+                                </button>
+                                <div className="pointer-events-none absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-black">
+                                    {avatarLoading ? (
+                                        <svg className="h-[10px] w-[10px] animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                    ) : (
+                                        <Camera01 className="h-[10px] w-[10px] text-white" />
+                                    )}
+                                </div>
+                            {avatarErrorMessage && (
+                                <p className="mt-3 max-w-[12rem] rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                                    {avatarErrorMessage}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="min-w-0">
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                required
+                                placeholder={t(language, "name")}
+                                value={formValues.name}
+                                onChange={ev => updateField("name", ev.target.value)}
+                                className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                            />
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                required
+                                placeholder={t(language, "email")}
+                                value={formValues.email}
+                                onChange={ev => updateField("email", ev.target.value)}
+                                className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                            />
+                        </div>
+                    </div>
 
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <input
@@ -356,7 +436,7 @@ export default function UpdateUserForm() {
             <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAccountModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative mb-20 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="relative mb-6 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
                     onClick={ev => ev.stopPropagation()}
                 >
                     <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
@@ -377,7 +457,7 @@ export default function UpdateUserForm() {
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={handleDeleteAccount}
-                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-60"
+                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-20"
                         >
                             {isDeletingAccount ? `${t(language, "confirmDeleteAccount")}...` : t(language, "confirmDeleteAccount")}
                         </button>
@@ -385,7 +465,7 @@ export default function UpdateUserForm() {
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={closeDeleteAccountModal}
-                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-60"
+                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-20"
                         >
                             {t(language, "cancel")}
                         </button>

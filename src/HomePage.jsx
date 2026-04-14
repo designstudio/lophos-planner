@@ -4,6 +4,7 @@ import LoginForm from "./components/forms/LoginForm";
 import SignUpForm from "./components/forms/SignUpForm";
 import UpdateUserForm from "./components/forms/UpdateUserForm";
 import ShareSettingsForm from "./components/forms/ShareSettingsForm.jsx";
+import InviteCollaboratorForm from "./components/forms/InviteCollaboratorForm.jsx";
 import CreateAgendaForm from "./components/forms/CreateAgendaForm.jsx";
 import { useAuth } from "./contexts/AuthContext";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
@@ -12,9 +13,10 @@ import TaskMenu from "./components/tasks/TaskMenu";
 import SearchTaskForm from "./components/forms/SearchTaskForm.jsx";
 import Header from "./components/Header";
 import { getAppLanguage, getLocale } from "./scripts/i18n.js";
+import { openForm } from "./scripts/utils.js";
 
 function HomePage() {
-    const { currentUser, agendas, isAuthReady } = useAuth();
+    const { currentUser, agendas, isAuthReady, pendingAgendaInviteToken } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
 
@@ -59,9 +61,13 @@ function HomePage() {
             resetBlur?.classList.remove('active');
             document.body.style.overflowY = 'auto';
         } else {
-            loginBlur?.classList.add('active');
+            if (pendingAgendaInviteToken) {
+                openForm("login-form");
+            } else {
+                loginBlur?.classList.add('active');
+            }
         }
-    }, [currentUser, isAuthReady]);
+    }, [currentUser, isAuthReady, pendingAgendaInviteToken]);
 
     if (!isAuthReady) {
         return (
@@ -86,6 +92,7 @@ function HomePage() {
                         <UpdateUserForm />
                         <CreateAgendaForm />
                         <ShareSettingsForm />
+                        <InviteCollaboratorForm />
                         <ResetPasswordForm />
                         <TaskMenu />
                     </>

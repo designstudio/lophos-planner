@@ -9,6 +9,7 @@ export default function ProfileMenu() {
     const { currentUser, logout, agendas, switchAgenda } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
+    const canManageCurrentAgenda = currentAgenda?.role === "owner";
     const orderedAgendas = [
         ...(currentAgenda ? [currentAgenda] : []),
         ...agendas.filter(agenda => String(agenda.id) !== String(currentUser?.currentAgendaId)),
@@ -62,11 +63,16 @@ export default function ProfileMenu() {
         <div className="profile-menu text-black bg-white dark:bg-stone-800 dark:text-white
          border border-black rounded-md w-64 p-4 -translate-x-[50%] text-center"
              onClick={ev => ev.stopPropagation()}>
-            <div className="h-8 w-8 border border-gray-800 dark:border-white rounded-full mx-auto flex justify-center items-center">
-                {currentUser && <h2>{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>}
+            <div className="text-left pb-3">
+                <h4 className="truncate text-[16px] font-semibold leading-5 text-black dark:text-white">
+                    {currentUser?.name}
+                </h4>
+                <p className="truncate text-[13px] leading-5 text-[#858585]">
+                    {currentUser?.email}
+                </p>
             </div>
 
-            <h4>{currentUser?.name}</h4>
+            <div className="border-t border-[rgba(0,0,0,0.12)]" />
 
             <div className="mt-3 space-y-2 text-left">
                 {orderedAgendas.map(agenda => (
@@ -93,7 +99,7 @@ export default function ProfileMenu() {
                             >
                                 {agenda.name}
                             </button>
-                            {isActive && (
+                            {isActive && canManageCurrentAgenda && (
                                 <button
                                     type="button"
                                     onClick={async () => await openAgendaSettingsFor(agenda.id)}

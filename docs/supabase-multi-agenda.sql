@@ -38,6 +38,9 @@ create index if not exists agendas_uid_created_at_idx
 
 -- 2) Users: current agenda pointer
 alter table public.users
+    add column if not exists avatar text;
+
+alter table public.users
     add column if not exists current_agenda_id uuid;
 
 -- FK added separately to avoid issues with order of operations
@@ -109,6 +112,76 @@ where t.uid = u.id
 
 -- Optional hardening: uncomment after checking no NULLs remain
 -- alter table public.tasks alter column agenda_id set not null;
+
+create or replace function public.get_user_agendas(p_user_id uuid default auth.uid())
+returns table (
+    id uuid,
+    uid uuid,
+    name text,
+    avatar text,
+    color text,
+    sort_completed_tasks boolean,
+    related_links_enabled boolean,
+    share_token text,
+    share_enabled boolean,
+    created_at timestamptz,
+    role text
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select
+        a.id,
+        a.uid,
+        a.name,
+        a.avatar,
+        a.color,
+        a.sort_completed_tasks,
+        a.related_links_enabled,
+        a.share_token,
+        a.share_enabled,
+        a.created_at,
+        am.role
+    from public.agendas a
+    inner join public.agenda_members am
+        on am.agenda_id = a.id
+       and am.uid = coalesce(p_user_id, auth.uid())
+    order by
+        (am.role = 'owner') desc,
+        a.created_at asc;
+$$;
+
+create or replace function public.get_agenda_members(p_agenda_id uuid)
+returns table (
+    uid uuid,
+    name text,
+    email text,
+    avatar text,
+    role text,
+    created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select
+        am.uid,
+        coalesce(nullif(trim(u.name), ''), split_part(coalesce(u.email, ''), '@', 1), 'Member') as name,
+        coalesce(u.email, '') as email,
+        coalesce(u.avatar, '') as avatar,
+        am.role,
+        am.created_at
+    from public.agenda_members am
+    left join public.users u
+        on u.id = am.uid
+    where am.agenda_id = p_agenda_id
+    order by
+        (am.role = 'owner') desc,
+        am.created_at asc;
+$$;
 
 -- 7) RLS
 alter table public.agendas enable row level security;

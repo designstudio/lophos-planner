@@ -6,8 +6,9 @@ import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 
 export default function ExtrasMenu() {
-    const { currentUser, appLanguage, setLanguagePreference } = useAuth();
+    const { currentUser, appLanguage, setLanguagePreference, agendas } = useAuth();
     const language = appLanguage || getAppLanguage(currentUser?.language);
+    const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
 
     function closeExtrasMenu() {
         const extrasMenu = document.querySelector(".extras-menu");
@@ -41,11 +42,11 @@ export default function ExtrasMenu() {
                 icon: SearchMd,
                 onClick: openSearchForm,
             },
-            {
+            ...(currentAgenda?.role === "owner" ? [{
                 text: t(language, "share"),
                 icon: Send01,
                 onClick: openShareForm,
-            },
+            }] : []),
         ] : []),
     ];
 

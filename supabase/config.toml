@@ -1,0 +1,2 @@
+[functions.send-agenda-invite]
+verify_jwt = false

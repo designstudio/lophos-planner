@@ -20,6 +20,17 @@ function isSameDay(dateA, dateB) {
         && dateA.getDate() === dateB.getDate();
 }
 
+function isImageAvatar(value) {
+    return typeof value === "string" && (value.startsWith("data:image/") || value.startsWith("http://") || value.startsWith("https://"));
+}
+
+function getUserInitials(user) {
+    const source = (user?.name || user?.email || "U").trim();
+    const parts = source.split(/\s+/).filter(Boolean).slice(0, 2);
+    const initials = parts.map(part => part[0]?.toUpperCase()).join("");
+    return initials || "U";
+}
+
 const Header = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -362,8 +373,12 @@ const Header = () => {
             <div className="flex gap-2">
 
                 {currentUser ?
-                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
-                        <h2 className="text-sm font-semibold leading-none">{" ".concat(...currentUser?.name.split(" ").slice(0, 2).map(w => w[0].toUpperCase()))}</h2>
+                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                        {isImageAvatar(currentUser?.avatar) ? (
+                            <img src={currentUser.avatar} alt={currentUser?.name || "Profile"} className="h-full w-full object-cover" />
+                        ) : (
+                            <h2 className="text-sm font-semibold leading-none">{getUserInitials(currentUser)}</h2>
+                        )}
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
         opacity-0 group-hover:opacity-100 transition ease-linear duration-200
          text-white tooltip-surface rounded text-xs p-1">{t(language, "profile")}</p>

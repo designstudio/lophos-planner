@@ -4,10 +4,12 @@ import { detectBrowserLanguage } from '../scripts/i18n.js';
 import {
     createUser,
     getCurrentUser,
+    getUserAgendas,
     updateUserData,
     deleteCurrentAccount,
     ensureDefaultAgenda,
     createAgenda as createAgendaApi,
+    acceptAgendaInvite as acceptAgendaInviteApi,
     updateAgendaName as updateAgendaNameApi,
     setUserCurrentAgenda,
     setUserDefaultAgenda,
@@ -26,6 +28,9 @@ function AuthProvider({ children }) {
     const [isAuthReady, setIsAuthReady] = React.useState(false);
     const [appLanguage, setAppLanguage] = React.useState(() => (
         (typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()
+    ));
+    const [pendingAgendaInviteToken, setPendingAgendaInviteTokenState] = React.useState(() => (
+        (typeof localStorage !== 'undefined' && localStorage.getItem('pendingAgendaInviteToken')) || null
     ));
     const loadedProfileIdRef = React.useRef(null);
     const signOutTimerRef = React.useRef(null);
@@ -70,15 +75,84 @@ function AuthProvider({ children }) {
         localStorage.removeItem(`defaultAgendaId:${userId}`);
     }
 
+    function getPendingAgendaInviteToken() {
+        return pendingAgendaInviteToken;
+    }
+
+    function setPendingAgendaInviteToken(token) {
+        if (typeof localStorage === 'undefined') return;
+        if (!token) {
+            localStorage.removeItem('pendingAgendaInviteToken');
+            setPendingAgendaInviteTokenState(null);
+            return;
+        }
+        const nextToken = String(token);
+        localStorage.setItem('pendingAgendaInviteToken', nextToken);
+        setPendingAgendaInviteTokenState(nextToken);
+    }
+
+    function clearPendingAgendaInviteToken() {
+        if (typeof localStorage === 'undefined') return;
+        localStorage.removeItem('pendingAgendaInviteToken');
+        setPendingAgendaInviteTokenState(null);
+    }
+
+    function captureInviteTokenFromUrl() {
+        if (typeof window === 'undefined') return null;
+
+        const url = new URL(window.location.href);
+        const inviteToken = (url.searchParams.get('invite') || '').trim();
+        if (!inviteToken) return null;
+
+        setPendingAgendaInviteToken(inviteToken);
+        url.searchParams.delete('invite');
+        const nextSearch = url.searchParams.toString();
+        const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`;
+        window.history.replaceState({}, document.title, nextUrl);
+        return inviteToken;
+    }
+
+    async function applyPendingAgendaInvite(userId) {
+        const inviteToken = getPendingAgendaInviteToken();
+        if (!inviteToken || !userId) return null;
+
+        try {
+            const invite = await acceptAgendaInviteApi(inviteToken);
+            clearPendingAgendaInviteToken();
+
+            const nextAgendas = await getUserAgendas(userId);
+            return {
+                agendaId: invite?.agenda_id || null,
+                agendas: nextAgendas,
+            };
+        } catch (err) {
+            const message = err?.message || '';
+            if (/different email address/i.test(message)) {
+                return { type: 'error', errorMessage: message };
+            }
+
+            clearPendingAgendaInviteToken();
+            return { type: 'error', errorMessage: message };
+        }
+    }
+
     function buildFallbackUser(sessionUser, profile = null) {
         if (!sessionUser) return null;
 
         return {
             uid: sessionUser.id,
             email: profile?.email ?? sessionUser.email ?? '',
+            avatar: profile?.avatar ?? null,
             name:
                 profile?.name ??
                 sessionUser.user_metadata?.name ??
+                sessionUser.user_metadata?.full_name ??
+                sessionUser.email?.split('@')[0] ??
+                'User',
+            displayName:
+                profile?.name ??
+                sessionUser.user_metadata?.name ??
+                sessionUser.user_metadata?.full_name ??
                 sessionUser.email?.split('@')[0] ??
                 'User',
             darkMode: profile?.darkMode ?? false,
@@ -143,6 +217,8 @@ function AuthProvider({ children }) {
 
             if (!mounted) return;
 
+            captureInviteTokenFromUrl();
+
             if (sessionUser) {
                 stripAuthParamsFromUrl();
 
@@ -165,6 +241,18 @@ function AuthProvider({ children }) {
                         localStorage.theme = user.darkMode ? 'dark' : 'light';
                         localStorage.language = user.language;
                         setAppLanguage(user.language);
+                    }
+
+                    const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
+                    if (inviteResult?.agendaId) {
+                        setCurrentUser(prev => prev ? {
+                            ...prev,
+                            currentAgendaId: inviteResult.agendaId,
+                            defaultAgendaId: inviteResult.agendaId,
+                        } : prev);
+                        setAgendas(inviteResult.agendas || []);
+                        setStoredDefaultAgendaId(sessionUser.id, inviteResult.agendaId);
+                        await setUserDefaultAgenda(sessionUser.id, inviteResult.agendaId).catch(() => {});
                     }
                 } catch (err) {
                     console.error('[AUTH] bootstrap profile error', err);
@@ -279,6 +367,20 @@ function AuthProvider({ children }) {
                 localStorage.language = fallbackUser.language;
                 setAppLanguage(fallbackUser.language);
 
+                const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
+                if (inviteResult?.agendaId) {
+                    fallbackUser.currentAgendaId = inviteResult.agendaId;
+                    fallbackUser.defaultAgendaId = inviteResult.agendaId;
+                    setCurrentUser(prev => prev ? {
+                        ...prev,
+                        currentAgendaId: inviteResult.agendaId,
+                        defaultAgendaId: inviteResult.agendaId,
+                    } : prev);
+                    setAgendas(inviteResult.agendas || []);
+                    setStoredDefaultAgendaId(sessionUser.id, inviteResult.agendaId);
+                    await setUserDefaultAgenda(sessionUser.id, inviteResult.agendaId).catch(() => {});
+                }
+
                 return { type: 'success', data: fallbackUser };
         } catch (err) {
             console.error('[AUTH] signup error', err);
@@ -310,6 +412,7 @@ function AuthProvider({ children }) {
             }
 
             const fallbackUser = buildFallbackUser(sessionUser);
+            let resolvedUser = fallbackUser;
 
             const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
             fallbackUser.currentAgendaId = ensured.currentAgendaId;
@@ -342,13 +445,30 @@ function AuthProvider({ children }) {
                     localStorage.theme = mergedUser.darkMode ? 'dark' : 'light';
                     localStorage.language = mergedUser.language;
                     setAppLanguage(mergedUser.language);
-                    return { type: 'success', data: mergedUser };
+                    resolvedUser = mergedUser;
                 }
             } catch (err) {
                 console.error('[AUTH] login profile enrichment error', err);
             }
 
-            return { type: 'success', data: fallbackUser };
+            const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
+            if (inviteResult?.agendaId) {
+                resolvedUser = {
+                    ...resolvedUser,
+                    currentAgendaId: inviteResult.agendaId,
+                    defaultAgendaId: inviteResult.agendaId,
+                };
+                setCurrentUser(prev => prev ? {
+                    ...prev,
+                    currentAgendaId: inviteResult.agendaId,
+                    defaultAgendaId: inviteResult.agendaId,
+                } : prev);
+                setAgendas(inviteResult.agendas || []);
+                setStoredDefaultAgendaId(sessionUser.id, inviteResult.agendaId);
+                await setUserDefaultAgenda(sessionUser.id, inviteResult.agendaId).catch(() => {});
+            }
+
+            return { type: 'success', data: resolvedUser };
         } catch (err) {
             console.error('[AUTH] login error', err);
             return { type: 'error', errorMessage: err.message };
@@ -422,7 +542,9 @@ function AuthProvider({ children }) {
                 if (error) throw error;
             }
 
-            await updateUserData(currentUser.uid, data);
+            await updateUserData(currentUser.uid, {
+                ...data,
+            });
 
             if (typeof data.defaultAgendaId !== 'undefined') {
                 const result = await setUserDefaultAgenda(currentUser.uid, data.defaultAgendaId || null);
@@ -435,6 +557,8 @@ function AuthProvider({ children }) {
                 ...prev,
                 email,
                 name: data.name,
+                ...(typeof data.avatar !== 'undefined' ? { avatar: data.avatar } : {}),
+                displayName: data.name,
                 darkMode: data.darkMode,
                 language: data.language,
                 dateFormat: data.dateFormat,
@@ -504,6 +628,7 @@ function AuthProvider({ children }) {
                 ...agenda,
                 sort_completed_tasks: agenda?.sort_completed_tasks ?? sortCompletedTasks,
                 related_links_enabled: agenda?.related_links_enabled ?? relatedLinksEnabled,
+                role: agenda?.role || 'owner',
             };
             const nextAgendas = [...agendas, normalizedAgenda];
             setAgendas(nextAgendas);
@@ -537,11 +662,13 @@ function AuthProvider({ children }) {
         }
 
         try {
+            const existingAgenda = agendas.find(agenda => String(agenda.id) === String(agendaId));
             const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks, relatedLinksEnabled);
             const normalizedUpdated = {
                 ...updated,
                 ...(sortCompletedTasks !== null ? { sort_completed_tasks: sortCompletedTasks } : {}),
                 ...(relatedLinksEnabled !== null ? { related_links_enabled: relatedLinksEnabled } : {}),
+                role: existingAgenda?.role || updated?.role || 'owner',
             };
             setAgendas(prev => prev.map(agenda => (
                 String(agenda.id) === String(normalizedUpdated.id) ? normalizedUpdated : agenda
@@ -582,6 +709,7 @@ function AuthProvider({ children }) {
         currentUser,
         appLanguage,
         isAuthReady,
+        pendingAgendaInviteToken,
         signup,
         login,
         loginWithGoogle,

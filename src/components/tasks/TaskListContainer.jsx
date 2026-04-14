@@ -268,7 +268,6 @@ const TaskListContainer = () => {
             const { data, error } = await supabase
                 .from('tasks')
                 .select('*')
-                .eq('uid', currentUser.uid)
                 .eq('agenda_id', currentUser.currentAgendaId)
                 .order('order');
 

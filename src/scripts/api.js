@@ -40,17 +40,18 @@ export async function createTask(data) {
 }
 
 export async function getUserTasks(userId, agendaId = null) {
-    if (!userId || userId === 'undefined') {
+    if ((!userId || userId === 'undefined') && !agendaId) {
         return [];
     }
 
     let query = supabase
         .from('tasks')
-        .select('*')
-        .eq('uid', userId);
+        .select('*');
 
     if (agendaId) {
         query = query.eq('agenda_id', agendaId);
+    } else {
+        query = query.eq('uid', userId);
     }
 
     const { data, error } = await query;
@@ -209,6 +210,7 @@ export async function createUser(id, data) {
         id,
         email: data.email,
         name: data.name,
+        avatar: data.avatar ?? null,
         dark_mode: data.darkMode ?? false,
         language: data.language ?? 'ptBR',
         date_format: data.dateFormat ?? 'DD-MM',
@@ -216,8 +218,14 @@ export async function createUser(id, data) {
     };
 
     const { error } = await supabase.from('users').insert(payload);
+    if (error) {
+        const missingAvatarColumn = /column\s+"?avatar"?\s+of relation\s+"?users"? does not exist|Could not find the 'avatar' column/i.test(error.message || '');
+        if (!missingAvatarColumn) throw error;
 
-    if (error) throw error;
+        const { avatar: _ignoredAvatar, ...payloadWithoutAvatar } = payload;
+        const retry = await supabase.from('users').insert(payloadWithoutAvatar);
+        if (retry.error) throw retry.error;
+    }
 
     const defaultAgenda = await createAgenda(id, 'Pessoal', { setAsCurrent: false });
     await setUserCurrentAgenda(id, defaultAgenda.id);
@@ -254,6 +262,8 @@ export function getCurrentUser(id) {
             uid: data.id,
             email: data.email,
             name: data.name,
+            avatar: data.avatar || '',
+            displayName: data.name,
             darkMode: data.dark_mode,
             language: data.language,
             dateFormat: data.date_format,
@@ -277,41 +287,46 @@ export async function updateUserData(id, data) {
         week_starts_on: data.weekStartsOn ?? 'Monday',
     };
 
+    if (typeof data.avatar !== 'undefined') {
+        payload.avatar = (data.avatar || '').trim() || null;
+    }
+
     if (typeof data.defaultAgendaId !== 'undefined') {
         payload.default_agenda_id = data.defaultAgendaId || null;
     }
 
-    const firstTry = await supabase
+    const { error } = await supabase
         .from('users')
         .update(payload)
         .eq('id', id);
 
-    if (!firstTry.error) return;
+    if (error) {
+        const missingAvatarColumn = /column\s+"?avatar"?\s+of relation\s+"?users"? does not exist|Could not find the 'avatar' column/i.test(error.message || '');
+        if (!missingAvatarColumn) throw error;
 
-    // Backward compatibility for instances that still don't have default_agenda_id.
-    const missingDefaultAgendaColumn = /column\s+"?default_agenda_id"?\s+of relation\s+"?users"? does not exist|Could not find the 'default_agenda_id' column/i.test(firstTry.error.message || '');
-    if (!missingDefaultAgendaColumn) throw firstTry.error;
+        const { avatar: _ignoredAvatar, ...payloadWithoutAvatar } = payload;
+        const retry = await supabase
+            .from('users')
+            .update(payloadWithoutAvatar)
+            .eq('id', id);
 
-    const { default_agenda_id: _ignoredDefaultAgendaId, ...payloadWithoutDefaultAgenda } = payload;
-    const retry = await supabase
-        .from('users')
-        .update(payloadWithoutDefaultAgenda)
-        .eq('id', id);
-
-    if (retry.error) throw retry.error;
+        if (retry.error) throw retry.error;
+    }
 }
 
 // Agendas
 
 export async function getUserAgendas(userId) {
-    const { data, error } = await supabase
-        .from('agendas')
-        .select('*')
-        .eq('uid', userId)
-        .order('created_at', { ascending: true });
+    const { data, error } = await supabase.rpc('get_user_agendas', {
+        p_user_id: userId,
+    });
 
     if (error) throw error;
-    return data || [];
+
+    return (data || []).map(agenda => ({
+        ...agenda,
+        role: agenda?.role || (String(agenda?.uid) === String(userId) ? 'owner' : 'member'),
+    }));
 }
 
 export async function createAgenda(userId, name, options = {}) {
@@ -355,7 +370,10 @@ export async function createAgenda(userId, name, options = {}) {
         await setUserCurrentAgenda(userId, agendaData.id);
     }
 
-    return agendaData;
+    return {
+        ...agendaData,
+        role: 'owner',
+    };
 }
 
 export async function updateAgendaName(userId, agendaId, name, avatar = null, color = '#3b82f6', sortCompletedTasks = null, relatedLinksEnabled = null) {
@@ -592,6 +610,74 @@ export async function setShareEnabled(agendaId, enabled) {
         shareToken: shareSettings.shareToken,
         shareEnabled: !!enabled,
     };
+}
+
+export async function acceptAgendaInvite(token) {
+    const { data, error } = await supabase.rpc('accept_agenda_invite', {
+        p_token: token,
+    });
+
+    if (error) throw error;
+    return data;
+}
+
+export async function getAgendaMembers(agendaId) {
+    if (!agendaId) return [];
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_agenda_members', {
+        p_agenda_id: agendaId,
+    });
+
+    if (rpcError) throw rpcError;
+
+    return (Array.isArray(rpcData) ? rpcData : []).map(member => ({
+        uid: member?.uid || member?.id || null,
+        name: member?.name || member?.email || 'Member',
+        email: member?.email || '',
+        role: member?.role || 'member',
+        avatar: member?.avatar || '',
+        created_at: member?.created_at || null,
+    }));
+}
+
+export async function sendAgendaInvite(agendaId, email, origin = '', language = 'ptBR') {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token || '';
+    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, '')}/functions/v1/send-agenda-invite`;
+
+    const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+            agendaId,
+            email,
+            origin,
+            language,
+        }),
+    });
+
+    const text = await response.text();
+    let payload = null;
+
+    try {
+        payload = text ? JSON.parse(text) : null;
+    } catch {
+        payload = null;
+    }
+
+    if (!response.ok) {
+        const message =
+            payload?.error ||
+            payload?.message ||
+            text ||
+            `Request failed with status ${response.status}.`;
+        throw new Error(message);
+    }
+
+    return payload;
 }
 
 export async function getPublicAgendaByShareToken(shareToken) {

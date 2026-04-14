@@ -71,7 +71,7 @@ export default function ResetPasswordForm() {
                     <button
                         type="submit"
                         disabled={!canSubmit || isSubmitting}
-                        className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-black px-6 text-base font-bold text-white transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-60"
+                        className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-black px-6 text-base font-bold text-white transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-20"
                     >
                         {isSubmitting ? `${t(language, "sendResetLink")}...` : t(language, "sendResetLink")}
                     </button>
