@@ -203,7 +203,7 @@ function AuthProvider({ children }) {
             language: profile?.language ?? ((typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()),
             dateFormat: profile?.dateFormat ?? 'DD-MM',
             weekStartsOn: profile?.weekStartsOn ?? 'Monday',
-            currentAgendaId: profile?.currentAgendaId ?? null,
+            currentAgendaId: profile?.defaultAgendaId ?? profile?.currentAgendaId ?? null,
             defaultAgendaId: profile?.defaultAgendaId ?? null,
         };
     }
@@ -239,8 +239,7 @@ function AuthProvider({ children }) {
         const preferredAgendaId =
             profile?.defaultAgendaId ??
             getStoredDefaultAgendaId(sessionUser.id) ??
-            profile?.currentAgendaId ??
-            fallbackUser.currentAgendaId;
+            null;
 
         const ensured = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
         fallbackUser.currentAgendaId = ensured.currentAgendaId;
@@ -459,16 +458,6 @@ function AuthProvider({ children }) {
             const fallbackUser = buildFallbackUser(sessionUser);
             let resolvedUser = fallbackUser;
 
-            const ensured = await ensureDefaultAgenda(sessionUser.id, fallbackUser.currentAgendaId);
-            fallbackUser.currentAgendaId = ensured.currentAgendaId;
-            fallbackUser.defaultAgendaId = ensured.currentAgendaId;
-
-            setCurrentUser(fallbackUser);
-            setAgendas(ensured.agendas);
-            localStorage.isLoggedIn = 'true';
-            localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
-            localStorage.language = fallbackUser.language;
-            setAppLanguage(fallbackUser.language);
             setIsPasswordRecovery(false);
 
             // Tenta enriquecer, mas não trava o login
@@ -479,7 +468,7 @@ function AuthProvider({ children }) {
                     const preferredAgendaId =
                         profile.defaultAgendaId ??
                         getStoredDefaultAgendaId(sessionUser.id) ??
-                        profile.currentAgendaId;
+                        null;
 
                     const ensuredFromProfile = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
                     const mergedUser = buildFallbackUser(sessionUser, profile);
@@ -495,6 +484,21 @@ function AuthProvider({ children }) {
                 }
             } catch (err) {
                 console.error('[AUTH] login profile enrichment error', err);
+            }
+
+            if (!resolvedUser?.uid) {
+                const preferredAgendaId = fallbackUser.defaultAgendaId ?? getStoredDefaultAgendaId(sessionUser.id) ?? null;
+                const ensured = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
+                fallbackUser.currentAgendaId = ensured.currentAgendaId;
+                fallbackUser.defaultAgendaId = preferredAgendaId || ensured.currentAgendaId;
+                setStoredDefaultAgendaId(sessionUser.id, fallbackUser.defaultAgendaId);
+                setCurrentUser(fallbackUser);
+                setAgendas(ensured.agendas);
+                localStorage.isLoggedIn = 'true';
+                localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
+                localStorage.language = fallbackUser.language;
+                setAppLanguage(fallbackUser.language);
+                resolvedUser = fallbackUser;
             }
 
             const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
