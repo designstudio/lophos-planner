@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import Lottie from "lottie-react";
+import todoLoadingAnimation from "./assets/todo-loading.json";
 import TaskListContainer from './components/tasks/TaskListContainer';
 import LoginForm from "./components/forms/LoginForm";
 import SignUpForm from "./components/forms/SignUpForm";
@@ -79,11 +81,9 @@ function HomePage() {
     if (!isAuthReady) {
         return (
             <div className="min-w-screen min-h-screen bg-white dark:bg-black">
-                <main className="max-container">
-                    <LoginForm />
-                    <SignUpForm />
-                    <ResetPasswordForm />
-                </main>
+                <div className="flex min-h-screen items-center justify-center">
+                    <Lottie animationData={todoLoadingAnimation} loop style={{ width: 84, height: 84 }} />
+                </div>
             </div>
         );
     }

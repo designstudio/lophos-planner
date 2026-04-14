@@ -39,6 +39,7 @@ function AuthProvider({ children }) {
     ));
     const loadedProfileIdRef = React.useRef(null);
     const signOutTimerRef = React.useRef(null);
+    const isBootstrappingRef = React.useRef(true);
 
     function stripAuthParamsFromUrl() {
         if (typeof window === 'undefined') return;
@@ -255,6 +256,7 @@ function AuthProvider({ children }) {
         let mounted = true;
 
         async function bootstrapAuth() {
+            isBootstrappingRef.current = true;
             const { data, error } = await supabase.auth.getSession();
             const sessionUser = data?.session?.user ?? null;
             const isRecoveryUrl = detectPasswordRecoveryFromUrl();
@@ -267,16 +269,6 @@ function AuthProvider({ children }) {
             if (sessionUser) {
                 stripAuthParamsFromUrl();
 
-                // Libera a UI imediatamente com fallback
-                const fallbackUser = buildFallbackUser(sessionUser);
-                setCurrentUser(fallbackUser);
-                localStorage.isLoggedIn = 'true';
-                localStorage.theme = fallbackUser.darkMode ? 'dark' : 'light';
-                localStorage.language = fallbackUser.language;
-                setAppLanguage(fallbackUser.language);
-                setIsPasswordRecovery(isRecoveryUrl);
-
-                // Tenta enriquecer com o perfil público sem bloquear a UI
                 try {
                     const { user, agendas: nextAgendas } = await ensureSessionUserSetup(sessionUser);
 
@@ -284,6 +276,7 @@ function AuthProvider({ children }) {
                     if (user) {
                         setCurrentUser(user);
                         setAgendas(nextAgendas);
+                        localStorage.isLoggedIn = 'true';
                         localStorage.theme = user.darkMode ? 'dark' : 'light';
                         localStorage.language = user.language;
                         setAppLanguage(user.language);
@@ -309,6 +302,7 @@ function AuthProvider({ children }) {
                 localStorage.isLoggedIn = 'false';
             }
 
+            isBootstrappingRef.current = false;
             setIsAuthReady(true);
         }
 
@@ -321,6 +315,7 @@ function AuthProvider({ children }) {
 
             if (sessionUser) {
                 if (!mounted) return;
+                if (isBootstrappingRef.current) return;
 
                 stripAuthParamsFromUrl();
 
@@ -348,6 +343,7 @@ function AuthProvider({ children }) {
                 // Fetch de perfil não feito aqui — bootstrapAuth e login() já cuidam disso
             } else {
                 if (!mounted) return;
+                if (isBootstrappingRef.current) return;
                 // Debounce: evita limpar o estado durante refresh de token (SIGNED_OUT seguido de SIGNED_IN)
                 signOutTimerRef.current = setTimeout(() => {
                     if (!mounted) return;
