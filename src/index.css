@@ -159,6 +159,10 @@ select {
             border-bottom-color: #e5e5e5 !important;
         }
 
+    .task-row-border:hover {
+        border-bottom-color: var(--agenda-accent) !important;
+    }
+
     .add-task:hover .task-field-border-bottom,
     .add-task:focus-within .task-field-border-bottom {
         border-bottom-color: var(--agenda-accent) !important;
