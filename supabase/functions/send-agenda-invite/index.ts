@@ -31,17 +31,17 @@ function buildInviteEmail(language: "ptBR" | "enUS", params: {
   const agendaLabel = params.agendaName || (isEnglish ? "an agenda" : "uma agenda");
   const subject = isEnglish
     ? `You're invited to collaborate on ${agendaLabel}`
-    : `Voc� foi convidado(a) para colaborar em ${agendaLabel}`;
+    : `Voc\u00ea foi convidado(a) para colaborar em ${agendaLabel}`;
   const intro = isEnglish
     ? `You've been invited to collaborate on ${agendaLabel}.`
-    : `Voc� foi convidado(a) para colaborar na agenda ${agendaLabel}.`;
+    : `Voc\u00ea foi convidado(a) para colaborar na agenda ${agendaLabel}.`;
   const body = isEnglish
     ? "Click the button below to accept the invitation, create your account, and access the agenda."
-    : "Clique no bot�o abaixo para aceitar o convite, criar sua conta e acessar a agenda.";
+    : "Clique no bot\u00e3o abaixo para aceitar o convite, criar sua conta e acessar a agenda.";
   const buttonLabel = isEnglish ? "Accept invitation" : "Aceitar convite";
   const fallback = isEnglish
     ? "If the button doesn't work, copy and paste this link into your browser:"
-    : "Se o bot�o n�o funcionar, copie e cole este link no navegador:";
+    : "Se o bot\u00e3o n\u00e3o funcionar, copie e cole este link no navegador:";
 
   const html = `<!doctype html>
 <html lang="${isEnglish ? "en" : "pt-BR"}">
