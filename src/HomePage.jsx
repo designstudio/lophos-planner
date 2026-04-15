@@ -9,6 +9,7 @@ import UpdateUserForm from "./components/forms/UpdateUserForm";
 import ShareSettingsForm from "./components/forms/ShareSettingsForm.jsx";
 import InviteCollaboratorForm from "./components/forms/InviteCollaboratorForm.jsx";
 import CreateAgendaForm from "./components/forms/CreateAgendaForm.jsx";
+import StatusGeneratorForm from "./components/forms/StatusGeneratorForm.jsx";
 import { useAuth } from "./contexts/AuthContext";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
 import InvitePage from "./components/InvitePage";
@@ -100,6 +101,7 @@ function HomePage() {
                         <SearchTaskForm />
                         <UpdateUserForm recoveryMode={isPasswordRecovery} />
                         <CreateAgendaForm />
+                        <StatusGeneratorForm />
                         <ShareSettingsForm />
                         <InviteCollaboratorForm />
                         <ResetPasswordForm />

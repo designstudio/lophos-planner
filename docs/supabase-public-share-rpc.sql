@@ -19,6 +19,7 @@ declare
     v_agenda record;
     v_owner record;
     v_tasks jsonb;
+    v_board_columns jsonb;
     v_token text := nullif(trim(p_share_token), '');
 begin
     if v_token is null then
@@ -56,8 +57,19 @@ begin
       into v_tasks
       from public.tasks t
      where t.agenda_id = v_agenda.id
-       and t.uid = v_agenda.uid
-       and coalesce(t.is_board_task, false) = false;
+       and t.uid = v_agenda.uid;
+
+    select coalesce(
+        jsonb_agg(
+            to_jsonb(bc) order by bc.sort_order, bc.id
+        ),
+        '[]'::jsonb
+    )
+      into v_board_columns
+      from public.board_columns bc
+     where bc.agenda_id = v_agenda.id
+       and bc.uid = v_agenda.uid
+       and coalesce(bc.hidden, false) = false;
 
     return jsonb_build_object(
         'owner', jsonb_build_object(
@@ -74,7 +86,8 @@ begin
             'sort_completed_tasks', coalesce(v_agenda.sort_completed_tasks, true),
             'related_links_enabled', coalesce(v_agenda.related_links_enabled, true)
         ),
-        'tasks', v_tasks
+        'tasks', v_tasks,
+        'boardColumns', v_board_columns
     );
 end;
 $$;

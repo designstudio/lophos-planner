@@ -5,7 +5,7 @@ import { clearTaskFromUrl, closeForm, setPageScrollLocked } from "../scripts/uti
 export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
     const blurRef = useRef(null);
     const openedAtRef = useRef(0);
-    const topSpacingClass = ["task-menu", "search-form", "share-settings-form", "update-user-form", "invite-collaborator-form"].includes(type)
+    const topSpacingClass = ["task-menu", "search-form", "share-settings-form", "update-user-form", "invite-collaborator-form", "status-generator-form"].includes(type)
         ? "pt-16"
         : "pt-6";
 

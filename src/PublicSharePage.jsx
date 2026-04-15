@@ -85,6 +85,34 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
     );
 }
 
+function sortPublicBoardColumns(list) {
+    return [...(list || [])].sort((columnA, columnB) => {
+        const aOrder = Number(columnA.sort_order ?? 0);
+        const bOrder = Number(columnB.sort_order ?? 0);
+        if (aOrder !== bOrder) return aOrder - bOrder;
+
+        const aCreatedAt = columnA.created_at || "";
+        const bCreatedAt = columnB.created_at || "";
+        if (aCreatedAt !== bCreatedAt) return String(aCreatedAt).localeCompare(String(bCreatedAt));
+
+        return String(columnA.id).localeCompare(String(columnB.id));
+    });
+}
+
+function sortPublicBoardTasks(list) {
+    return [...(list || [])].sort((taskA, taskB) => {
+        const aCompleted = taskA.done ? 1 : 0;
+        const bCompleted = taskB.done ? 1 : 0;
+        if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+
+        const aOrder = Number(taskA.board_order ?? 0);
+        const bOrder = Number(taskB.board_order ?? 0);
+        if (aOrder !== bOrder) return aOrder - bOrder;
+
+        return String(taskA.id).localeCompare(String(taskB.id));
+    });
+}
+
 function isImageAvatar(value) {
     return typeof value === "string" && (value.startsWith("data:image/") || value.startsWith("http://") || value.startsWith("https://"));
 }
@@ -100,6 +128,7 @@ export default function PublicSharePage() {
     const [owner, setOwner] = React.useState(null);
     const [agenda, setAgenda] = React.useState(null);
     const [tasks, setTasks] = React.useState([]);
+    const [boardColumns, setBoardColumns] = React.useState([]);
     const [selectedTask, setSelectedTask] = React.useState(null);
     const [isTaskPreviewOpen, setIsTaskPreviewOpen] = React.useState(false);
     const [isTaskPreviewVisible, setIsTaskPreviewVisible] = React.useState(false);
@@ -144,17 +173,20 @@ export default function PublicSharePage() {
                     setOwner(null);
                     setAgenda(null);
                     setTasks([]);
+                    setBoardColumns([]);
                     return;
                 }
 
                 setOwner(data.owner || null);
                 setAgenda(data.agenda || null);
                 setTasks(Array.isArray(data.tasks) ? data.tasks : []);
+                setBoardColumns(Array.isArray(data.boardColumns) ? data.boardColumns : []);
             } catch {
                 if (!mounted) return;
                 setOwner(null);
                 setAgenda(null);
                 setTasks([]);
+                setBoardColumns([]);
             } finally {
                 if (mounted && showLoading) {
                     setLoading(false);
@@ -215,8 +247,10 @@ export default function PublicSharePage() {
     const dates = [];
     const tasksData = {};
     const shouldSortCompletedTasks = agenda?.sort_completed_tasks ?? true;
+    const boardTaskList = React.useMemo(() => tasks.filter(task => task?.is_board_task), [tasks]);
+    const weeklyTasks = React.useMemo(() => tasks.filter(task => !task?.is_board_task), [tasks]);
 
-    const sortedTasks = [...tasks].sort((taskA, taskB) => {
+    const sortedTasks = [...weeklyTasks].sort((taskA, taskB) => {
         // First, separate completed from non-completed if sortCompletedTasks is enabled
         if (shouldSortCompletedTasks) {
             const aCompleted = taskA.done ? 1 : 0;
@@ -238,6 +272,14 @@ export default function PublicSharePage() {
         date.setDate(date.getDate() + i);
         dates.push(date);
         tasksData[formDate(date)] = sortedTasks.filter(task => formDate(task.date) === formDate(date));
+    }
+
+    const publicBoardColumns = React.useMemo(() => sortPublicBoardColumns(boardColumns), [boardColumns]);
+    const publicBoardTasks = React.useMemo(() => sortPublicBoardTasks(boardTaskList), [boardTaskList]);
+    const shouldShowBoard = publicBoardColumns.length > 0 || publicBoardTasks.length > 0;
+
+    function getBoardColumnTasks(columnId) {
+        return publicBoardTasks.filter(task => String(task.board_column_id) === String(columnId));
     }
 
     function moveWeek(step) {
@@ -679,7 +721,7 @@ export default function PublicSharePage() {
                             {tasksData[dateKey].map(task => (
                                 <button
                                     type="button"
-                                    className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
+                                    className="group agenda-accent-hover-border task-item-row task-row-border w-full border-b text-left transition-colors duration-150"
                                     key={task.id}
                                     onClick={() => openTaskPreview(task)}
                                 >
@@ -693,10 +735,10 @@ export default function PublicSharePage() {
                             {(() => {
                                 const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
                                 const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 10 - tasksData[dateKey].length);
-                                return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
-                                    <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
-                                ));
-                            })()}
+                                    return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
+                                        <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
+                                    ));
+                                })()}
                         </div>
                     );
                 })}
@@ -724,7 +766,7 @@ export default function PublicSharePage() {
                             {tasksData[dateKey].map(task => (
                                 <button
                                     type="button"
-                                    className="group agenda-accent-hover-border task-row-border w-full border-b text-left transition-colors duration-150"
+                                    className="group agenda-accent-hover-border task-item-row task-row-border w-full border-b text-left transition-colors duration-150"
                                     key={task.id}
                                     onClick={() => openTaskPreview(task)}
                                 >
@@ -738,15 +780,58 @@ export default function PublicSharePage() {
                                 {(() => {
                                     const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
                                     const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 4 - tasksData[dateKey].length);
-                                    return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
-                                        <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
-                                    ));
-                                })()}
+                                        return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
+                                            <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
+                                        ));
+                                    })()}
                             </div>
                         );
                     })}
                 </div>
             </main>
+
+            {shouldShowBoard && (
+                <section className="w-full px-6 pb-6 lg:pb-10">
+                    <div className="grid grid-cols-4 gap-6">
+                        {publicBoardColumns.map((column, index) => {
+                            const columnTasks = getBoardColumnTasks(column.id);
+                            const isColumnBlankTitle = !(column.title || "").trim();
+
+                            return (
+                                <div className="min-w-0 flex flex-col" key={column.id}>
+                                    <div className={`flex items-start justify-between border-b-2 py-3 ${index === 0 && isColumnBlankTitle ? "opacity-40" : ""}`}>
+                                        <h2 className={`public-date-label min-w-0 tracking-[-0.5px] ${isColumnBlankTitle ? "opacity-30" : "text-black"}`}>
+                                            {column.title || ""}
+                                        </h2>
+                                        <h3 className="public-weekday-label text-black opacity-20">{""}</h3>
+                                    </div>
+
+                                    {columnTasks.map(task => (
+                                        <button
+                                            type="button"
+                                    className="group agenda-accent-hover-border task-item-row task-row-border w-full border-b text-left transition-colors duration-150"
+                                            key={task.id}
+                                            onClick={() => openTaskPreview(task)}
+                                        >
+                                            <div className="task flex h-[41px] items-center justify-between px-0">
+                                                {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0, 54)}
+                                            </div>
+                                        </button>
+                                    ))}
+
+                                    {(() => {
+                                        const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+                                        const emptyRows = isMobile ? Math.max(0, 1 - columnTasks.length) : Math.max(0, 7 - columnTasks.length);
+                                        return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
+                                            <div className="task-row-border h-[41px] w-full border-b" key={`board-empty-${column.id}-${emptyIndex}`} />
+                                        ));
+                                    })()}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {isTaskPreviewOpen && selectedTask && (
                 <div

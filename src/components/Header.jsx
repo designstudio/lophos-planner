@@ -5,7 +5,7 @@ import ProfileMenu from "./menus/ProfileMenu.jsx";
 import ExtrasMenu from "./menus/ExtrasMenu.jsx";
 import {formDate, getStoredWeekShift, openForm, parseDateOnly, setStoredWeekShift, syncWeekShiftFromUrl} from "../scripts/utils.js";
 import { supabase } from "../scripts/supabase.js";
-import { DotsVertical, ChevronLeft, ChevronRight, User03 } from "@untitledui/icons";
+import { DotsVertical, ChevronLeft, ChevronRight, Star06, User03 } from "@untitledui/icons";
 import { getAppLanguage, getLocale, t } from "../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../scripts/holidays.js";
 
@@ -276,6 +276,13 @@ const Header = () => {
 
     const headerBtns = [
         {
+            textColor: "text-black dark:text-black",
+            bgColor: "bg-[#f2f2f2] dark:bg-[#f2f2f2]",
+            icon: Star06,
+            tooltip: t(language, "generateStatus"),
+            onClick: () => openForm("status-generator-form"),
+        },
+        {
             textColor: "text-gray-900 dark:text-white",
             bgColor: "",
             icon: DotsVertical,
@@ -368,15 +375,17 @@ const Header = () => {
             <div className="flex gap-2">
 
                 {currentUser ?
-                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                        <span className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
                         {isImageAvatar(currentUser?.avatar) ? (
                             <img src={currentUser.avatar} alt={currentUser?.name || "Profile"} className="h-full w-full object-cover" />
                         ) : (
                             <h2 className="text-sm font-semibold leading-none">{getUserInitials(currentUser)}</h2>
                         )}
+                        </span>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
-        opacity-0 group-hover:opacity-100 transition ease-linear duration-200
-         text-white tooltip-surface rounded text-xs p-1">{t(language, "profile")}</p>
+        whitespace-nowrap opacity-0 group-hover:opacity-100 transition ease-linear duration-200
+         text-white tooltip-surface rounded text-xs p-1 pointer-events-none z-50">{t(language, "profile")}</p>
                     </button>
                     : <HeaderBtn {...{
                         textColor: "text-gray-900 dark:text-white",

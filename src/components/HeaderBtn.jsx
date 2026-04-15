@@ -9,9 +9,9 @@ export function HeaderBtn({textColor, bgColor, icon: Icon, onClick, tooltip=null
         style={style}
         >
         {Icon && <Icon className={`h-4 w-4 lg:h-5 lg:w-5 ${textColor}`} />}
-        { tooltip && <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
-        opacity-0 group-hover:opacity-100 transition ease-linear duration-200
-         text-white tooltip-surface rounded text-xs p-1">{tooltip}</p> }
+        { tooltip && <p className="absolute left-1/2 top-[120%] -translate-x-[50%]
+        whitespace-nowrap opacity-0 group-hover:opacity-100 transition ease-linear duration-200
+         text-white tooltip-surface rounded text-xs p-1 pointer-events-none z-50">{tooltip}</p> }
     </button>
   )
 }
