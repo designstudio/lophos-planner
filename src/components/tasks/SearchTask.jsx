@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { closeForm } from "../../scripts/utils.js";
-import { toShortId } from "../../scripts/utils.js";
+import { closeForm, setStoredWeekShift, toShortId } from "../../scripts/utils.js";
 import { ALLOWED_COLORS } from "./TaskMenuColorPicker.jsx";
 import { StickerSquare } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -28,22 +27,19 @@ export default function SearchTask({ data, date, }) {
     }
 
 
-    let searchParams;
     const taskWeekStart = getStartOfWeek(taskDate);
     const todayWeekStart = getStartOfWeek(today);
     const weekShift = Math.round((taskWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
-    searchParams = `weekShift=${weekShift}&openedTask=${toShortId(data.id)}`;
 
     function handleClick(ev) {
+        setStoredWeekShift(weekShift);
         closeForm("search-form");
         document.getElementById("search-task-name").value = "";
         document.querySelector(".clear-search").classList.add("hidden");
     }
 
-    // TODO: get week shift from task to current date
-
     return (
-        <Link to={`/?${searchParams}`} className="group w-full border-b border-gray-300" onClick={handleClick}>
+        <Link to={`/?task=${toShortId(data.id)}`} className="group w-full border-b border-gray-300" onClick={handleClick}>
             <div className="task flex justify-between items-center h-[41px] px-0 cursor-pointer">
                 <h5 className={`task-title min-w-0 flex-1 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}
                 >{ data.description && <StickerSquare className="h-4 w-4 shrink-0" /> } <span className="truncate">{data.name.slice(0, MAX_TASK_NAME_LENGTH) +

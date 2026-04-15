@@ -1,10 +1,9 @@
 import React from "react"
 import { HeaderBtn } from "./HeaderBtn"
-import {useSearchParams} from "react-router-dom";
 import {useAuth} from "../contexts/AuthContext.jsx";
 import ProfileMenu from "./menus/ProfileMenu.jsx";
 import ExtrasMenu from "./menus/ExtrasMenu.jsx";
-import {formDate, openForm, parseDateOnly} from "../scripts/utils.js";
+import {formDate, getStoredWeekShift, openForm, parseDateOnly, setStoredWeekShift, syncWeekShiftFromUrl} from "../scripts/utils.js";
 import { supabase } from "../scripts/supabase.js";
 import { DotsVertical, ChevronLeft, ChevronRight, User03 } from "@untitledui/icons";
 import { getAppLanguage, getLocale, t } from "../scripts/i18n.js";
@@ -33,18 +32,16 @@ function getUserInitials(user) {
 
 const Header = () => {
 
-    const [searchParams, setSearchParams] = useSearchParams();
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [taskDates, setTaskDates] = React.useState(() => new Set());
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
+    const [weekShift, setWeekShift] = React.useState(() => getStoredWeekShift());
     const calendarRef = React.useRef(null);
     const fetchTimeoutRef = React.useRef(null);
 
     const newDate = new Date();
-    if (searchParams.get("weekShift")) {
-        newDate.setDate(newDate.getDate() + (+searchParams.get("weekShift") * 7));
-    }
+    newDate.setDate(newDate.getDate() + (weekShift * 7));
 
     function openLoginForm() {
         openForm("login-form");
@@ -85,19 +82,11 @@ const Header = () => {
     }
 
     function toPrevWeek() {
-        let curShift = +searchParams.get("weekShift") || 0;
-        setSearchParams(prevSearchParams => {
-            prevSearchParams.set("weekShift", `${--curShift}`);
-            return prevSearchParams;
-        })
+        setWeekShift(prevShift => setStoredWeekShift(prevShift - 1));
     }
 
     function toNextWeek() {
-        let curShift = +searchParams.get("weekShift") || 0;
-        setSearchParams(prevSearchParams => {
-            prevSearchParams.set("weekShift", `${++curShift}`);
-            return prevSearchParams;
-        })
+        setWeekShift(prevShift => setStoredWeekShift(prevShift + 1));
     }
 
     const {currentUser} = useAuth();
@@ -106,8 +95,21 @@ const Header = () => {
     const weekStartIndex = currentUser?.weekStartsOn === "Sunday" ? 0 : 1;
 
     React.useEffect(() => {
+        setWeekShift(syncWeekShiftFromUrl());
+    }, []);
+
+    React.useEffect(() => {
+        function handleWeekShiftChange(ev) {
+            setWeekShift(Number(ev.detail?.weekShift) || 0);
+        }
+
+        window.addEventListener("lophos-planner:week-shift-change", handleWeekShiftChange);
+        return () => window.removeEventListener("lophos-planner:week-shift-change", handleWeekShiftChange);
+    }, []);
+
+    React.useEffect(() => {
         setCalendarMonth(startOfMonth(newDate));
-    }, [newDate.getFullYear(), newDate.getMonth(), newDate.getDate()]);
+    }, [newDate.getFullYear(), newDate.getMonth(), newDate.getDate(), weekShift]);
 
     React.useEffect(() => {
         if (!isCalendarOpen) return undefined;
@@ -266,15 +268,7 @@ const Header = () => {
         const targetWeekStart = getStartOfWeek(date);
         const nextShift = Math.round((targetWeekStart - todayWeekStart) / (7 * 24 * 60 * 60 * 1000));
 
-        setSearchParams(prevSearchParams => {
-            const nextParams = new URLSearchParams(prevSearchParams);
-            if (nextShift === 0) {
-                nextParams.delete("weekShift");
-            } else {
-                nextParams.set("weekShift", `${nextShift}`);
-            }
-            return nextParams;
-        });
+        setWeekShift(setStoredWeekShift(nextShift));
         setCalendarMonth(startOfMonth(date));
         setIsCalendarOpen(false);
     }

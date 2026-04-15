@@ -2,16 +2,15 @@ import React, { useEffect, useState } from 'react';
 import Lottie from 'lottie-react';
 import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
-import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { updateTask } from "../../scripts/api.js";
-import { formDate, parseDateOnly } from "../../scripts/utils.js";
+import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
 const TaskListContainer = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [weekShift, setWeekShift] = useState(() => getStoredWeekShift());
     const [curDate, setCurDate] = useState(new Date());
     const [tasks, setTasks] = useState([]);
     const [maxTasks, setMaxTasks] = React.useState(10);
@@ -77,6 +76,19 @@ const TaskListContainer = () => {
     useEffect(() => {
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        setWeekShift(syncWeekShiftFromUrl());
+    }, []);
+
+    useEffect(() => {
+        function handleWeekShiftChange(ev) {
+            setWeekShift(Number(ev.detail?.weekShift) || 0);
+        }
+
+        window.addEventListener("lophos-planner:week-shift-change", handleWeekShiftChange);
+        return () => window.removeEventListener("lophos-planner:week-shift-change", handleWeekShiftChange);
     }, []);
 
     useEffect(() => {
@@ -323,8 +335,6 @@ const TaskListContainer = () => {
 
         return () => clearInterval(intervalId);
     }, []);
-
-    const weekShift = Number(searchParams.get("weekShift") || 0);
 
     useEffect(() => {
         const shift = weekShift * 7;

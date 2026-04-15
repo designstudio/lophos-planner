@@ -289,8 +289,69 @@ export function closeForm(formBlurId) {
     });
 }
 
-export function clearOpenedTaskFromUrl() {
+export function clearTaskFromUrl() {
     const url = new URL(window.location.href);
+    url.searchParams.delete("task");
     url.searchParams.delete("openedTask");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+export function clearOpenedTaskFromUrl() {
+    clearTaskFromUrl();
+}
+
+const WEEK_SHIFT_STORAGE_KEY = "lophos-planner.weekShift";
+const WEEK_SHIFT_CHANGE_EVENT = "lophos-planner:week-shift-change";
+
+function emitWeekShiftChange(weekShift) {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent(WEEK_SHIFT_CHANGE_EVENT, {
+        detail: { weekShift },
+    }));
+}
+
+export function getStoredWeekShift() {
+    if (typeof window === "undefined") return 0;
+
+    const rawValue = window.sessionStorage.getItem(WEEK_SHIFT_STORAGE_KEY);
+    const parsedValue = Number(rawValue);
+    return Number.isFinite(parsedValue) ? parsedValue : 0;
+}
+
+export function setStoredWeekShift(weekShift) {
+    if (typeof window === "undefined") return 0;
+
+    const nextWeekShift = Number.isFinite(Number(weekShift)) ? Number(weekShift) : 0;
+    if (nextWeekShift === 0) {
+        window.sessionStorage.removeItem(WEEK_SHIFT_STORAGE_KEY);
+    } else {
+        window.sessionStorage.setItem(WEEK_SHIFT_STORAGE_KEY, String(nextWeekShift));
+    }
+
+    emitWeekShiftChange(nextWeekShift);
+    return nextWeekShift;
+}
+
+export function syncWeekShiftFromUrl() {
+    if (typeof window === "undefined") return 0;
+
+    const url = new URL(window.location.href);
+    const rawWeekShift = url.searchParams.get("weekShift");
+
+    if (rawWeekShift !== null) {
+        const parsedWeekShift = Number(rawWeekShift);
+        const nextWeekShift = Number.isFinite(parsedWeekShift) ? parsedWeekShift : 0;
+
+        if (nextWeekShift === 0) {
+            window.sessionStorage.removeItem(WEEK_SHIFT_STORAGE_KEY);
+        } else {
+            window.sessionStorage.setItem(WEEK_SHIFT_STORAGE_KEY, String(nextWeekShift));
+        }
+
+        url.searchParams.delete("weekShift");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        emitWeekShiftChange(nextWeekShift);
+    }
+
+    return getStoredWeekShift();
 }
