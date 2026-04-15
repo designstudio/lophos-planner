@@ -23,6 +23,7 @@ export const action = (AuthContext) => async ({ request }) => {
     const dateFormat = formData.get("date-format") || "DD-MM";
     const weekStartsOn = formData.get("week-starts-on") || "Monday";
     const defaultAgendaId = formData.get("default-agenda-id") || null;
+    const defaultView = formData.get("default-view") || "week";
 
     if (password && password.length < 6) {
         return "Password must be at least 6 characters";
@@ -32,7 +33,7 @@ export const action = (AuthContext) => async ({ request }) => {
         return "Passwords don't match";
     }
 
-    await updateUser(email, password, { name, avatar, darkMode, language, dateFormat, weekStartsOn, defaultAgendaId });
+    await updateUser(email, password, { name, avatar, darkMode, language, dateFormat, weekStartsOn, defaultAgendaId, defaultView });
     return redirect("/");
 };
 
@@ -55,6 +56,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
         weekStartsOn: currentUser?.weekStartsOn || "Monday",
         language: currentUser?.language || "ptBR",
         defaultAgendaId: currentUser?.defaultAgendaId || currentUser?.currentAgendaId || agendas?.[0]?.id || "",
+        defaultView: currentUser?.defaultView || "week",
     }), [
         currentUser?.name,
         currentUser?.email,
@@ -65,6 +67,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
         currentUser?.language,
         currentUser?.defaultAgendaId,
         currentUser?.currentAgendaId,
+        currentUser?.defaultView,
         agendas,
     ]);
 
@@ -140,6 +143,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
             formValues.weekStartsOn !== initialFormValues.weekStartsOn ||
             formValues.language !== initialFormValues.language ||
             formValues.defaultAgendaId !== initialFormValues.defaultAgendaId ||
+            formValues.defaultView !== initialFormValues.defaultView ||
             formValues.password.length > 0 ||
             formValues.confirmPassword.length > 0
         );
@@ -360,7 +364,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <label className="text-[13px] font-semibold text-black">
-                            {t(language, "defaultView")}
+                            {t(language, "defaultAgendaLabel")}
                             <div className="relative mt-4">
                                 <select
                                     name="default-agenda-id"
@@ -373,6 +377,22 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                     {agendas.map(agenda => (
                                         <option key={agenda.id} value={agenda.id}>{agenda.name}</option>
                                     ))}
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
+                            </div>
+                        </label>
+
+                        <label className="text-[13px] font-semibold text-black">
+                            {t(language, "defaultView")}
+                            <div className="relative mt-4">
+                                <select
+                                    name="default-view"
+                                    value={formValues.defaultView}
+                                    onChange={ev => updateField("defaultView", ev.target.value)}
+                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                >
+                                    <option value="week">{t(language, "viewWeek")}</option>
+                                    <option value="board">{t(language, "viewBoard")}</option>
                                 </select>
                                 <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
                             </div>

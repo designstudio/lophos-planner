@@ -139,6 +139,7 @@ export async function formTransition(from, to) {
 
 export function openForm(formBlurId) {
     ensureModalRecoveryListeners();
+    setPageScrollLocked(true);
 
     document.querySelector(".profile-menu")?.classList.remove("active");
     document.querySelector(".extras-menu")?.classList.remove("active");
@@ -170,7 +171,7 @@ export function openForm(formBlurId) {
     if (isAlreadyActive && !isClosing && !isInvisibleGhost) {
         formBlur.scrollTop = 0;
         formElement?.scrollTo?.(0, 0);
-        document.body.style.overflowY = "hidden";
+        setPageScrollLocked(true);
         return;
     }
 
@@ -181,7 +182,7 @@ export function openForm(formBlurId) {
     formBlur.dataset.closing = "false";
     formBlur.classList.add("active");
     formBlur.scrollTop = 0;
-    document.body.style.overflowY = "hidden";
+    setPageScrollLocked(true);
 
     if (!formElement) return;
 
@@ -266,7 +267,7 @@ export function closeForm(formBlurId) {
         fromForm.dataset.closing = "false";
         fromForm.dataset.closeStartedAt = "";
         if (!document.querySelector(".blur-bg.active")) {
-            document.body.style.overflowY = "auto";
+            setPageScrollLocked(false);
         }
     };
 
@@ -302,12 +303,50 @@ export function clearOpenedTaskFromUrl() {
 
 const WEEK_SHIFT_STORAGE_KEY = "lophos-planner.weekShift";
 const WEEK_SHIFT_CHANGE_EVENT = "lophos-planner:week-shift-change";
+const VIEW_MODE_STORAGE_KEY = "lophos-planner.viewMode";
+const VIEW_MODE_CHANGE_EVENT = "lophos-planner:view-mode-change";
+const PAGE_SCROLL_LOCK_PADDING_KEY = "pageScrollLockPaddingRight";
 
 function emitWeekShiftChange(weekShift) {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new CustomEvent(WEEK_SHIFT_CHANGE_EVENT, {
         detail: { weekShift },
     }));
+}
+
+function emitViewModeChange(viewMode) {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent(VIEW_MODE_CHANGE_EVENT, {
+        detail: { viewMode },
+    }));
+}
+
+export function setPageScrollLocked(locked) {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+
+    const html = document.documentElement;
+    const body = document.body;
+
+    if (locked) {
+        const scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
+        const currentPaddingRight = window.getComputedStyle(body).paddingRight;
+
+        if (!body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY]) {
+            body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY] = currentPaddingRight;
+        }
+
+        body.style.paddingRight = scrollbarWidth > 0
+            ? `calc(${currentPaddingRight} + ${scrollbarWidth}px)`
+            : currentPaddingRight;
+        html.style.overflowY = "hidden";
+        body.style.overflowY = "hidden";
+        return;
+    }
+
+    html.style.overflowY = "auto";
+    body.style.overflowY = "auto";
+    body.style.paddingRight = body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY] || "";
+    delete body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY];
 }
 
 export function getStoredWeekShift() {
@@ -354,4 +393,48 @@ export function syncWeekShiftFromUrl() {
     }
 
     return getStoredWeekShift();
+}
+
+export function getStoredViewMode() {
+    if (typeof window === "undefined") return "";
+
+    const rawValue = window.sessionStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    return rawValue === "board" ? "board" : rawValue === "week" ? "week" : "";
+}
+
+export function setStoredViewMode(viewMode) {
+    if (typeof window === "undefined") return "week";
+
+    const nextViewMode = viewMode === "board" ? "board" : "week";
+    window.sessionStorage.setItem(VIEW_MODE_STORAGE_KEY, nextViewMode);
+    emitViewModeChange(nextViewMode);
+    return nextViewMode;
+}
+
+export function syncViewModeFromUrl() {
+    if (typeof window === "undefined") return "";
+
+    const url = new URL(window.location.href);
+    const rawViewMode = url.searchParams.get("view");
+
+    if (rawViewMode !== null) {
+        const nextViewMode = rawViewMode === "board" ? "board" : "week";
+        window.sessionStorage.setItem(VIEW_MODE_STORAGE_KEY, nextViewMode);
+        url.searchParams.delete("view");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        emitViewModeChange(nextViewMode);
+    }
+
+    return getStoredViewMode();
+}
+
+export function getDefaultBoardColumns(scopeId) {
+    const scopeKey = String(scopeId || "default").replace(/[^a-zA-Z0-9_-]/g, "-");
+
+    return [
+        { id: `board-${scopeKey}-1`, title: "Um dia", hidden: false },
+        { id: `board-${scopeKey}-2`, title: "", hidden: false },
+        { id: `board-${scopeKey}-3`, title: "", hidden: false },
+        { id: `board-${scopeKey}-4`, title: "", hidden: false },
+    ];
 }

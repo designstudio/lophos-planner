@@ -81,6 +81,20 @@ function AuthProvider({ children }) {
         localStorage.removeItem(`defaultAgendaId:${userId}`);
     }
 
+    function getStoredDefaultView(userId) {
+        if (!userId || typeof localStorage === 'undefined') return null;
+        return localStorage.getItem(`defaultView:${userId}`);
+    }
+
+    function setStoredDefaultView(userId, defaultView) {
+        if (!userId || typeof localStorage === 'undefined') return;
+        if (!defaultView) {
+            localStorage.removeItem(`defaultView:${userId}`);
+            return;
+        }
+        localStorage.setItem(`defaultView:${userId}`, String(defaultView));
+    }
+
     function getPendingAgendaInviteToken() {
         return pendingAgendaInviteToken;
     }
@@ -203,6 +217,7 @@ function AuthProvider({ children }) {
             language: profile?.language ?? ((typeof localStorage !== 'undefined' && localStorage.language) || detectBrowserLanguage()),
             dateFormat: profile?.dateFormat ?? 'DD-MM',
             weekStartsOn: profile?.weekStartsOn ?? 'Monday',
+            defaultView: profile?.defaultView ?? getStoredDefaultView(sessionUser.id) ?? 'week',
             currentAgendaId: profile?.defaultAgendaId ?? profile?.currentAgendaId ?? null,
             defaultAgendaId: profile?.defaultAgendaId ?? null,
         };
@@ -227,6 +242,7 @@ function AuthProvider({ children }) {
                         sessionUser.user_metadata?.full_name ??
                         sessionUser.email?.split('@')[0] ??
                         'User',
+                    defaultView: 'week',
                 });
             } catch (err) {
                 console.error('[AUTH] ensureSessionUserSetup createUser error', err);
@@ -280,6 +296,7 @@ function AuthProvider({ children }) {
                         localStorage.theme = user.darkMode ? 'dark' : 'light';
                         localStorage.language = user.language;
                         setAppLanguage(user.language);
+                        setStoredDefaultView(sessionUser.id, user.defaultView || 'week');
                     }
 
                     const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
@@ -384,7 +401,7 @@ function AuthProvider({ children }) {
 
             // Tenta criar o perfil público, mas não bloqueia login
             try {
-                await createUser(sessionUser.id, { email, name });
+                await createUser(sessionUser.id, { email, name, defaultView: 'week' });
             } catch (err) {
                 console.error('[AUTH] createUser error', err);
             }
@@ -396,6 +413,7 @@ function AuthProvider({ children }) {
                 language: 'ptBR',
                 dateFormat: 'DD-MM',
                 weekStartsOn: 'Monday',
+                defaultView: 'week',
                 currentAgendaId: null,
                 defaultAgendaId: null,
             });
@@ -413,6 +431,7 @@ function AuthProvider({ children }) {
                 localStorage.theme = 'light';
                 localStorage.language = fallbackUser.language;
                 setAppLanguage(fallbackUser.language);
+                setStoredDefaultView(sessionUser.id, fallbackUser.defaultView);
 
                 const inviteResult = await applyPendingAgendaInvite(sessionUser.id);
                 if (inviteResult?.agendaId) {
@@ -477,7 +496,9 @@ function AuthProvider({ children }) {
                     const mergedUser = buildFallbackUser(sessionUser, profile);
                     mergedUser.currentAgendaId = ensuredFromProfile.currentAgendaId;
                     mergedUser.defaultAgendaId = preferredAgendaId || ensuredFromProfile.currentAgendaId;
+                    mergedUser.defaultView = profile.defaultView || getStoredDefaultView(sessionUser.id) || 'week';
                     setStoredDefaultAgendaId(sessionUser.id, mergedUser.defaultAgendaId);
+                    setStoredDefaultView(sessionUser.id, mergedUser.defaultView);
                     setCurrentUser(mergedUser);
                     setAgendas(ensuredFromProfile.agendas);
                     loadedProfileIdRef.current = sessionUser.id;
@@ -495,7 +516,9 @@ function AuthProvider({ children }) {
                 const ensured = await ensureDefaultAgenda(sessionUser.id, preferredAgendaId);
                 fallbackUser.currentAgendaId = ensured.currentAgendaId;
                 fallbackUser.defaultAgendaId = preferredAgendaId || ensured.currentAgendaId;
+                fallbackUser.defaultView = fallbackUser.defaultView || getStoredDefaultView(sessionUser.id) || 'week';
                 setStoredDefaultAgendaId(sessionUser.id, fallbackUser.defaultAgendaId);
+                setStoredDefaultView(sessionUser.id, fallbackUser.defaultView);
                 setCurrentUser(fallbackUser);
                 setAgendas(ensured.agendas);
                 loadedProfileIdRef.current = sessionUser.id;
@@ -610,6 +633,10 @@ function AuthProvider({ children }) {
                 }
             }
 
+            if (typeof data.defaultView !== 'undefined') {
+                setStoredDefaultView(currentUser.uid, data.defaultView || 'week');
+            }
+
             setCurrentUser(prev => ({
                 ...prev,
                 email,
@@ -620,6 +647,7 @@ function AuthProvider({ children }) {
                 language: data.language,
                 dateFormat: data.dateFormat,
                 weekStartsOn: data.weekStartsOn,
+                ...(typeof data.defaultView !== 'undefined' ? { defaultView: data.defaultView || 'week' } : {}),
                 ...(typeof data.defaultAgendaId !== 'undefined' ? { defaultAgendaId: data.defaultAgendaId || null } : {}),
             }));
 

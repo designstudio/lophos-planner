@@ -134,7 +134,8 @@ const Header = () => {
                 .from("tasks")
                 .select("date")
                 .eq("uid", currentUser.uid)
-                .eq("agenda_id", currentUser.currentAgendaId);
+                .eq("agenda_id", currentUser.currentAgendaId)
+                .or("is_board_task.is.null,is_board_task.eq.false");
 
             if (error) return;
 

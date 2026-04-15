@@ -54,6 +54,8 @@ export async function getUserTasks(userId, agendaId = null) {
         query = query.eq('uid', userId);
     }
 
+    query = query.or('is_board_task.is.null,is_board_task.eq.false');
+
     const { data, error } = await query;
 
     if (error) throw error;
@@ -131,27 +133,47 @@ export async function updateTask(taskId, data) {
 export async function deleteTask(taskId) {
     const { data: taskData, error: fetchError } = await supabase
         .from('tasks')
-        .select('date, order')
+        .select('date, order, is_board_task, board_order, board_column_id, agenda_id, uid')
         .eq('id', taskId)
         .maybeSingle();
 
     if (fetchError) throw fetchError;
     if (!taskData) return;
 
-    const { data: sameDayTasks, error: queryError } = await supabase
-        .from('tasks')
-        .select('id, order')
-        .eq('date', taskData.date);
+    if (taskData.is_board_task) {
+        const { data: sameColumnTasks, error: queryError } = await supabase
+            .from('tasks')
+            .select('id, board_order')
+            .eq('agenda_id', taskData.agenda_id)
+            .eq('is_board_task', true)
+            .eq('board_column_id', taskData.board_column_id);
 
-    if (queryError) throw queryError;
+        if (queryError) throw queryError;
 
-    const subsequent = (sameDayTasks || []).filter(task => task.order > taskData.order);
+        const subsequent = (sameColumnTasks || []).filter(task => task.board_order > taskData.board_order);
 
-    await Promise.all(
-        subsequent.map(task =>
-            supabase.from('tasks').update({ order: task.order - 1 }).eq('id', task.id)
-        )
-    );
+        await Promise.all(
+            subsequent.map(task =>
+                supabase.from('tasks').update({ board_order: task.board_order - 1 }).eq('id', task.id)
+            )
+        );
+    } else {
+        const { data: sameDayTasks, error: queryError } = await supabase
+            .from('tasks')
+            .select('id, order')
+            .eq('date', taskData.date)
+            .or('is_board_task.is.null,is_board_task.eq.false');
+
+        if (queryError) throw queryError;
+
+        const subsequent = (sameDayTasks || []).filter(task => task.order > taskData.order);
+
+        await Promise.all(
+            subsequent.map(task =>
+                supabase.from('tasks').update({ order: task.order - 1 }).eq('id', task.id)
+            )
+        );
+    }
 
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (error) throw error;
@@ -191,6 +213,53 @@ export async function clearUsersTasks(userId) {
     if (error) throw error;
 }
 
+// Board columns CRUD
+
+export async function getBoardColumns(agendaId) {
+    if (!agendaId) return [];
+
+    const { data, error } = await supabase
+        .from('board_columns')
+        .select('*')
+        .eq('agenda_id', agendaId)
+        .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+export async function createBoardColumns(columns) {
+    const payload = Array.isArray(columns) ? columns : [];
+    if (payload.length === 0) return [];
+
+    const { data, error } = await supabase
+        .from('board_columns')
+        .upsert(payload, { onConflict: 'id' })
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+export async function updateBoardColumn(columnId, data) {
+    const { error } = await supabase
+        .from('board_columns')
+        .update(data)
+        .eq('id', columnId);
+
+    if (error) throw error;
+}
+
+export async function deleteBoardColumn(columnId) {
+    const { error } = await supabase
+        .from('board_columns')
+        .delete()
+        .eq('id', columnId);
+
+    if (error) throw error;
+}
+
 export async function deleteCurrentAccount(userId) {
     const { error } = await supabase.rpc('delete_user_account_with_audit', {
         p_source: 'self_service_web',
@@ -215,15 +284,20 @@ export async function createUser(id, data) {
         language: data.language ?? 'ptBR',
         date_format: data.dateFormat ?? 'DD-MM',
         week_starts_on: data.weekStartsOn ?? 'Monday',
+        default_view: data.defaultView ?? 'week',
     };
 
     const { error } = await supabase.from('users').insert(payload);
     if (error) {
         const missingAvatarColumn = /column\s+"?avatar"?\s+of relation\s+"?users"? does not exist|Could not find the 'avatar' column/i.test(error.message || '');
-        if (!missingAvatarColumn) throw error;
+        const missingDefaultViewColumn = /column\s+"?default_view"?\s+of relation\s+"?users"? does not exist|Could not find the 'default_view' column/i.test(error.message || '');
+        if (!missingAvatarColumn && !missingDefaultViewColumn) throw error;
 
-        const { avatar: _ignoredAvatar, ...payloadWithoutAvatar } = payload;
-        const retry = await supabase.from('users').insert(payloadWithoutAvatar);
+        const payloadWithoutMissingColumns = { ...payload };
+        if (missingAvatarColumn) delete payloadWithoutMissingColumns.avatar;
+        if (missingDefaultViewColumn) delete payloadWithoutMissingColumns.default_view;
+
+        const retry = await supabase.from('users').insert(payloadWithoutMissingColumns);
         if (retry.error) throw retry.error;
     }
 
@@ -268,6 +342,7 @@ export function getCurrentUser(id) {
             language: data.language,
             dateFormat: data.date_format,
             weekStartsOn: data.week_starts_on,
+            defaultView: data.default_view || 'week',
             currentAgendaId: data.current_agenda_id || null,
             defaultAgendaId: data.default_agenda_id || null,
         };
@@ -295,6 +370,10 @@ export async function updateUserData(id, data) {
         payload.default_agenda_id = data.defaultAgendaId || null;
     }
 
+    if (typeof data.defaultView !== 'undefined') {
+        payload.default_view = data.defaultView || 'week';
+    }
+
     const { error } = await supabase
         .from('users')
         .update(payload)
@@ -302,12 +381,16 @@ export async function updateUserData(id, data) {
 
     if (error) {
         const missingAvatarColumn = /column\s+"?avatar"?\s+of relation\s+"?users"? does not exist|Could not find the 'avatar' column/i.test(error.message || '');
-        if (!missingAvatarColumn) throw error;
+        const missingDefaultViewColumn = /column\s+"?default_view"?\s+of relation\s+"?users"? does not exist|Could not find the 'default_view' column/i.test(error.message || '');
+        if (!missingAvatarColumn && !missingDefaultViewColumn) throw error;
 
-        const { avatar: _ignoredAvatar, ...payloadWithoutAvatar } = payload;
+        const payloadWithoutMissingColumns = { ...payload };
+        if (missingAvatarColumn) delete payloadWithoutMissingColumns.avatar;
+        if (missingDefaultViewColumn) delete payloadWithoutMissingColumns.default_view;
+
         const retry = await supabase
             .from('users')
-            .update(payloadWithoutAvatar)
+            .update(payloadWithoutMissingColumns)
             .eq('id', id);
 
         if (retry.error) throw retry.error;

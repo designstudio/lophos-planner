@@ -56,7 +56,8 @@ begin
       into v_tasks
       from public.tasks t
      where t.agenda_id = v_agenda.id
-       and t.uid = v_agenda.uid;
+       and t.uid = v_agenda.uid
+       and coalesce(t.is_board_task, false) = false;
 
     return jsonb_build_object(
         'owner', jsonb_build_object(

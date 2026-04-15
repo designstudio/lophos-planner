@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import Lottie from "lottie-react";
 import todoLoadingAnimation from "./assets/todo-loading.json";
 import TaskListContainer from './components/tasks/TaskListContainer';
+import BoardViewContainer from './components/tasks/BoardViewContainer.jsx';
 import LoginForm from "./components/forms/LoginForm";
 import SignUpForm from "./components/forms/SignUpForm";
 import UpdateUserForm from "./components/forms/UpdateUserForm";
@@ -95,6 +96,7 @@ function HomePage() {
                 {currentUser ? (
                     <>
                         <TaskListContainer />
+                        <BoardViewContainer />
                         <SearchTaskForm />
                         <UpdateUserForm recoveryMode={isPasswordRecovery} />
                         <CreateAgendaForm />
