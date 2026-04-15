@@ -62,6 +62,18 @@ export async function getUserTasks(userId, agendaId = null) {
     return data.map(task => ({ ...task, date: parseDateOnly(task.date) }));
 }
 
+export async function getAgendaTasks(agendaId) {
+    if (!agendaId) return [];
+
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('agenda_id', agendaId);
+
+    if (error) throw error;
+    return (data || []).map(task => ({ ...task, date: parseDateOnly(task.date) }));
+}
+
 export async function getSearchedTasks(userId, agendaId, query) {
     const normalizedQuery = normalizeSearchText(query);
     if (!normalizedQuery) return [];
@@ -835,5 +847,11 @@ export async function getPublicAgendaByShareToken(shareToken) {
             ...task,
             date: parseDateOnly(task.date),
         })),
+        boardColumns: Array.isArray(normalized?.boardColumns)
+            ? normalized.boardColumns.map(column => ({
+                ...column,
+                hidden: !!column?.hidden,
+            }))
+            : [],
     };
 }
