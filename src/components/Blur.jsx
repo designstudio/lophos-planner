@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { updateTask, tryCatchDecorator } from "../scripts/api.js";
-import { clearTaskFromUrl, closeForm } from "../scripts/utils.js";
+import { clearTaskFromUrl, closeForm, setPageScrollLocked } from "../scripts/utils.js";
 
 export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
     const blurRef = useRef(null);
@@ -20,7 +20,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
 
         if (forceActive) {
             openedAtRef.current = Date.now();
-            document.body.style.overflowY = "hidden";
+            setPageScrollLocked(true);
         }
 
         const observer = new MutationObserver(() => {
@@ -33,7 +33,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         return () => {
             observer.disconnect();
             if (!document.querySelector(".blur-bg.active")) {
-                document.body.style.overflowY = "auto";
+                setPageScrollLocked(false);
             }
         };
     }, [forceActive]);
@@ -95,7 +95,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         if (!forceActive) {
             await closeForm(type);
         }
-        document.body.style.overflowY = 'auto';
+        setPageScrollLocked(false);
     }
 
     async function handleTaskMenuClose(ev) {

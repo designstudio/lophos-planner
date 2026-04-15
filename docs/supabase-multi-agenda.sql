@@ -64,6 +64,15 @@ $$;
 alter table public.tasks
     add column if not exists agenda_id uuid;
 
+alter table public.tasks
+    add column if not exists is_board_task boolean not null default false;
+
+alter table public.tasks
+    add column if not exists board_column_id text;
+
+alter table public.tasks
+    add column if not exists board_order integer;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -83,12 +92,79 @@ $$;
 create index if not exists tasks_uid_agenda_date_order_idx
     on public.tasks (uid, agenda_id, date, "order");
 
+create index if not exists tasks_agenda_board_idx
+    on public.tasks (agenda_id, is_board_task, board_column_id, board_order);
+
+-- 3b) Board columns belong to an agenda
+create table if not exists public.board_columns (
+    id text primary key,
+    uid uuid not null references public.users(id) on delete cascade,
+    agenda_id uuid not null references public.agendas(id) on delete cascade,
+    title text not null default '',
+    sort_order integer not null default 0,
+    hidden boolean not null default false,
+    created_at timestamptz not null default now()
+);
+
+alter table public.board_columns
+    add column if not exists hidden boolean not null default false;
+
+alter table public.board_columns
+    add column if not exists sort_order integer not null default 0;
+
+create index if not exists board_columns_uid_agenda_sort_idx
+    on public.board_columns (uid, agenda_id, sort_order);
+
+insert into public.board_columns (id, uid, agenda_id, title, sort_order, hidden)
+select
+    format('board-%s-%s', a.id, seeded_columns.sort_order + 1) as id,
+    a.uid,
+    a.id,
+    seeded_columns.title,
+    seeded_columns.sort_order,
+    false
+from public.agendas a
+cross join (
+    values
+        (0, 'Um dia'::text),
+        (1, ''::text),
+        (2, ''::text),
+        (3, ''::text)
+) as seeded_columns(sort_order, title)
+where not exists (
+    select 1
+    from public.board_columns bc
+    where bc.agenda_id = a.id
+);
+
 -- 4) Ensure each user has at least one default agenda named "Pessoal"
 insert into public.agendas (uid, name)
 select u.id, 'Pessoal'
 from public.users u
 where not exists (
     select 1 from public.agendas a where a.uid = u.id
+);
+
+insert into public.board_columns (id, uid, agenda_id, title, sort_order, hidden)
+select
+    format('board-%s-%s', a.id, seeded_columns.sort_order + 1) as id,
+    a.uid,
+    a.id,
+    seeded_columns.title,
+    seeded_columns.sort_order,
+    false
+from public.agendas a
+cross join (
+    values
+        (0, 'Um dia'::text),
+        (1, ''::text),
+        (2, ''::text),
+        (3, ''::text)
+) as seeded_columns(sort_order, title)
+where not exists (
+    select 1
+    from public.board_columns bc
+    where bc.agenda_id = a.id
 );
 
 -- 5) Set current_agenda_id if empty
@@ -186,6 +262,7 @@ $$;
 -- 7) RLS
 alter table public.agendas enable row level security;
 alter table public.tasks enable row level security;
+alter table public.board_columns enable row level security;
 
 -- Agenda policies
 DO $$
@@ -230,6 +307,56 @@ BEGIN
     ) THEN
         CREATE POLICY agendas_delete_own
             ON public.agendas
+            FOR DELETE
+            TO authenticated
+            USING (uid = auth.uid());
+    END IF;
+END
+$$;
+
+-- Board columns own write policies by uid
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'board_columns' AND policyname = 'board_columns_select_own'
+    ) THEN
+        CREATE POLICY board_columns_select_own
+            ON public.board_columns
+            FOR SELECT
+            TO authenticated
+            USING (uid = auth.uid());
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'board_columns' AND policyname = 'board_columns_insert_own'
+    ) THEN
+        CREATE POLICY board_columns_insert_own
+            ON public.board_columns
+            FOR INSERT
+            TO authenticated
+            WITH CHECK (uid = auth.uid());
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'board_columns' AND policyname = 'board_columns_update_own'
+    ) THEN
+        CREATE POLICY board_columns_update_own
+            ON public.board_columns
+            FOR UPDATE
+            TO authenticated
+            USING (uid = auth.uid())
+            WITH CHECK (uid = auth.uid());
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public' AND tablename = 'board_columns' AND policyname = 'board_columns_delete_own'
+    ) THEN
+        CREATE POLICY board_columns_delete_own
+            ON public.board_columns
             FOR DELETE
             TO authenticated
             USING (uid = auth.uid());

@@ -6,6 +6,7 @@ import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { updateTask } from "../../scripts/api.js";
 import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
+import { setPageScrollLocked } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
@@ -281,6 +282,7 @@ const TaskListContainer = () => {
                 .from('tasks')
                 .select('*')
                 .eq('agenda_id', currentUser.currentAgendaId)
+                .or('is_board_task.is.null,is_board_task.eq.false')
                 .order('order');
 
             if (!error) {
@@ -305,17 +307,17 @@ const TaskListContainer = () => {
         fetchTasks();
 
         const channel = supabase
-            .channel(`tasks:${currentUser.uid}:${currentUser.currentAgendaId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'tasks',
-                    filter: `agenda_id=eq.${currentUser.currentAgendaId}`,
-                },
-                scheduleFetchTasks
-            )
+                .channel(`tasks:${currentUser.uid}:${currentUser.currentAgendaId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'tasks',
+                        filter: `agenda_id=eq.${currentUser.currentAgendaId}`,
+                    },
+                    scheduleFetchTasks
+                )
             .subscribe();
 
         return () => {
@@ -330,7 +332,7 @@ const TaskListContainer = () => {
     useEffect(() => {
         const intervalId = setInterval(() => {
             const openedBlur = document.querySelector(".blur-bg.active");
-            document.body.style.overflowY = openedBlur ? "hidden" : "auto";
+            setPageScrollLocked(Boolean(openedBlur));
         }, 50);
 
         return () => clearInterval(intervalId);
