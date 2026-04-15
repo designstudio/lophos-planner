@@ -21,7 +21,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
         (isTaskNameTruncated ? "..." : "");
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const openedTask = searchParams.get("openedTask");
+    const openedTask = searchParams.get("task") || searchParams.get("openedTask");
 
     async function handleToggleDone(ev) {
         ev.stopPropagation();
@@ -115,7 +115,8 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
 
         setSearchParams(prevParams => {
             const nextParams = new URLSearchParams(prevParams);
-            nextParams.set("openedTask", toShortId(data.id));
+            nextParams.delete("openedTask");
+            nextParams.set("task", toShortId(data.id));
             return nextParams;
         });
 

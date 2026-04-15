@@ -189,7 +189,7 @@ export default function PublicSharePage() {
 
     const now = new Date();
     const weekShift = Number(searchParams.get("weekShift") || 0);
-    const openedTaskId = searchParams.get("openedTask");
+    const openedTaskId = searchParams.get("task") || searchParams.get("openedTask");
     const shiftedDate = new Date(now);
     shiftedDate.setDate(shiftedDate.getDate() + (weekShift * 7));
 
@@ -252,7 +252,8 @@ export default function PublicSharePage() {
     function setOpenedTaskInUrl(taskId) {
         setSearchParams(prev => {
             const nextParams = new URLSearchParams(prev);
-            nextParams.set("openedTask", toShortId(taskId));
+            nextParams.delete("openedTask");
+            nextParams.set("task", toShortId(taskId));
             return nextParams;
         });
     }
@@ -260,6 +261,7 @@ export default function PublicSharePage() {
     function clearOpenedTaskInUrl() {
         setSearchParams(prev => {
             const nextParams = new URLSearchParams(prev);
+            nextParams.delete("task");
             nextParams.delete("openedTask");
             return nextParams;
         });
@@ -302,7 +304,8 @@ export default function PublicSharePage() {
 
         setSearchParams(prev => {
             const nextParams = new URLSearchParams(prev);
-            nextParams.set("openedTask", toShortId(taskId));
+            nextParams.delete("openedTask");
+            nextParams.set("task", toShortId(taskId));
             return nextParams;
         });
     }
@@ -472,7 +475,8 @@ export default function PublicSharePage() {
         setSearchParams(prev => {
             const nextParams = new URLSearchParams(prev);
             nextParams.set("weekShift", String(nextShift));
-            nextParams.set("openedTask", toShortId(task.id));
+            nextParams.delete("openedTask");
+            nextParams.set("task", toShortId(task.id));
             return nextParams;
         });
 

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { updateTask, tryCatchDecorator } from "../scripts/api.js";
-import { clearOpenedTaskFromUrl, closeForm } from "../scripts/utils.js";
+import { clearTaskFromUrl, closeForm } from "../scripts/utils.js";
 
 export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
     const blurRef = useRef(null);
@@ -11,7 +11,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
 
     function clearOpenedTaskInUrl() {
         if (type !== "task-menu") return;
-        clearOpenedTaskFromUrl();
+        clearTaskFromUrl();
     }
 
     useEffect(() => {

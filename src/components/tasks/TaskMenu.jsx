@@ -192,7 +192,7 @@ const TaskMenu = () => {
     const [mentionPosition, setMentionPosition] = React.useState({ top: 0, left: 0 });
     const [selectedMentionIndex, setSelectedMentionIndex] = React.useState(0);
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
-    const openedTaskId = searchParams.get("openedTask");
+    const openedTaskId = searchParams.get("task") || searchParams.get("openedTask");
 
     useLayoutEffect(() => {
         if (titleInputRef.current) {
@@ -709,7 +709,8 @@ const TaskMenu = () => {
 
         setSearchParams(prev => {
             const next = new URLSearchParams(prev);
-            next.set("openedTask", toShortId(referencedTaskId));
+            next.delete("openedTask");
+            next.set("task", toShortId(referencedTaskId));
             return next;
         });
     }
@@ -737,6 +738,7 @@ const TaskMenu = () => {
 
         setSearchParams(prev => {
             const next = new URLSearchParams(prev);
+            next.delete("task");
             next.delete("openedTask");
             return next;
         });
