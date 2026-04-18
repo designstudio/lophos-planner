@@ -11,6 +11,7 @@ import { Umbrella03 } from "@untitledui/icons";
 const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn, holidayName = ""}) => {
 
     const {currentUser, agendas} = useAuth();
+    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
     const language = getAppLanguage(currentUser?.language);
     const dateFormat = currentUser?.dateFormat || "DD-MM";
     const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
@@ -123,7 +124,6 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                                    relatedLinksEnabled={relatedLinksEnabled}/>);
     }
     // Exibe apenas 1 linha vazia por dia no mobile, 10/4 no desktop
-    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
     const fixedRows = 1 + (holidayName ? 1 : 0);
     let emptyRows = 0;
     if (isMobile) {
@@ -178,20 +178,23 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                 </div>
             )}
 
-            <ReactSortable list={tasksData} setList={nextList => updateColumnTasks(ind, nextList)}
-                           group={{ name: "tasks", pull: true, put: true }}
-                           onEnd={ev => {
-                               const fromListInd = Number(ev.from.closest(".task-list")?.dataset.listIndex);
-                               const toListInd = Number(ev.to.closest(".task-list")?.dataset.listIndex);
-                               persistColumns([fromListInd, toListInd])();
-                           }}
-                           ghostClass="sortable-ghost"
-                           chosenClass="sortable-chosen"
-                           dragClass="sortable-drag"
-
-            >
-                {tasksComponents}
-            </ReactSortable>
+            {isMobile ? (
+                <>{tasksComponents}</>
+            ) : (
+                <ReactSortable list={tasksData} setList={nextList => updateColumnTasks(ind, nextList)}
+                               group={{ name: "tasks", pull: true, put: true }}
+                               onEnd={ev => {
+                                   const fromListInd = Number(ev.from.closest(".task-list")?.dataset.listIndex);
+                                   const toListInd = Number(ev.to.closest(".task-list")?.dataset.listIndex);
+                                   persistColumns([fromListInd, toListInd])();
+                               }}
+                               ghostClass="sortable-ghost"
+                               chosenClass="sortable-chosen"
+                               dragClass="sortable-drag"
+                >
+                    {tasksComponents}
+                </ReactSortable>
+            )}
             <Form method="POST" className="add-task"> { /* For adding new tasks */}
                 <input type="text"
                        name="add-task-name"

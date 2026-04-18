@@ -68,7 +68,6 @@ begin
       into v_board_columns
       from public.board_columns bc
      where bc.agenda_id = v_agenda.id
-       and bc.uid = v_agenda.uid
        and coalesce(bc.hidden, false) = false;
 
     return jsonb_build_object(

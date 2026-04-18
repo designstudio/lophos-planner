@@ -14,6 +14,7 @@ function formDate(date) {
 
 export default function Task({taskListInd, ind, data, date, tasksCol, relatedLinksEnabled = true}) {
     const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const canDrag = !isMobile;
     const MAX_TASK_NAME_LENGTH = isMobile ? 40 : 34;
     const isDraggingRef = React.useRef(false);
     const isTaskNameTruncated = data.name.length > MAX_TASK_NAME_LENGTH;
@@ -131,8 +132,9 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
 
 
     return (
-        <div className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700" data-ind={ind} data-task-id={data.id} draggable
+        <div className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700" data-ind={ind} data-task-id={data.id} draggable={canDrag}
              onDragStart={ev => {
+                 if (!canDrag) return;
                  isDraggingRef.current = true;
                  ev.dataTransfer.setData("text/plain", String(data.id));
                  ev.dataTransfer.effectAllowed = "move";
@@ -142,7 +144,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                      isDraggingRef.current = false;
                  }, 0);
              }}>
-            <div className="task flex justify-between items-center h-[41px] px-0 cursor-grab" onClick={openTaskMenu}>
+            <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }

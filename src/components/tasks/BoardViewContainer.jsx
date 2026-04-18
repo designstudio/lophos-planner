@@ -9,6 +9,7 @@ import {
     createTask,
     deleteBoardColumn,
     getBoardColumns,
+    getTaskById,
     toggleDoneTask,
     tryCatchDecorator,
     updateBoardColumn,
@@ -89,6 +90,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
     const [searchParams, setSearchParams] = useSearchParams();
     const openedTask = searchParams.get("task") || searchParams.get("openedTask");
     const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const canDrag = !isMobile;
     const MAX_TASK_NAME_LENGTH = isMobile ? 54 : 58;
     const isTaskNameTruncated = task.name.length > MAX_TASK_NAME_LENGTH;
     const visibleTaskName = task.name.slice(0, MAX_TASK_NAME_LENGTH) + (isTaskNameTruncated ? "..." : "");
@@ -140,8 +142,9 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
             className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700"
             data-ind={index}
             data-task-id={task.id}
-            draggable
+            draggable={canDrag}
             onDragStart={ev => {
+                if (!canDrag) return;
                 isDraggingRef.current = true;
                 onDragStart?.(ev, task.id);
             }}
@@ -151,7 +154,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                 }, 0);
             }}
         >
-            <div className="task flex items-center justify-between h-[41px] px-0 cursor-grab" onClick={openTaskMenu}>
+            <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] ${task.done ? "opacity-40 line-through" : ""}`}>
                         {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
@@ -452,16 +455,47 @@ export default function BoardViewContainer() {
             setTasks(prevTasks => {
                 let changed = false;
 
-                const nextTasks = sortBoardTasks(prevTasks.map(task => {
-                    if (String(task.id) !== String(taskId)) return task;
+                const nextTasks = sortBoardTasks(prevTasks.flatMap(task => {
+                    if (String(task.id) !== String(taskId)) return [task];
                     changed = true;
 
-                    return {
+                    const nextTask = {
                         ...task,
                         ...updates,
                         date: updates.date ? parseDateOnly(updates.date) : task.date,
                     };
+
+                    if (nextTask.is_board_task === false) {
+                        return [];
+                    }
+
+                    return [nextTask];
                 }));
+
+                if (!changed && updates.is_board_task === true) {
+                    const fallbackTask = {
+                        id: taskId,
+                        ...updates,
+                        date: updates.date ? parseDateOnly(updates.date) : new Date(),
+                    };
+
+                    const nextTask = normalizeBoardTasks([fallbackTask])[0];
+                    if (nextTask) {
+                        changed = true;
+                        nextTasks.push(nextTask);
+                        nextTasks.sort((a, b) => {
+                            const aCompleted = a.done ? 1 : 0;
+                            const bCompleted = b.done ? 1 : 0;
+                            if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+
+                            const aOrder = Number(a.board_order ?? 0);
+                            const bOrder = Number(b.board_order ?? 0);
+                            if (aOrder !== bOrder) return aOrder - bOrder;
+
+                            return String(a.id).localeCompare(String(b.id));
+                        });
+                    }
+                }
 
                 if (!changed) return prevTasks;
                 tasksRef.current = nextTasks;
@@ -521,6 +555,15 @@ export default function BoardViewContainer() {
         tasksRef.current = normalized;
         setTasks(normalized);
         return normalized;
+    }
+
+    function dispatchTaskUpdatedLocal(taskId, updates) {
+        window.dispatchEvent(new CustomEvent("task-updated-local", {
+            detail: {
+                taskId,
+                updates,
+            },
+        }));
     }
 
     async function reloadColumns(seedIfEmpty = false) {
@@ -798,18 +841,23 @@ export default function BoardViewContainer() {
     async function assignTaskToColumn(taskId, columnId) {
         if (!taskId || !columnId) return;
 
-        const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId));
+        const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId))
+            || await getTaskById(taskId).catch(() => null);
         if (!taskToMove) return;
-        if (String(taskToMove.board_column_id) === String(columnId)) return;
+
+        const taskIsBoardTask = taskToMove.is_board_task !== false;
+        if (taskIsBoardTask && String(taskToMove.board_column_id) === String(columnId)) return;
 
         const sourceColumnId = String(taskToMove.board_column_id || "");
-        const sourceTasks = sortBoardTasks(
-            tasksRef.current.filter(task => String(task.board_column_id) === sourceColumnId && String(task.id) !== String(taskId))
-        ).map((task, nextIndex) => ({
-            ...task,
-            board_column_id: sourceColumnId,
-            board_order: nextIndex,
-        }));
+        const sourceTasks = taskIsBoardTask
+            ? sortBoardTasks(
+                tasksRef.current.filter(task => String(task.board_column_id) === sourceColumnId && String(task.id) !== String(taskId))
+            ).map((task, nextIndex) => ({
+                ...task,
+                board_column_id: sourceColumnId,
+                board_order: nextIndex,
+            }))
+            : [];
 
         const destinationTasks = sortBoardTasks(
             tasksRef.current.filter(task => String(task.board_column_id) === String(columnId))
@@ -819,18 +867,21 @@ export default function BoardViewContainer() {
             ...taskToMove,
             board_column_id: columnId,
             board_order: destinationTasks.length,
+            is_board_task: true,
+            date: parseDateOnly(taskToMove.date || new Date()),
         };
 
         const reorderedDestinationTasks = [...destinationTasks, movedTask].map((task, nextIndex) => ({
             ...task,
             board_column_id: columnId,
             board_order: nextIndex,
+            is_board_task: true,
         }));
 
-        const remainingTasks = tasksRef.current.filter(task => {
+        const remainingTasks = taskIsBoardTask ? tasksRef.current.filter(task => {
             const taskColumnId = String(task.board_column_id || "");
             return taskColumnId !== sourceColumnId && taskColumnId !== String(columnId);
-        });
+        }) : tasksRef.current.slice();
 
         const nextTasks = sortBoardTasks([
             ...remainingTasks,
@@ -841,14 +892,28 @@ export default function BoardViewContainer() {
         applyTasks(nextTasks);
 
         try {
-            await Promise.all(
-                [...sourceTasks, ...reorderedDestinationTasks].map(task =>
-                    updateTask(task.id, {
-                        board_column_id: task.board_column_id,
-                        board_order: task.board_order,
-                    })
-                )
-            );
+            await updateTask(taskId, {
+                is_board_task: true,
+                board_column_id: columnId,
+                board_order: destinationTasks.length,
+            });
+
+            dispatchTaskUpdatedLocal(taskId, {
+                is_board_task: true,
+                board_column_id: columnId,
+                board_order: destinationTasks.length,
+            });
+
+            if (taskIsBoardTask) {
+                await Promise.all(
+                    [...sourceTasks, ...reorderedDestinationTasks].map(task =>
+                        updateTask(task.id, {
+                            board_column_id: task.board_column_id,
+                            board_order: task.board_order,
+                        })
+                    )
+                );
+            }
         } catch {
             await reloadTasks();
         }

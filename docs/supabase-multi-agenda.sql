@@ -115,6 +115,44 @@ alter table public.board_columns
 create index if not exists board_columns_uid_agenda_sort_idx
     on public.board_columns (uid, agenda_id, sort_order);
 
+create or replace function public.get_agenda_board_columns(p_agenda_id uuid)
+returns table (
+    id text,
+    uid uuid,
+    agenda_id uuid,
+    title text,
+    sort_order integer,
+    hidden boolean,
+    created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select
+        bc.id,
+        bc.uid,
+        bc.agenda_id,
+        bc.title,
+        bc.sort_order,
+        bc.hidden,
+        bc.created_at
+    from public.board_columns bc
+    where bc.agenda_id = p_agenda_id
+    order by
+        bc.sort_order asc,
+        bc.created_at asc,
+        bc.id asc;
+$$;
+
+revoke all on function public.get_agenda_board_columns(uuid) from public;
+revoke all on function public.get_agenda_board_columns(uuid) from anon;
+revoke all on function public.get_agenda_board_columns(uuid) from authenticated;
+
+grant execute on function public.get_agenda_board_columns(uuid) to anon;
+grant execute on function public.get_agenda_board_columns(uuid) to authenticated;
+
 insert into public.board_columns (id, uid, agenda_id, title, sort_order, hidden)
 select
     format('board-%s-%s', a.id, seeded_columns.sort_order + 1) as id,

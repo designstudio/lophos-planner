@@ -4,7 +4,7 @@ import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
 import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { updateTask } from "../../scripts/api.js";
+import { getTaskById, updateTask } from "../../scripts/api.js";
 import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
 import { setPageScrollLocked } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
@@ -129,15 +129,21 @@ const TaskListContainer = () => {
             setTasks(prevTasks => {
                 let changed = false;
 
-                const nextTasks = sortTasksForDisplay(prevTasks.map(task => {
-                    if (String(task.id) !== String(taskId)) return task;
+                const nextTasks = sortTasksForDisplay(prevTasks.flatMap(task => {
+                    if (String(task.id) !== String(taskId)) return [task];
                     changed = true;
 
-                    return {
+                    const nextTask = {
                         ...task,
                         ...updates,
                         date: updates.date ? parseDateOnly(updates.date) : task.date,
                     };
+
+                    if (nextTask.is_board_task === true) {
+                        return [];
+                    }
+
+                    return [nextTask];
                 }), shouldSortCompletedTasks);
 
                 if (!changed) return prevTasks;
@@ -167,17 +173,68 @@ const TaskListContainer = () => {
         );
     }
 
+    function dispatchTaskUpdatedLocal(taskId, updates) {
+        window.dispatchEvent(new CustomEvent("task-updated-local", {
+            detail: {
+                taskId,
+                updates,
+            },
+        }));
+    }
+
     function moveTaskToColumn(taskId, toListInd) {
         return async () => {
             const destinationDate = dates[toListInd];
             if (!destinationDate) return;
 
-            const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId));
+            const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId))
+                || await getTaskById(taskId).catch(() => null);
             if (!taskToMove) return;
 
-            const sourceKey = formDate(taskToMove.date);
             const destinationKey = formDate(destinationDate);
-            if (sourceKey === destinationKey) return;
+            const isBoardTask = !!taskToMove.is_board_task;
+            const sourceKey = formDate(taskToMove.date);
+            if (!isBoardTask && sourceKey === destinationKey) return;
+
+            const destinationTasks = sortTasksForDisplay(
+                tasksRef.current.filter(task => formDate(task.date) === destinationKey && String(task.id) !== String(taskId)),
+                shouldSortCompletedTasks
+            );
+
+            if (isBoardTask) {
+                const movedTask = {
+                    ...taskToMove,
+                    date: parseDateOnly(destinationDate),
+                    order: destinationTasks.length,
+                    is_board_task: false,
+                    board_column_id: null,
+                    board_order: null,
+                };
+
+                const nextTasks = sortTasksForDisplay(
+                    [...tasksRef.current.filter(task => String(task.id) !== String(taskId)), movedTask],
+                    shouldSortCompletedTasks
+                );
+
+                tasksRef.current = nextTasks;
+                setTasks(nextTasks);
+
+                const updates = {
+                    date: formDate(destinationDate),
+                    order: destinationTasks.length,
+                    is_board_task: false,
+                    board_column_id: null,
+                    board_order: null,
+                };
+
+                try {
+                    await updateTask(taskId, updates);
+                    dispatchTaskUpdatedLocal(taskId, updates);
+                } catch {
+                    await reloadTasks();
+                }
+                return;
+            }
 
             const sourceTasks = sortTasksForDisplay(
                 tasksRef.current.filter(task => formDate(task.date) === sourceKey && String(task.id) !== String(taskId)),
@@ -187,11 +244,6 @@ const TaskListContainer = () => {
                 date: parseDateOnly(task.date),
                 order: index,
             }));
-
-            const destinationTasks = sortTasksForDisplay(
-                tasksRef.current.filter(task => formDate(task.date) === destinationKey),
-                shouldSortCompletedTasks
-            );
 
             const movedTask = {
                 ...taskToMove,

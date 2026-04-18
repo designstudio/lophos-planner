@@ -74,6 +74,24 @@ export async function getAgendaTasks(agendaId) {
     return (data || []).map(task => ({ ...task, date: parseDateOnly(task.date) }));
 }
 
+export async function getTaskById(taskId) {
+    if (!taskId) return null;
+
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskId)
+        .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+        ...data,
+        date: parseDateOnly(data.date),
+    };
+}
+
 export async function getSearchedTasks(userId, agendaId, query) {
     const normalizedQuery = normalizeSearchText(query);
     if (!normalizedQuery) return [];
@@ -229,6 +247,14 @@ export async function clearUsersTasks(userId) {
 
 export async function getBoardColumns(agendaId) {
     if (!agendaId) return [];
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_agenda_board_columns', {
+        p_agenda_id: agendaId,
+    });
+
+    if (!rpcError) {
+        return Array.isArray(rpcData) ? rpcData : [];
+    }
 
     const { data, error } = await supabase
         .from('board_columns')
