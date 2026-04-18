@@ -942,7 +942,7 @@ export default function BoardViewContainer() {
 
     return (
         <div className="w-full padding-x py-4 lg:mt-0 lg:pt-10 dark:bg-black dark:text-white">
-            <div className="grid grid-cols-4 gap-6">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-4">
                 {columns.map((column, index) => (
                     <BoardColumn
                         key={column.id}

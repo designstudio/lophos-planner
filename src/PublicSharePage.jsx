@@ -792,7 +792,7 @@ export default function PublicSharePage() {
 
             {shouldShowBoard && (
                 <section className="w-full px-6 pb-6 lg:pb-10">
-                    <div className="grid grid-cols-4 gap-6">
+                    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-4">
                         {publicBoardColumns.map((column, index) => {
                             const columnTasks = getBoardColumnTasks(column.id);
                             const isColumnBlankTitle = !(column.title || "").trim();
