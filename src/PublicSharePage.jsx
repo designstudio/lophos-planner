@@ -7,6 +7,7 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
 import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
+import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 
 function startOfMonth(date) {
@@ -197,13 +198,32 @@ export default function PublicSharePage() {
         refreshPublicAgenda(true);
         const intervalId = setInterval(() => {
             refreshPublicAgenda(false);
-        }, 15000);
+        }, 5000);
+
+        function handleVisibilityChange() {
+            if (document.visibilityState !== "visible") return;
+            refreshPublicAgenda(false);
+        }
+
+        function handleWindowFocus() {
+            refreshPublicAgenda(false);
+        }
+
+        window.addEventListener("focus", handleWindowFocus);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
             mounted = false;
             clearInterval(intervalId);
+            window.removeEventListener("focus", handleWindowFocus);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [shareToken]);
+
+    React.useEffect(() => {
+        setPageScrollLocked(isTaskPreviewOpen || isSearchOpen || isCalendarOpen);
+        return () => setPageScrollLocked(false);
+    }, [isTaskPreviewOpen, isSearchOpen, isCalendarOpen]);
 
     React.useEffect(() => {
         const baseTitle = "Lophos Planner";
@@ -844,7 +864,7 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel relative z-[80] mb-20 w-[32rem] max-w-full rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="mb-6 flex w-full items-center justify-between text-sm">

@@ -501,6 +501,13 @@ html {
         line-height: 1.333333;
     }
 
+    .task-menu-title,
+    .task-menu-editor,
+    .task-menu-editor * {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
     .task-menu-editor:empty::before {
         content: attr(data-placeholder);
         color: #6b7280;
@@ -536,6 +543,11 @@ html {
 
     .task-menu-editor li > p {
         margin-bottom: 0;
+    }
+
+    .public-share-page .task-menu-panel .task-menu-editor a {
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .task-menu-editor ul {
