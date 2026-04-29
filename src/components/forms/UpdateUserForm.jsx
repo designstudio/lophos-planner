@@ -267,6 +267,11 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                     <input type="checkbox" checked={formValues.darkMode} name="dark-mode" id="dark-mode" className="hidden" readOnly />
                     <input type="text" defaultValue="update-user-form" name="form-id" id="form-id" className="hidden" />
+                    <input type="hidden" name="default-agenda-id" value={formValues.defaultAgendaId || ""} />
+                    <input type="hidden" name="default-view" value={formValues.defaultView || "week"} />
+                    <input type="hidden" name="language" value={formValues.language || "ptBR"} />
+                    <input type="hidden" name="date-format" value={formValues.dateFormat || "DD-MM"} />
+                    <input type="hidden" name="week-starts-on" value={formValues.weekStartsOn || "Monday"} />
 
                     <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
 
@@ -379,20 +384,6 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                         value: agenda.id,
                                         label: agenda.name,
                                     }))}
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 py-4">
-                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "defaultView")}</span>
-                            <OptionMenuSelect
-                                value={formValues.defaultView}
-                                onChange={value => updateField("defaultView", value)}
-                                wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
-                                options={[
-                                    { value: "week", label: t(language, "viewWeek") },
-                                    { value: "board", label: t(language, "viewBoard") },
-                                ]}
                             />
                         </div>
 
