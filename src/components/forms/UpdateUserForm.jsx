@@ -268,7 +268,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                     <input type="checkbox" checked={formValues.darkMode} name="dark-mode" id="dark-mode" className="hidden" readOnly />
                     <input type="text" defaultValue="update-user-form" name="form-id" id="form-id" className="hidden" />
 
-                    <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
+                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
 
                     <input type="hidden" name="avatar" value={formValues.avatar} />
 
@@ -361,17 +361,18 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         />
                     </div>
 
-                    <h4 className="mb-4 mt-6 text-[16px] font-bold leading-[1.333333] text-black">Configurações do sistema</h4>
+                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">Configurações do sistema</h4>
 
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <label className="text-[13px] font-semibold text-black">
-                            {t(language, "defaultAgendaLabel")}
+                    <div className="divide-y divide-[rgba(0,0,0,0.12)] border-b border-[rgba(0,0,0,0.12)]">
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "defaultAgendaLabel")}</span>
                             <OptionMenuSelect
                                 value={formValues.defaultAgendaId || agendas?.[0]?.id || ""}
                                 onChange={value => updateField("defaultAgendaId", value)}
                                 disabled={agendas.length === 0}
                                 placeholder="-"
-                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                wrapperClassName="w-auto shrink-0"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
                                 options={agendas.length === 0
                                     ? [{ value: "", label: "-" }]
                                     : agendas.map(agenda => ({
@@ -379,59 +380,63 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                         label: agenda.name,
                                     }))}
                             />
-                        </label>
+                        </div>
 
-                        <label className="text-[13px] font-semibold text-black">
-                            {t(language, "defaultView")}
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "defaultView")}</span>
                             <OptionMenuSelect
                                 value={formValues.defaultView}
                                 onChange={value => updateField("defaultView", value)}
-                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                wrapperClassName="w-auto shrink-0"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
                                 options={[
                                     { value: "week", label: t(language, "viewWeek") },
                                     { value: "board", label: t(language, "viewBoard") },
                                 ]}
                             />
-                        </label>
+                        </div>
 
-                        <label className="text-[13px] font-semibold text-black">
-                            {t(language, "language")}
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "language")}</span>
                             <OptionMenuSelect
                                 value={formValues.language}
                                 onChange={value => updateField("language", value)}
-                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                wrapperClassName="w-auto shrink-0"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
                                 options={[
                                     { value: "ptBR", label: t(language, "portugueseBrazil") },
                                     { value: "enUS", label: t(language, "english") },
                                 ]}
                             />
-                        </label>
+                        </div>
 
-                        <label className="text-[13px] font-semibold text-black">
-                            {t(language, "dateFormat")}
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "dateFormat")}</span>
                             <OptionMenuSelect
                                 value={formValues.dateFormat}
                                 onChange={value => updateField("dateFormat", value)}
-                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                wrapperClassName="w-auto shrink-0"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
                                 options={[
                                     { value: "DD-MM", label: "DD-MM" },
                                     { value: "MM-DD", label: "MM-DD" },
                                 ]}
                             />
-                        </label>
+                        </div>
 
-                        <label className="text-[13px] font-semibold text-black">
-                            {t(language, "weekStartsOn")}
+                        <div className="flex items-center justify-between gap-4 py-4">
+                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "weekStartsOn")}</span>
                             <OptionMenuSelect
                                 value={formValues.weekStartsOn}
                                 onChange={value => updateField("weekStartsOn", value)}
-                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                wrapperClassName="w-auto shrink-0"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
                                 options={[
                                     { value: "Monday", label: t(language, "monday") },
                                     { value: "Sunday", label: t(language, "sunday") },
                                 ]}
                             />
-                        </label>
+                        </div>
                     </div>
 
                     <div className="mt-6 w-full flex justify-between items-center">
@@ -500,3 +505,4 @@ export default function UpdateUserForm({ recoveryMode = false }) {
         </>
     );
 }
+

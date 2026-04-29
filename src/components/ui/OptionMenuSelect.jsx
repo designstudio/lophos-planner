@@ -87,7 +87,7 @@ export default function OptionMenuSelect({
                 position: "fixed",
                 top: `${top}px`,
                 left: `${left}px`,
-                width: `${triggerRect.width}px`,
+                minWidth: `${triggerRect.width}px`,
             });
         }
 
@@ -119,7 +119,7 @@ export default function OptionMenuSelect({
                     position: "fixed",
                     top: `${triggerRect.bottom + gap}px`,
                     left: `${left}px`,
-                    width: `${triggerRect.width}px`,
+                    minWidth: `${triggerRect.width}px`,
                 });
             }
         }
@@ -143,7 +143,7 @@ export default function OptionMenuSelect({
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
             >
-                <span className="min-w-0 flex-1 truncate text-left">
+                <span className="min-w-0 flex-1 whitespace-nowrap text-left">
                     {selectedOption?.label ?? placeholder}
                 </span>
                 <ChevronDown className="h-4 w-4 shrink-0 text-black" />
@@ -163,7 +163,7 @@ export default function OptionMenuSelect({
                                 key={String(option.value)}
                                 type="button"
                                 className={[
-                                    "block w-full rounded-[12px] px-4 py-2 text-left text-sm text-black transition-colors bg-transparent hover:bg-[#f2f2f2]",
+                                    "block w-full whitespace-nowrap rounded-[12px] px-4 py-2 text-left text-sm text-black transition-colors bg-transparent hover:bg-[#f2f2f2]",
                                     isSelected ? `bg-[#f2f2f2] hover:bg-[#f2f2f2] ${selectedOptionClassName}` : "",
                                     optionClassName,
                                 ].filter(Boolean).join(" ")}
