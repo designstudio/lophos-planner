@@ -23,9 +23,12 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
 
     const [searchParams, setSearchParams] = useSearchParams();
     const openedTask = searchParams.get("task") || searchParams.get("openedTask");
+    const taskType = data.task_type || "task";
+    const isTaskDone = taskType === "meeting" ? false : data.done;
 
     async function handleToggleDone(ev) {
         ev.stopPropagation();
+        if (taskType === "meeting") return;
         const nextDone = !data.done;
 
         window.dispatchEvent(new CustomEvent("task-updated-local", {
@@ -92,6 +95,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
             const sameTask = String(prev?.id) === String(taskMenuPayload.id)
                 && prev?.name === taskMenuPayload.name
                 && prev?.done === taskMenuPayload.done
+                && prev?.task_type === taskMenuPayload.task_type
                 && prev?.color === taskMenuPayload.color
                 && prev?.description === taskMenuPayload.description
                 && String(prev?.date) === String(taskMenuPayload.date);
@@ -146,7 +150,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
              }}>
             <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
-                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}>
+                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
                         { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -157,9 +161,21 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                         </p>
                     )}
                 </div>
-                <button className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100" onClick={handleToggleDone}>
-                    <CheckCircle className={`h-5 w-5 ${data.done ? "opacity-50" : ""}`} />
-                </button>
+                {taskType !== "meeting" && (
+                    <button
+                        type="button"
+                        className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100"
+                        onClick={handleToggleDone}
+                    >
+                        <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
+                    </button>
+                )}
+                {taskType === "meeting" && (
+                    <span
+                        aria-hidden="true"
+                        className="toggle-done ml-2 shrink-0 inline-block h-5 w-5 opacity-0"
+                    />
+                )}
 
             </div>
         </div>

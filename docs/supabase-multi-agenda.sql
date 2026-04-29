@@ -73,6 +73,9 @@ alter table public.tasks
 alter table public.tasks
     add column if not exists board_order integer;
 
+alter table public.tasks
+    add column if not exists task_type text not null default 'task';
+
 DO $$
 BEGIN
     IF NOT EXISTS (

@@ -67,6 +67,7 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                 uid: currentUser.uid,
                 agenda_id: currentUser.currentAgendaId,
                 done: false,
+                task_type: "task",
                 related_links: [],
                 order: tasksData.length,
             });
@@ -94,6 +95,7 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                         uid: currentUser.uid,
                         agenda_id: currentUser.currentAgendaId,
                         done: false,
+                        task_type: "task",
                         related_links: [],
                         order: tasksData.length,
                     });

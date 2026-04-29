@@ -77,8 +77,9 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
             const updates = {
                 name: formData.get("task-name"),
                 date: formData.get("task-date"),
-                done: formData.has("task-done"),
+                done: formData.get("task-type") === "meeting" ? false : formData.has("task-done"),
                 color: formData.get("task-color"),
+                task_type: formData.get("task-type") || "task",
                 description: !isDescriptionDirty && !nextDescription.trim() && initialDescription.trim()
                     ? initialDescription
                     : nextDescription,

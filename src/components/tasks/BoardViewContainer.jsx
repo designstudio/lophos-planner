@@ -10,6 +10,7 @@ import {
     deleteBoardColumn,
     getBoardColumns,
     getTaskById,
+    normalizeTaskRecord,
     toggleDoneTask,
     tryCatchDecorator,
     updateBoardColumn,
@@ -20,8 +21,8 @@ import { supabase } from "../../scripts/supabase.js";
 
 function sortBoardTasks(list) {
     return [...list].sort((taskA, taskB) => {
-        const aCompleted = taskA.done ? 1 : 0;
-        const bCompleted = taskB.done ? 1 : 0;
+        const aCompleted = taskA.task_type === "meeting" ? 0 : (taskA.done ? 1 : 0);
+        const bCompleted = taskB.task_type === "meeting" ? 0 : (taskB.done ? 1 : 0);
         if (aCompleted !== bCompleted) return aCompleted - bCompleted;
 
         const aOrder = Number(taskA.board_order ?? 0);
@@ -48,8 +49,7 @@ function sortBoardColumns(list) {
 
 function normalizeBoardTasks(tasks) {
     return sortBoardTasks((tasks || []).map(task => ({
-        ...task,
-        date: parseDateOnly(task.date),
+        ...normalizeTaskRecord(task),
         is_board_task: true,
         board_order: Number.isFinite(Number(task.board_order)) ? Number(task.board_order) : 0,
     })));
@@ -95,6 +95,8 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
     const isTaskNameTruncated = task.name.length > MAX_TASK_NAME_LENGTH;
     const visibleTaskName = task.name.slice(0, MAX_TASK_NAME_LENGTH) + (isTaskNameTruncated ? "..." : "");
     const relatedLinks = Array.isArray(task.related_links) ? task.related_links : Array.isArray(task.relatedLinks) ? task.relatedLinks : [];
+    const taskType = task.task_type || "task";
+    const isTaskDone = taskType === "meeting" ? false : task.done;
 
     const taskMenuPayload = React.useMemo(() => ({
         ...task,
@@ -109,6 +111,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
             const sameTask = String(prev?.id) === String(taskMenuPayload.id)
                 && prev?.name === taskMenuPayload.name
                 && prev?.done === taskMenuPayload.done
+                && prev?.task_type === taskMenuPayload.task_type
                 && prev?.color === taskMenuPayload.color
                 && prev?.description === taskMenuPayload.description;
 
@@ -156,7 +159,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
         >
             <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
-                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] ${task.done ? "opacity-40 line-through" : ""}`}>
+                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] ${isTaskDone ? "opacity-40 line-through" : ""}`}>
                         {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                         {relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -167,16 +170,24 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                         </p>
                     )}
                 </div>
-                <button
-                    type="button"
-                    className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100"
-                    onClick={ev => {
-                        ev.stopPropagation();
-                        onToggleDone(task.id);
-                    }}
-                >
-                    <CheckCircle className={`h-5 w-5 ${task.done ? "opacity-50" : ""}`} />
-                </button>
+                {taskType !== "meeting" && (
+                    <button
+                        type="button"
+                        className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100"
+                        onClick={ev => {
+                            ev.stopPropagation();
+                            onToggleDone(task.id);
+                        }}
+                    >
+                        <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
+                    </button>
+                )}
+                {taskType === "meeting" && (
+                    <span
+                        aria-hidden="true"
+                        className="toggle-done ml-2 shrink-0 inline-block h-5 w-5 opacity-0"
+                    />
+                )}
             </div>
         </div>
     );
@@ -460,9 +471,11 @@ export default function BoardViewContainer() {
                     changed = true;
 
                     const nextTask = {
-                        ...task,
-                        ...updates,
-                        date: updates.date ? parseDateOnly(updates.date) : task.date,
+                        ...normalizeTaskRecord({
+                            ...task,
+                            ...updates,
+                            date: updates.date ? parseDateOnly(updates.date) : task.date,
+                        }),
                     };
 
                     if (nextTask.is_board_task === false) {
@@ -819,6 +832,7 @@ export default function BoardViewContainer() {
             uid: currentUser.uid,
             agenda_id: agendaId,
             done: false,
+            task_type: "task",
             related_links: [],
             is_board_task: true,
             board_column_id: columnId,
@@ -920,6 +934,9 @@ export default function BoardViewContainer() {
     }
 
     async function toggleTaskDone(taskId) {
+        const task = tasksRef.current.find(item => String(item.id) === String(taskId));
+        if (task?.task_type === "meeting") return;
+
         applyTasks(tasksRef.current.map(task => (
             String(task.id) === String(taskId)
                 ? { ...task, done: !task.done }

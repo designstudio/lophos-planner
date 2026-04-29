@@ -4,7 +4,7 @@ import TaskMenuBtn from "./TaskMenuBtn.jsx";
 import {Form, useSearchParams} from "react-router-dom";
 import {tryCatchDecorator, deleteTask, getUserTasks} from "../../scripts/api.js";
 import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
-import { Heading01, Bold01, Italic01, Strikethrough01, Dotpoints01, Trash03, Calendar, CheckCircle, Plus, X, Edit02, ChevronLeft, ChevronRight } from "@untitledui/icons";
+import { Heading01, Bold01, Italic01, Strikethrough01, Dotpoints01, Trash03, Calendar, CheckCircle, Plus, X, Edit02, ChevronLeft, ChevronRight, ChevronDown } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import TurndownService from "turndown";
 import { marked } from "marked";
@@ -146,7 +146,8 @@ const TaskMenu = () => {
     const {taskData, setTaskData} = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
     const { currentUser, agendas } = useAuth();
-    const {id: taskId, date, color, name, done, description} = taskData;
+    const {id: taskId, date, color, name, done, description, task_type: taskType = "task"} = taskData;
+    const isTaskDone = taskType === "meeting" ? false : done;
     const language = getAppLanguage(currentUser?.language);
     const locale = getLocale(language);
     const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
@@ -180,6 +181,7 @@ const TaskMenu = () => {
     const [newRelatedLinkName, setNewRelatedLinkName] = React.useState("");
     const [newRelatedLinkUrl, setNewRelatedLinkUrl] = React.useState("");
     const [editingRelatedLinkIndex, setEditingRelatedLinkIndex] = React.useState(null);
+    const [isTaskTypeMenuOpen, setIsTaskTypeMenuOpen] = React.useState(false);
     const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [isToolbarSticky, setIsToolbarSticky] = React.useState(false);
@@ -192,6 +194,7 @@ const TaskMenu = () => {
     const [mentionPosition, setMentionPosition] = React.useState({ top: 0, left: 0 });
     const [selectedMentionIndex, setSelectedMentionIndex] = React.useState(0);
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
+    const taskTypeMenuRef = React.useRef(null);
     const openedTaskId = searchParams.get("task") || searchParams.get("openedTask");
 
     useLayoutEffect(() => {
@@ -213,6 +216,7 @@ const TaskMenu = () => {
         setNewRelatedLinkName("");
         setNewRelatedLinkUrl("");
         setEditingRelatedLinkIndex(null);
+        setIsTaskTypeMenuOpen(false);
         setIsDatePickerOpen(false);
         setCalendarMonth(startOfMonth(selectedDate || new Date()));
         setActiveEditorFormats(getActiveEditorFormats(editorRef.current));
@@ -293,6 +297,23 @@ const TaskMenu = () => {
             document.removeEventListener("pointerdown", handlePointerDownOutside);
         };
     }, [isDatePickerOpen]);
+
+    useEffect(() => {
+        if (!isTaskTypeMenuOpen) return;
+
+        const handlePointerDownOutside = ev => {
+            const menuContainer = taskTypeMenuRef.current;
+            if (!menuContainer?.contains(ev.target)) {
+                setIsTaskTypeMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", handlePointerDownOutside);
+
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDownOutside);
+        };
+    }, [isTaskTypeMenuOpen]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -821,6 +842,17 @@ const TaskMenu = () => {
         setIsDatePickerOpen(false);
     }
 
+    function handleTaskTypeSelect(nextTaskType) {
+        const normalizedTaskType = nextTaskType === "meeting" ? "meeting" : "task";
+
+        setTaskData(prevTaskData => ({
+            ...prevTaskData,
+            task_type: normalizedTaskType,
+            done: normalizedTaskType === "meeting" ? false : prevTaskData.done,
+        }));
+        setIsTaskTypeMenuOpen(false);
+    }
+
     const editorToolbarButtons = [
         { key: "heading", label: t(language, "heading"), icon: Heading01, action: () => runEditorCommand("formatBlock", "h3") },
         { key: "bold", label: t(language, "bold"), icon: Bold01, action: () => runEditorCommand("bold") },
@@ -923,22 +955,67 @@ const TaskMenu = () => {
                                       }));
                                       autoResizeTitle();
                                   }}
-                                  className={"task-menu-title w-full resize-none overflow-y-hidden pr-12 pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
-                                      + ((done && "text-black/40") || '')}
+                                  className={"task-menu-title w-full resize-none overflow-y-hidden pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
+                                      + ((isTaskDone && "text-black/40") || '')}
                         />
-                        <button type="button" className="absolute right-0 top-0 text-black transition-colors duration-200 hover:text-black/70"
+                        {taskType !== "meeting" && (
+                            <button
+                                type="button"
+                                className="absolute right-0 top-0 text-black transition-colors duration-200 hover:text-black/70"
                                 onClick={ev => {
                                     ev.preventDefault();
                                     ev.stopPropagation();
-                                    setTaskData(prevData =>
-                                        ({
-                                            ...prevData,
-                                           done: !done,
-                                       }));
-                                }}>
-                            <CheckCircle className={`h-[22px] w-[22px] ${done ? "opacity-40" : "opacity-75"}`} />
-
-                        </button>
+                                    setTaskData(prevData => ({
+                                        ...prevData,
+                                        done: !prevData.done,
+                                    }));
+                                }}
+                            >
+                                <CheckCircle className={`h-[22px] w-[22px] ${isTaskDone ? "opacity-40" : "opacity-75"}`} />
+                            </button>
+                        )}
+                        <section className="mb-3 px-1">
+                            <div className="task-menu-type-row">
+                                <h4 className="task-menu-type-label">{t(language, "taskType")}</h4>
+                                <div ref={taskTypeMenuRef} className="relative inline-block">
+                                    <button
+                                        type="button"
+                                        className="task-menu-type-trigger"
+                                        onClick={ev => {
+                                            ev.preventDefault();
+                                            ev.stopPropagation();
+                                            setIsTaskTypeMenuOpen(prev => !prev);
+                                        }}
+                                        aria-expanded={isTaskTypeMenuOpen}
+                                    >
+                                        <span className="flex min-w-0 items-center">
+                                            <span className="truncate text-[#6b7280]">
+                                                {taskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}
+                                            </span>
+                                        </span>
+                                        <ChevronDown className="h-4 w-4 shrink-0 text-[#6b7280]" />
+                                    </button>
+                                    {isTaskTypeMenuOpen && (
+                                        <div className="task-menu-type-menu" onClick={ev => ev.stopPropagation()}>
+                                            <button
+                                                type="button"
+                                                className={`task-menu-type-option ${taskType !== "meeting" ? "is-active" : ""}`}
+                                                onClick={() => handleTaskTypeSelect("task")}
+                                            >
+                                                <span>{t(language, "taskTypeTask")}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`task-menu-type-option ${taskType === "meeting" ? "is-active" : ""}`}
+                                                onClick={() => handleTaskTypeSelect("meeting")}
+                                            >
+                                                <span>{t(language, "taskTypeMeeting")}</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
                         <div ref={toolbarSentinelRef} className="task-menu-toolbar-sentinel" aria-hidden="true" />
                         <div ref={toolbarRef} className={`task-menu-toolbar ${isToolbarSticky ? "is-sticky" : ""}`}>
                             {editorToolbarButtons.map(({ key, label, icon: Icon, text, action, ordered = false }) => (
@@ -1127,8 +1204,9 @@ const TaskMenu = () => {
                             value={serializedRelatedLinks}
                             readOnly
                         />
-                        <input type="checkbox" id="task-done" name="task-done" checked={done} className="hidden"
+                        <input type="checkbox" id="task-done" name="task-done" checked={isTaskDone} className="hidden"
                                readOnly={true}/>
+                        <input type="hidden" id="task-type" name="task-type" value={taskType || "task"} readOnly />
                         <input type="hidden" id="task-date" name="task-date" value={selectedDate ? toInputDate(selectedDate) : ""} readOnly />
                         <input type="text" id="task-color" name="task-color" value={color || "none"} className="hidden"
                                readOnly={true}/>

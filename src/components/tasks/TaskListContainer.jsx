@@ -4,7 +4,7 @@ import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
 import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { getTaskById, updateTask } from "../../scripts/api.js";
+import { getTaskById, normalizeTaskRecord, updateTask } from "../../scripts/api.js";
 import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
 import { setPageScrollLocked } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
@@ -30,8 +30,8 @@ const TaskListContainer = () => {
         return [...list].sort((taskA, taskB) => {
             // First, separate completed from non-completed if sortCompletedTasks is enabled
             if (sortCompletedTasks) {
-                const aCompleted = taskA.done ? 1 : 0;
-                const bCompleted = taskB.done ? 1 : 0;
+                const aCompleted = taskA.task_type === "meeting" ? 0 : (taskA.done ? 1 : 0);
+                const bCompleted = taskB.task_type === "meeting" ? 0 : (taskB.done ? 1 : 0);
                 if (aCompleted !== bCompleted) return aCompleted - bCompleted;
             }
 
@@ -54,8 +54,7 @@ const TaskListContainer = () => {
             updatedTasks.map(task => [
                 String(task.id),
                 {
-                    ...task,
-                    date: parseDateOnly(task.date),
+                    ...normalizeTaskRecord(task),
                 },
             ])
         );
@@ -110,8 +109,7 @@ const TaskListContainer = () => {
 
             setTasks(prevTasks => {
                 const normalizedTask = {
-                    ...createdTask,
-                    date: parseDateOnly(createdTask.date),
+                    ...normalizeTaskRecord(createdTask),
                 };
 
                 const withoutSameId = prevTasks.filter(task => String(task.id) !== String(normalizedTask.id));
@@ -134,9 +132,11 @@ const TaskListContainer = () => {
                     changed = true;
 
                     const nextTask = {
-                        ...task,
-                        ...updates,
-                        date: updates.date ? parseDateOnly(updates.date) : task.date,
+                        ...normalizeTaskRecord({
+                            ...task,
+                            ...updates,
+                            date: updates.date ? parseDateOnly(updates.date) : task.date,
+                        }),
                     };
 
                     if (nextTask.is_board_task === true) {
@@ -338,7 +338,7 @@ const TaskListContainer = () => {
                 .order('order');
 
             if (!error) {
-                setTasks(sortTasksForDisplay((data || []).map(task => ({ ...task, date: parseDateOnly(task.date) })), shouldSortCompletedTasks));
+                setTasks(sortTasksForDisplay((data || []).map(normalizeTaskRecord), shouldSortCompletedTasks));
             }
 
             setLoading(false);

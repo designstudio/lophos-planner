@@ -11,6 +11,7 @@ export default function TaskMenuProvider({ children }) {
         id: null,
         name: "",
         done: false,
+        task_type: "task",
         color: "",
         description: "",
         relatedLinks: [],

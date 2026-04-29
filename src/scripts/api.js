@@ -11,6 +11,18 @@ function normalizeSearchText(text) {
         .trim();
 }
 
+export function normalizeTaskRecord(task) {
+    if (!task) return task;
+
+    const taskType = task.task_type || "task";
+    return {
+        ...task,
+        task_type: taskType,
+        done: taskType === "meeting" ? false : !!task.done,
+        date: parseDateOnly(task.date),
+    };
+}
+
 export function sleep(time) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
@@ -36,7 +48,7 @@ export async function createTask(data) {
         .single();
 
     if (error) throw error;
-    return { ...task, date: parseDateOnly(task.date) };
+    return normalizeTaskRecord(task);
 }
 
 export async function getUserTasks(userId, agendaId = null) {
@@ -59,7 +71,7 @@ export async function getUserTasks(userId, agendaId = null) {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data.map(task => ({ ...task, date: parseDateOnly(task.date) }));
+    return data.map(normalizeTaskRecord);
 }
 
 export async function getAgendaTasks(agendaId) {
@@ -71,7 +83,7 @@ export async function getAgendaTasks(agendaId) {
         .eq('agenda_id', agendaId);
 
     if (error) throw error;
-    return (data || []).map(task => ({ ...task, date: parseDateOnly(task.date) }));
+    return (data || []).map(normalizeTaskRecord);
 }
 
 export async function getTaskById(taskId) {
@@ -86,10 +98,7 @@ export async function getTaskById(taskId) {
     if (error) throw error;
     if (!data) return null;
 
-    return {
-        ...data,
-        date: parseDateOnly(data.date),
-    };
+    return normalizeTaskRecord(data);
 }
 
 export async function getSearchedTasks(userId, agendaId, query) {
@@ -870,8 +879,7 @@ export async function getPublicAgendaByShareToken(shareToken) {
             related_links_enabled: normalized?.agenda?.related_links_enabled ?? true,
         },
         tasks: (Array.isArray(normalized?.tasks) ? normalized.tasks : []).map(task => ({
-            ...task,
-            date: parseDateOnly(task.date),
+            ...normalizeTaskRecord(task),
         })),
         boardColumns: Array.isArray(normalized?.boardColumns)
             ? normalized.boardColumns.map(column => ({

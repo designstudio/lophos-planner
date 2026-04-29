@@ -91,14 +91,33 @@ export function buildStatusText({
 }) {
     const lines = [];
 
+    const weeklyTasks = weeklyOpenTasks
+        .concat(weeklyDoneTasks)
+        .filter(task => task?.task_type === "meeting");
+
+    const regularOpenTasks = weeklyOpenTasks
+        .filter(task => task?.task_type !== "meeting");
+
+    const regularDoneTasks = weeklyDoneTasks
+        .filter(task => task?.task_type !== "meeting");
+
     const openSection = buildSection(
         t(language, "statusOpenSection"),
-        weeklyOpenTasks
+        regularOpenTasks
             .slice()
             .sort(sortByDateOrderAndName)
             .map(task => `* ${normalizeText(task.name)} - ${formatTaskDate(task, language)}`)
     );
     if (openSection) lines.push(openSection);
+
+    const meetingsSection = buildSection(
+        t(language, "statusMeetingSection"),
+        weeklyTasks
+            .slice()
+            .sort(sortByDateOrderAndName)
+            .map(task => `* ${normalizeText(task.name)}${task?.date ? ` - ${formatTaskDate(task, language)}` : ""}`)
+    );
+    if (meetingsSection) lines.push(meetingsSection);
 
     const boardColumnItems = [];
     const sortedColumns = sortBoardColumns(boardColumns);
@@ -117,7 +136,7 @@ export function buildStatusText({
 
     const doneSection = buildSection(
         t(language, "statusDoneSection"),
-        weeklyDoneTasks
+        regularDoneTasks
             .slice()
             .sort(sortByDateOrderAndName)
             .map(task => `* ${normalizeText(task.name)}`)
