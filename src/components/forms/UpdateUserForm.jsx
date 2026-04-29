@@ -246,8 +246,8 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             type="button"
                             className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
                                 formValues.darkMode
-                                    ? "bg-[#edeae3] border-[#edeae3]"
-                                    : "bg-black border-[#edeae3]"
+                                    ? "bg-[rgb(250,250,252)] border-[rgb(250,250,252)]"
+                                    : "bg-black border-[rgb(250,250,252)]"
                             }`}
                             onClick={() => {
                                 const next = !formValues.darkMode;
@@ -258,9 +258,9 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                 formValues.darkMode
                                     ? "translate-x-[20px] bg-black"
-                                    : "translate-x-0 bg-[#edeae3]"
+                                    : "translate-x-0 bg-[rgb(250,250,252)]"
                             }`}>
-                                {formValues.darkMode && <Check className="h-3 w-3 text-[#edeae3]" strokeWidth={3} />}
+                                {formValues.darkMode && <Check className="h-3 w-3 text-[rgb(250,250,252)]" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
@@ -450,7 +450,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                         <button
                             type="button"
-                            className="app-button-hover my-2 rounded-full py-1 text-[14px] font-normal text-[#df535f]"
+                            className="app-button-hover my-2 rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:opacity-100"
                             onClick={openDeleteAccountModal}
                         >
                             <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAccount")}

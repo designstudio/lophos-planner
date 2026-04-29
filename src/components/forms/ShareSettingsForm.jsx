@@ -622,7 +622,7 @@ export default function ShareSettingsForm() {
                     </button>
                     <button
                         type="button"
-                        className="app-button-hover rounded-full text-[14px] font-normal text-[#df535f]"
+                        className="app-button-hover rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:opacity-100"
                         onClick={openDeleteAgendaModal}
                     >
                         <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAgenda")}
