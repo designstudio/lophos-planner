@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, 
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
+import { getCountryCodeForLanguage, getHolidaysByYears } from "./scripts/holidays.js";
 import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
@@ -138,7 +139,7 @@ export default function PublicSharePage() {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
-    const calendarRef = React.useRef(null);
+    const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
 
@@ -253,16 +254,37 @@ export default function PublicSharePage() {
     }, [shiftedDate.getFullYear(), shiftedDate.getMonth()]);
 
     React.useEffect(() => {
-        if (!isCalendarOpen) return undefined;
+        if (isCalendarOpen) return;
+        setCalendarMonth(startOfMonth(shiftedDate));
+    }, [isCalendarOpen, shiftedDate]);
 
-        function handlePointerDown(ev) {
-            if (calendarRef.current?.contains(ev.target)) return;
-            setIsCalendarOpen(false);
+    React.useEffect(() => {
+        let isCancelled = false;
+
+        const month = calendarMonth.getMonth();
+        const year = calendarMonth.getFullYear();
+        const years = [year];
+        if (month === 0) years.push(year - 1);
+        if (month === 11) years.push(year + 1);
+
+        async function loadHolidays() {
+            const countryCode = getCountryCodeForLanguage(language);
+            const holidays = await getHolidaysByYears({ years, countryCode });
+            if (isCancelled) return;
+
+            const nextMap = {};
+            holidays.forEach(holiday => {
+                if (!holiday?.date) return;
+                nextMap[holiday.date] = holiday.localName || holiday.name || "";
+            });
+            setHolidayNamesByDate(nextMap);
         }
 
-        document.addEventListener("mousedown", handlePointerDown);
-        return () => document.removeEventListener("mousedown", handlePointerDown);
-    }, [isCalendarOpen]);
+        loadHolidays();
+        return () => {
+            isCancelled = true;
+        };
+    }, [calendarMonth, language]);
 
     const dates = [];
     const tasksData = {};
@@ -470,7 +492,7 @@ export default function PublicSharePage() {
         });
     }, [language, weekStartIndex]);
 
-    const calendarTitle = React.useMemo(() => {
+    const monthLabel = React.useMemo(() => {
         const formatted = new Intl.DateTimeFormat(getLocale(language), {
             month: "long",
             year: "numeric",
@@ -486,24 +508,79 @@ export default function PublicSharePage() {
     const calendarDays = React.useMemo(() => {
         const monthStart = startOfMonth(calendarMonth);
         const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0);
-        const offset = (monthStart.getDay() - weekStartIndex + 7) % 7;
-        const totalCells = Math.ceil((offset + monthEnd.getDate()) / 7) * 7;
+        const dayCount = monthEnd.getDate();
         const today = new Date();
 
-        return Array.from({ length: totalCells }, (_, index) => {
+        return Array.from({ length: dayCount }, (_, index) => {
             const cellDate = new Date(monthStart);
-            cellDate.setDate(monthStart.getDate() - offset + index);
+            cellDate.setDate(monthStart.getDate() + index);
             const dateKey = formDate(cellDate);
 
             return {
                 date: cellDate,
                 key: dateKey,
-                inCurrentMonth: cellDate.getMonth() === calendarMonth.getMonth(),
+                inCurrentMonth: true,
                 isToday: isSameDay(cellDate, today),
                 hasTasks: taskDateKeys.has(dateKey),
+                isWeekend: [0, 6].includes(cellDate.getDay()),
+                holidayName: holidayNamesByDate[dateKey] || "",
             };
         });
-    }, [calendarMonth, taskDateKeys, weekStartIndex]);
+    }, [calendarMonth, holidayNamesByDate, taskDateKeys]);
+
+    const calendarWeeks = React.useMemo(() => {
+        const weeks = [];
+        const monthStartDay = startOfMonth(calendarMonth).getDay();
+        const startingOffset = (monthStartDay - weekStartIndex + 7) % 7;
+        const trailingOffset = (7 - ((startingOffset + calendarDays.length) % 7)) % 7;
+        const paddedDays = Array.from({ length: startingOffset }, () => null)
+            .concat(calendarDays)
+            .concat(Array.from({ length: trailingOffset }, () => null));
+
+        for (let index = 0; index < paddedDays.length; index += 7) {
+            weeks.push(paddedDays.slice(index, index + 7));
+        }
+
+        return weeks;
+    }, [calendarDays, calendarMonth, weekStartIndex]);
+
+    const calendarTasksByDate = React.useMemo(() => {
+        const nextMap = {};
+
+        tasks.forEach(task => {
+            if (!task?.date || task?.is_board_task) return;
+            const taskDate = new Date(task.date);
+            if (
+                taskDate.getMonth() !== calendarMonth.getMonth()
+                || taskDate.getFullYear() !== calendarMonth.getFullYear()
+            ) {
+                return;
+            }
+
+            const dateKey = formDate(taskDate);
+            if (!nextMap[dateKey]) nextMap[dateKey] = [];
+            nextMap[dateKey].push(task);
+        });
+
+        Object.values(nextMap).forEach(dayTasks => {
+            dayTasks.sort((a, b) => {
+                const orderA = Number(a.order) || 0;
+                const orderB = Number(b.order) || 0;
+                if (orderA !== orderB) return orderA - orderB;
+                return String(a.name || "").localeCompare(String(b.name || ""));
+            });
+        });
+
+        return nextMap;
+    }, [calendarMonth, tasks]);
+
+    function getTaskChipClassName(task) {
+        const color = (task?.color || "").toString();
+        if (color.includes("amber-500")) return "bg-amber-500 text-black";
+        if (color.includes("green-500")) return "bg-green-500 text-white";
+        if (color.includes("red-500")) return "bg-rose-500 text-white";
+        return "bg-[rgba(244,244,247,1)] text-black";
+    }
 
     function changeCalendarMonth(delta) {
         setCalendarMonth(prevMonth => new Date(prevMonth.getFullYear(), prevMonth.getMonth() + delta, 1));
@@ -619,7 +696,7 @@ export default function PublicSharePage() {
             }}
         >
             <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-white px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
-                <div className="relative" ref={calendarRef}>
+                <div className="relative">
                     <button
                         type="button"
                         className="header-month-trigger text-[36px] font-bold leading-[42px] tracking-[-0.5px] capitalize text-black"
@@ -630,51 +707,100 @@ export default function PublicSharePage() {
                         <span>{monthName} {shiftedDate.getFullYear()}</span>
                     </button>
 
-                    {isCalendarOpen && (
-                        <div className="task-menu-calendar header-month-calendar" onClick={ev => ev.stopPropagation()}>
-                            <div className="task-menu-calendar-header">
-                                <button
-                                    type="button"
-                                    className="task-menu-calendar-nav"
-                                    onClick={() => changeCalendarMonth(-1)}
-                                    aria-label={t(language, "previousMonth")}
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                </button>
-                                <p className="task-menu-calendar-title">{calendarTitle}</p>
-                                <button
-                                    type="button"
-                                    className="task-menu-calendar-nav"
-                                    onClick={() => changeCalendarMonth(1)}
-                                    aria-label={t(language, "nextMonth")}
-                                >
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                            </div>
-                            <div className="task-menu-calendar-weekdays">
-                                {weekdayLabels.map((label, index) => (
-                                    <span key={`${label}-${index}`}>{label}</span>
-                                ))}
-                            </div>
-                            <div className="task-menu-calendar-grid">
-                                {calendarDays.map(dayItem => (
-                                    <button
-                                        key={dayItem.key}
-                                        type="button"
-                                        className={[
-                                            "task-menu-calendar-day",
-                                            dayItem.inCurrentMonth ? "" : "is-outside-month",
-                                            dayItem.isToday ? "is-selected" : "",
-                                            dayItem.hasTasks ? "has-tasks" : "",
-                                        ].filter(Boolean).join(" ")}
-                                        onClick={() => handleCalendarDaySelect(dayItem.date)}
-                                    >
-                                        {dayItem.date.getDate()}
-                                    </button>
-                                ))}
+                    <div className={`calendar-overview-modal ${isCalendarOpen ? "active" : ""}`}>
+                        <div
+                            className="calendar-overview-blur"
+                            onClick={() => setIsCalendarOpen(false)}
+                        />
+                        <div className="calendar-overview-scroll">
+                            <div
+                                className="header-month-overview-shell"
+                                onClick={ev => ev.stopPropagation()}
+                            >
+                                <div className="header-month-overview-drawer">
+                                    <div className="header-month-overview-hero">
+                                        <button
+                                            type="button"
+                                            className="header-month-overview-month-title"
+                                            onClick={() => setIsCalendarOpen(false)}
+                                        >
+                                            {monthLabel}
+                                        </button>
+                                        <div className="header-month-overview-controls">
+                                            <button
+                                                type="button"
+                                                className="task-menu-calendar-nav"
+                                                onClick={() => changeCalendarMonth(-1)}
+                                                aria-label={t(language, "previousMonth")}
+                                            >
+                                                <ChevronLeft className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="task-menu-calendar-nav"
+                                                onClick={() => changeCalendarMonth(1)}
+                                                aria-label={t(language, "nextMonth")}
+                                            >
+                                                <ChevronRight className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="header-month-overview-body">
+                                        <div className="task-menu-calendar-weekdays header-month-overview-weekdays">
+                                            {weekdayLabels.map((label, index) => (
+                                                <span key={`${label}-${index}`}>{label}</span>
+                                            ))}
+                                        </div>
+                                        <div className="header-month-overview-grid">
+                                            {calendarWeeks.map((week, weekIndex) => (
+                                                <div key={`${week[0]?.key || weekIndex}`} className="header-month-overview-week">
+                                                    {week.map((dayItem, dayIndex) => (
+                                                        dayItem ? (
+                                                            <button
+                                                                key={dayItem.key}
+                                                                type="button"
+                                                                className={[
+                                                                    "header-month-overview-day",
+                                                                    dayItem.inCurrentMonth ? "" : "is-outside-month",
+                                                                    dayItem.isToday ? "is-selected" : "",
+                                                                    dayItem.isWeekend ? "is-weekend" : "",
+                                                                    dayItem.holidayName ? "has-holiday" : "",
+                                                                ].filter(Boolean).join(" ")}
+                                                                onClick={() => handleCalendarDaySelect(dayItem.date)}
+                                                            >
+                                                                <span className="header-month-overview-day-number">
+                                                                    {dayItem.date.getDate()}
+                                                                </span>
+                                                                <div className="header-month-overview-day-chips">
+                                                                    {(calendarTasksByDate[dayItem.key] || []).slice(0, 4).map(task => (
+                                                                        <span
+                                                                            key={task.id}
+                                                                            className={`header-month-overview-task-chip ${getTaskChipClassName(task)} ${task?.done ? "opacity-50 line-through" : ""}`}
+                                                                            title={task.name}
+                                                                        >
+                                                                            {task.name}
+                                                                        </span>
+                                                                    ))}
+                                                                    {(calendarTasksByDate[dayItem.key] || []).length > 4 && (
+                                                                        <span className="header-month-overview-more">
+                                                                            {`+${(calendarTasksByDate[dayItem.key] || []).length - 4} ${t(language, ((calendarTasksByDate[dayItem.key] || []).length - 4) === 1 ? "moreTaskSingular" : "moreTaskPlural")}`}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        ) : (
+                                                            <div key={`empty-${weekIndex}-${dayIndex}`} className="header-month-overview-empty" aria-hidden="true" />
+                                                        )
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <button

@@ -326,6 +326,7 @@ export function setPageScrollLocked(locked) {
 
     const html = document.documentElement;
     const body = document.body;
+    const root = document.getElementById("root");
 
     if (locked) {
         const scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
@@ -338,15 +339,31 @@ export function setPageScrollLocked(locked) {
         body.style.paddingRight = scrollbarWidth > 0
             ? `calc(${currentPaddingRight} + ${scrollbarWidth}px)`
             : currentPaddingRight;
-        html.style.overflowY = "hidden";
-        body.style.overflowY = "hidden";
+        html.style.overflow = "clip";
+        body.style.overflow = "clip";
+        if (root) {
+            root.style.overflow = "hidden";
+        }
+        html.dataset.scrollLocked = "true";
+        body.dataset.scrollLocked = "true";
+        if (root) {
+            root.dataset.scrollLocked = "true";
+        }
         return;
     }
 
-    html.style.overflowY = "auto";
-    body.style.overflowY = "auto";
+    html.style.overflow = "auto";
+    body.style.overflow = "auto";
+    if (root) {
+        root.style.overflow = "";
+    }
     body.style.paddingRight = body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY] || "";
     delete body.dataset[PAGE_SCROLL_LOCK_PADDING_KEY];
+    delete html.dataset.scrollLocked;
+    delete body.dataset.scrollLocked;
+    if (root) {
+        delete root.dataset.scrollLocked;
+    }
 }
 
 export function getStoredWeekShift() {

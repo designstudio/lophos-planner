@@ -60,8 +60,7 @@ export default function ProfileMenu() {
     }, []);
 
     return (
-        <div className="profile-menu text-black bg-white dark:bg-stone-800 dark:text-white
-         border border-black rounded-md w-64 p-4 -translate-x-[50%] text-center"
+        <div className="profile-menu option-menu-surface text-black dark:bg-stone-800 dark:text-white w-64 p-4 -translate-x-[50%] text-center"
              onClick={ev => ev.stopPropagation()}>
             <div className="text-left pb-3">
                 <h4 className="truncate text-[16px] font-semibold leading-5 text-black dark:text-white">

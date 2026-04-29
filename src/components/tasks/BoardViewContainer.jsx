@@ -323,7 +323,7 @@ function BoardColumn({
                     </button>
 
                     {isMenuOpen && (
-                        <div className="board-column-menu">
+                        <div className="board-column-menu option-menu-surface">
                             {canMoveLeft && (
                                 <button
                                     type="button"

@@ -884,7 +884,7 @@ const TaskMenu = () => {
                             <p>{getDate(selectedDate)}</p>
                         </button>
                         {isDatePickerOpen && (
-                            <div className="task-menu-calendar" onClick={ev => ev.stopPropagation()}>
+                            <div className="task-menu-calendar option-menu-surface" onClick={ev => ev.stopPropagation()}>
                                 <div className="task-menu-calendar-header">
                                     <button
                                         type="button"
@@ -956,6 +956,7 @@ const TaskMenu = () => {
                                       autoResizeTitle();
                                   }}
                                   className={"task-menu-title w-full resize-none overflow-y-hidden pt-0 pb-4 text-[24px] leading-[1.3] text-black bg-transparent focus:outline-none "
+                                      + (taskType !== "meeting" ? "pr-12 " : "")
                                       + ((isTaskDone && "text-black/40") || '')}
                         />
                         {taskType !== "meeting" && (
@@ -993,10 +994,10 @@ const TaskMenu = () => {
                                                 {taskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}
                                             </span>
                                         </span>
-                                        <ChevronDown className="h-4 w-4 shrink-0 text-[#6b7280]" />
+                                        <ChevronDown className="h-4 w-4 shrink-0 text-black" />
                                     </button>
                                     {isTaskTypeMenuOpen && (
-                                        <div className="task-menu-type-menu" onClick={ev => ev.stopPropagation()}>
+                                        <div className="task-menu-type-menu option-menu-surface" onClick={ev => ev.stopPropagation()}>
                                             <button
                                                 type="button"
                                                 className={`task-menu-type-option ${taskType !== "meeting" ? "is-active" : ""}`}

@@ -3,9 +3,10 @@ import Blur from "../Blur.jsx";
 import React from "react";
 
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { Moon02, Camera01, Check, Trash03, ChevronDown } from "@untitledui/icons";
+import { Moon02, Camera01, Check, Trash03 } from "@untitledui/icons";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { closeForm, openForm } from "../../scripts/utils.js";
+import OptionMenuSelect from "../ui/OptionMenuSelect.jsx";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
 
@@ -365,85 +366,71 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <label className="text-[13px] font-semibold text-black">
                             {t(language, "defaultAgendaLabel")}
-                            <div className="relative mt-4">
-                                <select
-                                    name="default-agenda-id"
-                                    value={formValues.defaultAgendaId || agendas?.[0]?.id || ""}
-                                    onChange={ev => updateField("defaultAgendaId", ev.target.value)}
-                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
-                                    disabled={agendas.length === 0}
-                                >
-                                    {agendas.length === 0 && <option value="">-</option>}
-                                    {agendas.map(agenda => (
-                                        <option key={agenda.id} value={agenda.id}>{agenda.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                            </div>
+                            <OptionMenuSelect
+                                value={formValues.defaultAgendaId || agendas?.[0]?.id || ""}
+                                onChange={value => updateField("defaultAgendaId", value)}
+                                disabled={agendas.length === 0}
+                                placeholder="-"
+                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                options={agendas.length === 0
+                                    ? [{ value: "", label: "-" }]
+                                    : agendas.map(agenda => ({
+                                        value: agenda.id,
+                                        label: agenda.name,
+                                    }))}
+                            />
                         </label>
 
                         <label className="text-[13px] font-semibold text-black">
                             {t(language, "defaultView")}
-                            <div className="relative mt-4">
-                                <select
-                                    name="default-view"
-                                    value={formValues.defaultView}
-                                    onChange={ev => updateField("defaultView", ev.target.value)}
-                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
-                                >
-                                    <option value="week">{t(language, "viewWeek")}</option>
-                                    <option value="board">{t(language, "viewBoard")}</option>
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                            </div>
+                            <OptionMenuSelect
+                                value={formValues.defaultView}
+                                onChange={value => updateField("defaultView", value)}
+                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                options={[
+                                    { value: "week", label: t(language, "viewWeek") },
+                                    { value: "board", label: t(language, "viewBoard") },
+                                ]}
+                            />
                         </label>
 
                         <label className="text-[13px] font-semibold text-black">
                             {t(language, "language")}
-                            <div className="relative mt-4">
-                                <select
-                                    name="language"
-                                    value={formValues.language}
-                                    onChange={ev => updateField("language", ev.target.value)}
-                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
-                                >
-                                    <option value="ptBR">{t(language, "portugueseBrazil")}</option>
-                                    <option value="enUS">{t(language, "english")}</option>
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                            </div>
+                            <OptionMenuSelect
+                                value={formValues.language}
+                                onChange={value => updateField("language", value)}
+                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                options={[
+                                    { value: "ptBR", label: t(language, "portugueseBrazil") },
+                                    { value: "enUS", label: t(language, "english") },
+                                ]}
+                            />
                         </label>
 
                         <label className="text-[13px] font-semibold text-black">
                             {t(language, "dateFormat")}
-                            <div className="relative mt-4">
-                                <select
-                                    name="date-format"
-                                    value={formValues.dateFormat}
-                                    onChange={ev => updateField("dateFormat", ev.target.value)}
-                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
-                                >
-                                    <option value="DD-MM">DD-MM</option>
-                                    <option value="MM-DD">MM-DD</option>
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                            </div>
+                            <OptionMenuSelect
+                                value={formValues.dateFormat}
+                                onChange={value => updateField("dateFormat", value)}
+                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                options={[
+                                    { value: "DD-MM", label: "DD-MM" },
+                                    { value: "MM-DD", label: "MM-DD" },
+                                ]}
+                            />
                         </label>
 
                         <label className="text-[13px] font-semibold text-black">
                             {t(language, "weekStartsOn")}
-                            <div className="relative mt-4">
-                                <select
-                                    name="week-starts-on"
-                                    value={formValues.weekStartsOn}
-                                    onChange={ev => updateField("weekStartsOn", ev.target.value)}
-                                    className="w-full appearance-none border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
-                                >
-                                    <option value="Monday">{t(language, "monday")}</option>
-                                    <option value="Sunday">{t(language, "sunday")}</option>
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-black" />
-                            </div>
+                            <OptionMenuSelect
+                                value={formValues.weekStartsOn}
+                                onChange={value => updateField("weekStartsOn", value)}
+                                triggerClassName="mt-4 border-b border-[rgba(0,0,0,0.15)] bg-transparent pb-2 pl-0 pr-6 text-base font-normal text-black focus:outline-none"
+                                options={[
+                                    { value: "Monday", label: t(language, "monday") },
+                                    { value: "Sunday", label: t(language, "sunday") },
+                                ]}
+                            />
                         </label>
                     </div>
 
