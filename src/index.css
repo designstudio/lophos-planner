@@ -783,14 +783,14 @@ body[data-scroll-locked="true"],
         right: 0;
         top: calc(100% + 0.5rem);
         z-index: 30;
-        width: 12rem;
+        width: 10.75rem;
         padding: 0.25rem;
     }
 
     .board-column-menu-item {
         width: 100%;
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: center;
         gap: 0.5rem;
         border-radius: 12px;

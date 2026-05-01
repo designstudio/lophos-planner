@@ -337,8 +337,8 @@ function BoardColumn({
                                         setIsMenuOpen(false);
                                     }}
                                 >
+                                    <ChevronLeft className="h-4 w-4 shrink-0" />
                                     <span>{t(language, "boardColumnMoveLeft")}</span>
-                                    <ChevronLeft className="h-4 w-4" />
                                 </button>
                             )}
                             {canMoveRight && (
@@ -350,8 +350,8 @@ function BoardColumn({
                                         setIsMenuOpen(false);
                                     }}
                                 >
+                                    <ChevronRight className="h-4 w-4 shrink-0" />
                                     <span>{t(language, "boardColumnMoveRight")}</span>
-                                    <ChevronRight className="h-4 w-4" />
                                 </button>
                             )}
                             <button
@@ -362,8 +362,8 @@ function BoardColumn({
                                     setIsMenuOpen(false);
                                 }}
                             >
+                                <Plus className="h-4 w-4 shrink-0" />
                                 <span>{t(language, "boardColumnAdd")}</span>
-                                <Plus className="h-4 w-4" />
                             </button>
                             {canDelete && (
                                 <button
@@ -374,8 +374,8 @@ function BoardColumn({
                                         setIsMenuOpen(false);
                                     }}
                                 >
+                                    <Trash03 className="h-4 w-4 shrink-0" />
                                     <span>{t(language, "boardColumnDelete")}</span>
-                                    <Trash03 className="h-4 w-4" />
                                 </button>
                             )}
                         </div>
