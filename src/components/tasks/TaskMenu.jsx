@@ -32,18 +32,10 @@ function QuoteIcon(props) {
 
 function NumberedListIcon(props) {
     return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="-0.5 -0.5 12 12"
-            fill="none"
-            aria-hidden="true"
-            {...props}
-        >
-            <path d="M5.041666666666666 2.75h4.125" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M5.041666666666666 5.5h4.125" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M5.5 8.25h3.6666666666666665" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M1.8333333333333333 7.333333333333333a0.9166666666666666 0.9166666666666666 0 1 1 1.8333333333333333 0c0 0.270875 -0.22916666666666666 0.4583333333333333 -0.4583333333333333 0.6875L1.8333333333333333 9.166666666666666h1.8333333333333333" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M2.75 4.583333333333333V1.8333333333333333L1.8333333333333333 2.75" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <path d="M21 12L9 12M21 6L9 6M21 18L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 10V5L3 6.66667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 15.6667C3 15.2246 3.15804 14.8007 3.43934 14.4882C3.72064 14.1756 4.10218 14 4.5 14C4.89782 14 5.27936 14.1756 5.56066 14.4882C5.84196 14.8007 6 15.2246 6 15.6667C6 16.1592 5.625 16.5 5.25 16.9167L3 19H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
