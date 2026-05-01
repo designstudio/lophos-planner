@@ -29,7 +29,7 @@ export default function InvitePage() {
             <div className="invite-blur fixed top-0 left-0 h-full w-full z-[80]"
                  style={{ backgroundColor: "rgba(5, 5, 5, 0.2)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
                  onClick={closeInvitePage}></div>
-            <div className="invite-page fixed right-1 top-2 z-[90] flex h-[calc(100vh-1rem)] w-[calc(100%-0.5rem)] max-w-[35rem] flex-col overflow-y-auto rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 shadow-xl transition-all sm:right-3 sm:w-[32rem] sm:px-8 sm:py-8 lg:right-4 lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-[35rem] lg:px-10 lg:py-10">
+            <div className="invite-page fixed left-1/2 top-1/2 z-[90] flex h-[calc(100vh-1rem)] w-[calc(100%-0.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 shadow-xl transition-all sm:h-[calc(100vh-2rem)] sm:w-[32rem] sm:px-8 sm:py-8 lg:h-[calc(100vh-2rem)] lg:w-[35rem] lg:px-10 lg:py-10">
                 <h1 className="max-w-[12ch] text-[32px] font-bold leading-[1.05] tracking-[-0.09em] sm:text-[42px] lg:text-[52px]">
                     {t(language, "aboutHeadline")}
                 </h1>

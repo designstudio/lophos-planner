@@ -3,14 +3,13 @@ import Lottie from "lottie-react";
 import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03 } from "@untitledui/icons";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "./scripts/holidays.js";
 import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
+import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -51,20 +50,8 @@ function normalizeSearchText(text) {
         .trim();
 }
 
-function sanitizePublicHtml(html) {
-    return DOMPurify.sanitize(html || "", {
-        USE_PROFILES: { html: true },
-        ADD_ATTR: ["class", "data-task-id", "contenteditable", "target", "rel"],
-    });
-}
-
 function renderPublicDescription(markdown) {
-    const rawHtml = marked.parse(markdown || "");
-    const htmlWithMentions = rawHtml.replace(
-        /<a href="#task:([^"]+)">/g,
-        '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">'
-    );
-    return sanitizePublicHtml(htmlWithMentions);
+    return renderTaskMarkdown(markdown || "");
 }
 
 function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {

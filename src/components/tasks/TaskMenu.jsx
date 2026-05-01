@@ -4,26 +4,53 @@ import TaskMenuBtn from "./TaskMenuBtn.jsx";
 import {Form, useSearchParams} from "react-router-dom";
 import {tryCatchDecorator, deleteTask, getUserTasks} from "../../scripts/api.js";
 import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
-import { Heading01, Bold01, Italic01, Strikethrough01, Dotpoints01, Trash03, Calendar, CheckCircle, Plus, X, Edit02, ChevronLeft, ChevronRight, ChevronDown } from "@untitledui/icons";
+import { Heading01, Bold01, Italic01, Strikethrough01, Dotpoints01, Trash03, Calendar, CheckCircle, Plus, X, Edit02, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid02, AlertSquare } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import TurndownService from "turndown";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
+import { autoLinkMarkdownUrls, createTaskTurndownService, getCalloutIconButtonHtml, renderTaskMarkdown, sanitizeTaskHtml } from "../../scripts/taskMarkdown.js";
 
-const turndownService = new TurndownService({
-    bulletListMarker: "-",
-    codeBlockStyle: "fenced",
-    emDelimiter: "*",
-    strongDelimiter: "**",
-    headingStyle: "atx",
-});
+const turndownService = createTaskTurndownService();
 
-function autoLinkMarkdownUrls(markdown) {
-    // Wrap bare URLs in angle brackets so Markdown consistently renders them as links.
-    return markdown.replace(/(^|[\s(])((https?:\/\/[^\s<>()]+))/g, "$1<$2>");
+function QuoteIcon(props) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            {...props}
+        >
+            <path
+                fill="currentColor"
+                d="m6.2 18 2.35 -4.05c-0.08335 0.01665 -0.175 0.02915 -0.275 0.0375 -0.1 0.00835 -0.19165 0.0125 -0.275 0.0125 -1.1 0 -2.04165 -0.39165 -2.825 -1.175C4.391665 12.04165 4 11.1 4 10s0.391665 -2.04165 1.175 -2.825C5.95835 6.39165 6.9 6 8 6s2.04165 0.39165 2.825 1.175S12 8.9 12 10c0 0.35 -0.04585 0.69315 -0.1375 1.0295 -0.09165 0.3365 -0.22915 0.66 -0.4125 0.9705L8 18h-1.8Zm9 0 2.35 -4.05c-0.08335 0.01665 -0.175 0.02915 -0.275 0.0375 -0.1 0.00835 -0.19165 0.0125 -0.275 0.0125 -1.1 0 -2.04165 -0.39165 -2.825 -1.175S13 11.1 13 10s0.39165 -2.04165 1.175 -2.825S15.9 6 17 6s2.04165 0.39165 2.825 1.175S21 8.9 21 10c0 0.35 -0.04585 0.69315 -0.1375 1.0295 -0.09165 0.3365 -0.22915 0.66 -0.4125 0.9705L17 18h-1.8ZM7.994 12c0.554 0 1.02685 -0.19385 1.4185 -0.5815 0.39165 -0.38785 0.5875 -0.85865 0.5875 -1.4125 0 -0.554 -0.19385 -1.02685 -0.5815 -1.4185 -0.38785 -0.39165 -0.85865 -0.5875 -1.4125 -0.5875 -0.554 0 -1.02685 0.19385 -1.4185 0.5815 -0.39165 0.38785 -0.5875 0.85865 -0.5875 1.4125 0 0.554 0.19385 1.02685 0.5815 1.4185 0.38785 0.39165 0.85865 0.5875 1.4125 0.5875Zm9 0c0.554 0 1.02685 -0.19385 1.4185 -0.5815 0.39165 -0.38785 0.5875 -0.85865 0.5875 -1.4125 0 -0.554 -0.19385 -1.02685 -0.5815 -1.4185 -0.38785 -0.39165 -0.85865 -0.5875 -1.4125 -0.5875 -0.554 0 -1.02685 0.19385 -1.4185 0.5815 -0.39165 0.38785 -0.5875 0.85865 -0.5875 1.4125 0 0.554 0.19385 1.02685 0.5815 1.4185 0.38785 0.39165 0.85865 0.5875 1.4125 0.5875Z"
+            />
+        </svg>
+    );
+}
+
+function CalloutInfoIcon(props) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.14" />
+            <path d="M12 10V16M12 7.75H12.01M21 12C21 16.971 16.971 21 12 21S3 16.971 3 12 7.029 3 12 3 21 7.029 21 12Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function CalloutWarningIcon(props) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <path d="M12 3.5 21 20.5H3L12 3.5Z" fill="currentColor" opacity="0.18" />
+            <path d="M12 8.5V13.5M12 17.25H12.01M10.268 4.5 2.715 17.5C1.945 18.826 2.902 20.5 4.447 20.5H19.553C21.098 20.5 22.055 18.826 21.285 17.5L13.732 4.5C12.96 3.171 11.04 3.171 10.268 4.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function renderCalloutTypeIcon(calloutType) {
+    const Icon = calloutType === "warning" ? CalloutWarningIcon : CalloutInfoIcon;
+    return <Icon className="h-[18px] w-[18px]" />;
 }
 
 function normalizeSearchText(text) {
@@ -33,22 +60,6 @@ function normalizeSearchText(text) {
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
-}
-
-function sanitizeTaskHtml(html) {
-    return DOMPurify.sanitize(html || "", {
-        USE_PROFILES: { html: true },
-        ADD_ATTR: ["class", "data-task-id", "contenteditable", "target", "rel"],
-    });
-}
-
-function renderTaskDescription(markdown) {
-    const rawHtml = marked.parse(markdown || "");
-    const htmlWithMentions = rawHtml.replace(
-        /<a href="#task:([^"]+)">/g,
-        '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">'
-    );
-    return sanitizeTaskHtml(htmlWithMentions);
 }
 
 function startOfMonth(date) {
@@ -175,6 +186,7 @@ const TaskMenu = () => {
     const toolbarSentinelRef = React.useRef(null);
     const toolbarRef = React.useRef(null);
     const mentionStateRef = React.useRef(null);
+    const tableUiInteractionRef = React.useRef(false);
     const skipNextEditorBlurSyncRef = React.useRef(false);
     const hasToolbarStickyStateChangedRef = React.useRef(false);
     const isToolbarStickyRef = React.useRef(false);
@@ -195,7 +207,15 @@ const TaskMenu = () => {
     const [selectedMentionIndex, setSelectedMentionIndex] = React.useState(0);
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const taskTypeMenuRef = React.useRef(null);
+    const calloutTypeMenuRef = React.useRef(null);
+    const activeCalloutRef = React.useRef(null);
+    const activeTableRef = React.useRef(null);
+    const tableCellMenuRef = React.useRef(null);
     const openedTaskId = searchParams.get("task") || searchParams.get("openedTask");
+    const [isCalloutTypeMenuOpen, setIsCalloutTypeMenuOpen] = React.useState(false);
+    const [calloutTypeMenuPosition, setCalloutTypeMenuPosition] = React.useState({ top: 0, left: 0 });
+    const [activeTableOverlay, setActiveTableOverlay] = React.useState(null);
+    const [tableCellMenuState, setTableCellMenuState] = React.useState(null);
 
     useLayoutEffect(() => {
         if (titleInputRef.current) {
@@ -206,7 +226,7 @@ const TaskMenu = () => {
 
     useEffect(() => {
         if (editorRef.current) {
-            editorRef.current.innerHTML = description ? renderTaskDescription(description) : "";
+            editorRef.current.innerHTML = description ? renderTaskMarkdown(description) : "";
         }
 
         if (markdownInputRef.current) {
@@ -226,6 +246,11 @@ const TaskMenu = () => {
         setMentionQuery("");
         setSelectedMentionIndex(0);
         mentionStateRef.current = null;
+        activeCalloutRef.current = null;
+        setIsCalloutTypeMenuOpen(false);
+        activeTableRef.current = null;
+        setActiveTableOverlay(null);
+        setTableCellMenuState(null);
     }, [openedTaskId, taskId, selectedDate]);
 
     useEffect(() => {
@@ -314,6 +339,44 @@ const TaskMenu = () => {
             document.removeEventListener("pointerdown", handlePointerDownOutside);
         };
     }, [isTaskTypeMenuOpen]);
+
+    useEffect(() => {
+        if (!isCalloutTypeMenuOpen) return;
+
+        const handlePointerDownOutside = ev => {
+            const menuEl = calloutTypeMenuRef.current;
+            if (menuEl?.contains(ev.target)) return;
+
+            const iconButton = ev.target.closest?.(".task-callout-icon-button");
+            if (iconButton && editorRef.current?.contains(iconButton)) return;
+
+            setIsCalloutTypeMenuOpen(false);
+            activeCalloutRef.current = null;
+        };
+
+        document.addEventListener("pointerdown", handlePointerDownOutside);
+
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDownOutside);
+        };
+    }, [isCalloutTypeMenuOpen]);
+
+    useEffect(() => {
+        if (!tableCellMenuState) return;
+
+        const handlePointerDownOutside = ev => {
+            const menuEl = tableCellMenuRef.current;
+            if (menuEl?.contains(ev.target)) return;
+
+            const cellMenuButton = ev.target.closest?.(".task-table-cell-menu-trigger");
+            if (cellMenuButton) return;
+
+            setTableCellMenuState(null);
+        };
+
+        document.addEventListener("pointerdown", handlePointerDownOutside);
+        return () => document.removeEventListener("pointerdown", handlePointerDownOutside);
+    }, [tableCellMenuState]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -577,6 +640,24 @@ const TaskMenu = () => {
         setSelectedMentionIndex(0);
     }
 
+    function closeCalloutTypeMenu() {
+        activeCalloutRef.current = null;
+        setIsCalloutTypeMenuOpen(false);
+    }
+
+    function closeTableControls() {
+        activeTableRef.current = null;
+        setActiveTableOverlay(null);
+        setTableCellMenuState(null);
+    }
+
+    function lockTableUiInteraction() {
+        tableUiInteractionRef.current = true;
+        requestAnimationFrame(() => {
+            tableUiInteractionRef.current = false;
+        });
+    }
+
     function syncMentionMenu() {
         const editorEl = editorRef.current;
         const formEl = formRef.current;
@@ -606,6 +687,132 @@ const TaskMenu = () => {
         editorRef.current?.focus();
     }
 
+    function getTableContextFromNode(node) {
+        const element = getElementFromNode(node);
+        if (!element) return null;
+
+        const tableEl = element.closest?.("table");
+        if (!tableEl || !editorRef.current?.contains(tableEl)) return null;
+
+        const cellEl = element.closest?.("th, td");
+        let rowIndex = -1;
+        let columnIndex = -1;
+        if (cellEl) {
+            const rowEl = cellEl.closest("tr");
+            const rows = Array.from(tableEl.querySelectorAll("tr"));
+            rowIndex = rows.indexOf(rowEl);
+            if (rowEl) {
+                columnIndex = Array.from(rowEl.querySelectorAll("th, td")).indexOf(cellEl);
+            }
+        }
+
+        return {
+            tableEl,
+            shellEl: tableEl.closest(".task-table-shell") || tableEl,
+            cellEl,
+            rowIndex,
+            columnIndex,
+        };
+    }
+
+    function focusTableCell(cellEl) {
+        if (!cellEl) return;
+
+        const targetNode = cellEl.querySelector("p, div, span, br") || cellEl;
+        const range = document.createRange();
+        const selection = window.getSelection();
+
+        if (targetNode.nodeName === "BR") {
+            range.setStartBefore(targetNode);
+        } else {
+            range.selectNodeContents(targetNode);
+        }
+
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        focusEditor();
+    }
+
+    function syncActiveTableControls() {
+        const selection = window.getSelection();
+        const context = selection?.focusNode ? getTableContextFromNode(selection.focusNode) : null;
+
+        if (!context) {
+            closeTableControls();
+            return;
+        }
+
+        const formEl = formRef.current;
+        if (!formEl) {
+            closeTableControls();
+            return;
+        }
+
+        const formRect = formEl.getBoundingClientRect();
+        const shellRect = context.shellEl.getBoundingClientRect();
+        const tableRect = context.tableEl.getBoundingClientRect();
+        const visibleLeft = Math.max(tableRect.left, shellRect.left);
+        const visibleRight = Math.min(tableRect.right, shellRect.right);
+        const visibleWidth = Math.max(visibleRight - visibleLeft, 0);
+        const firstRowCells = Array.from(context.tableEl.querySelectorAll("tr:first-child > th, tr:first-child > td"));
+        const rows = Array.from(context.tableEl.querySelectorAll("tr"));
+
+        const columnHandles = firstRowCells.map((cellEl, index) => {
+            const cellRect = cellEl.getBoundingClientRect();
+            return {
+                key: `column-${index}`,
+                left: cellRect.right - formRect.left,
+                top: shellRect.top - formRect.top + 10,
+                insertAtIndex: index + 1,
+            };
+        });
+
+        const rowHandles = rows.map((rowEl, index) => {
+            const rowRect = rowEl.getBoundingClientRect();
+            return {
+                key: `row-${index}`,
+                left: shellRect.left - formRect.left + 10,
+                top: rowRect.bottom - formRect.top,
+                insertAtIndex: index + 1,
+            };
+        });
+
+        activeTableRef.current = context.tableEl;
+        setActiveTableOverlay({
+            top: tableRect.top - formRect.top,
+            left: visibleLeft - formRect.left,
+            width: visibleWidth,
+            height: tableRect.height,
+            columnHandles,
+            rowHandles,
+            selectedRowIndex: context.rowIndex,
+            selectedColumnIndex: context.columnIndex,
+        });
+    }
+
+    function updateTableCellMenuForContext(context) {
+        if (!context?.cellEl || context.rowIndex < 0 || context.columnIndex < 0) {
+            setTableCellMenuState(null);
+            return;
+        }
+
+        const formEl = formRef.current;
+        if (!formEl) return;
+
+        const formRect = formEl.getBoundingClientRect();
+        const cellRect = context.cellEl.getBoundingClientRect();
+        setTableCellMenuState(prevState => ({
+            top: Math.max(cellRect.top - formRect.top + 8, 0),
+            left: Math.max(cellRect.right - formRect.left - 22, 0),
+            rowIndex: context.rowIndex,
+            columnIndex: context.columnIndex,
+            isOpen: prevState?.rowIndex === context.rowIndex && prevState?.columnIndex === context.columnIndex
+                ? prevState.isOpen
+                : false,
+        }));
+    }
+
     function runEditorCommand(command, value = null) {
         focusEditor();
         document.execCommand(command, false, value);
@@ -628,13 +835,284 @@ const TaskMenu = () => {
 
         if (!markdown) return;
 
-        const renderedHtml = renderTaskDescription(markdown);
+        const renderedHtml = renderTaskMarkdown(markdown);
 
         focusEditor();
         document.execCommand("insertHTML", false, renderedHtml);
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+    }
+
+    function insertMarkdownBlock(markdown) {
+        const renderedHtml = renderTaskMarkdown(markdown);
+        focusEditor();
+        document.execCommand("insertHTML", false, renderedHtml);
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        syncMentionMenu();
+    }
+
+    function insertQuoteBlock() {
+        const editorEl = editorRef.current;
+        const selection = window.getSelection();
+
+        if (
+            editorEl
+            && selection
+            && selection.rangeCount > 0
+            && !selection.isCollapsed
+            && isSelectionInsideEditor(editorEl, selection)
+        ) {
+            const range = selection.getRangeAt(0);
+            const fragment = range.cloneContents();
+            const tempContainer = document.createElement("div");
+            tempContainer.appendChild(fragment);
+
+            const selectedHtml = sanitizeTaskHtml(tempContainer.innerHTML).trim();
+            const quoteHtml = selectedHtml
+                ? `<blockquote><p>${selectedHtml}</p></blockquote>`
+                : "<blockquote><p></p></blockquote>";
+
+            focusEditor();
+            document.execCommand("insertHTML", false, quoteHtml);
+            syncEditorToMarkdown();
+            syncActiveEditorFormats();
+            syncMentionMenu();
+            return;
+        }
+
+        insertMarkdownBlock("> ");
+    }
+
+    function insertCalloutBlock() {
+        const editorEl = editorRef.current;
+        if (!editorEl) {
+            insertMarkdownBlock("> [!INFO]\n> ");
+            return;
+        }
+
+        focusEditor();
+
+        const nextSelection = window.getSelection();
+        const range = nextSelection && nextSelection.rangeCount > 0 && isSelectionInsideEditor(editorEl, nextSelection)
+            ? nextSelection.getRangeAt(0).cloneRange()
+            : (() => {
+                const fallbackRange = document.createRange();
+                fallbackRange.selectNodeContents(editorEl);
+                fallbackRange.collapse(false);
+                return fallbackRange;
+            })();
+
+        range.deleteContents();
+
+        const calloutWrapper = document.createElement("div");
+        calloutWrapper.innerHTML =
+            `<div class="task-callout task-callout-info">` +
+            `${getCalloutIconButtonHtml("info")}` +
+            `<div class="task-callout-body"><p><br></p></div>` +
+            `</div>`;
+
+        const calloutEl = calloutWrapper.firstElementChild;
+        range.insertNode(calloutEl);
+
+        const bodyParagraph = calloutEl.querySelector(".task-callout-body p");
+        const bodyRange = document.createRange();
+        bodyRange.setStart(bodyParagraph, 0);
+        bodyRange.collapse(true);
+
+        nextSelection?.removeAllRanges();
+        nextSelection?.addRange(bodyRange);
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        syncMentionMenu();
+    }
+
+    function openCalloutTypeMenu(calloutEl, iconButtonEl) {
+        const formEl = formRef.current;
+        if (!formEl || !calloutEl || !iconButtonEl) return;
+
+        const formRect = formEl.getBoundingClientRect();
+        const iconRect = iconButtonEl.getBoundingClientRect();
+
+        activeCalloutRef.current = calloutEl;
+        setCalloutTypeMenuPosition({
+            top: Math.max(iconRect.top - formRect.top - 8, 0),
+            left: Math.max(iconRect.left - formRect.left, 0),
+        });
+        setIsCalloutTypeMenuOpen(true);
+    }
+
+    function updateActiveCalloutType(nextType) {
+        const calloutEl = activeCalloutRef.current;
+        if (!calloutEl) return;
+
+        calloutEl.classList.remove("task-callout-info", "task-callout-warning");
+        calloutEl.classList.add(`task-callout-${nextType}`);
+
+        const iconButtonEl = calloutEl.querySelector(".task-callout-icon-button");
+        if (iconButtonEl) {
+            iconButtonEl.outerHTML = getCalloutIconButtonHtml(nextType);
+        }
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        syncMentionMenu();
+        closeCalloutTypeMenu();
+        focusEditor();
+    }
+
+    function insertTableBlock() {
+        insertMarkdownBlock("| Coluna 1 | Coluna 2 |\n| --- | --- |\n| Valor 1 | Valor 2 |");
+    }
+
+    function addTableColumn(insertAtIndex) {
+        const tableEl = activeTableRef.current;
+        if (!tableEl) return;
+
+        const rows = Array.from(tableEl.querySelectorAll("tr"));
+        if (!rows.length) return;
+
+        const nextColumnNumber = Math.max(...rows.map(row => row.querySelectorAll("th, td").length), 0) + 1;
+        const safeInsertIndex = Math.max(0, insertAtIndex ?? nextColumnNumber - 1);
+
+        let focusCell = null;
+        rows.forEach((row, rowIndex) => {
+            const nextCell = document.createElement(rowIndex === 0 ? "th" : "td");
+            nextCell.innerHTML = rowIndex === 0 ? `Coluna ${nextColumnNumber}` : "<br>";
+            const cells = Array.from(row.querySelectorAll("th, td"));
+            const referenceCell = cells[safeInsertIndex] || null;
+            row.insertBefore(nextCell, referenceCell);
+            if (rowIndex === 1 || (rowIndex === 0 && rows.length === 1)) {
+                focusCell = nextCell;
+            }
+        });
+
+        const shellEl = tableEl.closest(".task-table-shell");
+        if (shellEl) {
+            shellEl.scrollLeft = shellEl.scrollWidth;
+        }
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        syncMentionMenu();
+        requestAnimationFrame(() => {
+            focusTableCell(focusCell);
+            syncActiveTableControls();
+        });
+    }
+
+    function addTableRow(insertAtIndex) {
+        const tableEl = activeTableRef.current;
+        if (!tableEl) return;
+
+        const rows = Array.from(tableEl.querySelectorAll("tr"));
+        const referenceRow = rows[0];
+        if (!referenceRow) return;
+
+        const columnCount = referenceRow.querySelectorAll("th, td").length;
+        if (!columnCount) return;
+
+        const tbodyEl = tableEl.querySelector("tbody") || tableEl;
+        const newRow = document.createElement("tr");
+        let focusCell = null;
+
+        for (let index = 0; index < columnCount; index += 1) {
+            const nextCell = document.createElement("td");
+            nextCell.innerHTML = "<br>";
+            newRow.appendChild(nextCell);
+            if (index === 0) focusCell = nextCell;
+        }
+
+        const safeInsertIndex = Math.max(1, insertAtIndex ?? rows.length);
+        const referenceInsertRow = rows[safeInsertIndex] || null;
+
+        if (referenceInsertRow) {
+            referenceInsertRow.parentNode.insertBefore(newRow, referenceInsertRow);
+        } else {
+            tbodyEl.appendChild(newRow);
+        }
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        syncMentionMenu();
+        requestAnimationFrame(() => {
+            focusTableCell(focusCell);
+            syncActiveTableControls();
+        });
+    }
+
+    function setActiveCellVerticalAlign(nextAlign) {
+        const context = activeTableRef.current && tableCellMenuState
+            ? {
+                tableEl: activeTableRef.current,
+                rowIndex: tableCellMenuState.rowIndex,
+                columnIndex: tableCellMenuState.columnIndex,
+            }
+            : null;
+        if (!context) return;
+
+        const rowEl = context.tableEl.querySelectorAll("tr")[context.rowIndex];
+        const cellEl = rowEl?.querySelectorAll("th, td")[context.columnIndex];
+        if (!cellEl) return;
+
+        cellEl.setAttribute("data-cell-valign", nextAlign);
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        setTableCellMenuState(prevState => prevState ? { ...prevState, isOpen: false } : prevState);
+        requestAnimationFrame(syncActiveTableControls);
+    }
+
+    function deleteSelectedTableColumn() {
+        if (!activeTableRef.current || !tableCellMenuState) return;
+
+        const rows = Array.from(activeTableRef.current.querySelectorAll("tr"));
+        const firstRowColumnCount = rows[0]?.querySelectorAll("th, td").length || 0;
+        if (firstRowColumnCount <= 1) {
+            deleteActiveTable();
+            return;
+        }
+
+        rows.forEach(rowEl => {
+            const cellEl = rowEl.querySelectorAll("th, td")[tableCellMenuState.columnIndex];
+            cellEl?.remove();
+        });
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        setTableCellMenuState(null);
+        requestAnimationFrame(syncActiveTableControls);
+    }
+
+    function deleteSelectedTableRow() {
+        if (!activeTableRef.current || !tableCellMenuState) return;
+
+        const totalRows = activeTableRef.current.querySelectorAll("tr").length;
+        if (totalRows <= 1) {
+            deleteActiveTable();
+            return;
+        }
+
+        const rowEl = activeTableRef.current.querySelectorAll("tr")[tableCellMenuState.rowIndex];
+        rowEl?.remove();
+
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        setTableCellMenuState(null);
+        requestAnimationFrame(syncActiveTableControls);
+    }
+
+    function deleteActiveTable() {
+        const tableEl = activeTableRef.current;
+        if (!tableEl) return;
+
+        const shellEl = tableEl.closest(".task-table-shell");
+        shellEl?.remove();
+        syncEditorToMarkdown();
+        syncActiveEditorFormats();
+        closeTableControls();
+        focusEditor();
     }
 
     function insertTaskMention(task) {
@@ -700,6 +1178,27 @@ const TaskMenu = () => {
     }
 
     function handleEditorClick(ev) {
+        const calloutIconButton = ev.target.closest?.(".task-callout-icon-button");
+        if (calloutIconButton && editorRef.current?.contains(calloutIconButton)) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            skipNextEditorBlurSyncRef.current = true;
+
+            const calloutEl = calloutIconButton.closest(".task-callout");
+            openCalloutTypeMenu(calloutEl, calloutIconButton);
+            return;
+        }
+
+        const tableContext = getTableContextFromNode(ev.target);
+        if (tableContext) {
+            requestAnimationFrame(() => {
+                syncActiveTableControls();
+                updateTableCellMenuForContext(tableContext);
+            });
+        } else {
+            closeTableControls();
+        }
+
         const mentionLink = ev.target.closest?.("a[data-task-id]");
         if (!mentionLink) return;
 
@@ -738,8 +1237,13 @@ const TaskMenu = () => {
 
     useEffect(() => {
         const handleSelectionChange = () => {
+            if (tableUiInteractionRef.current) return;
             syncActiveEditorFormats();
             syncMentionMenu();
+            syncActiveTableControls();
+            const selection = window.getSelection();
+            const context = selection?.focusNode ? getTableContextFromNode(selection.focusNode) : null;
+            updateTableCellMenuForContext(context);
         };
 
         document.addEventListener("selectionchange", handleSelectionChange);
@@ -748,6 +1252,25 @@ const TaskMenu = () => {
             document.removeEventListener("selectionchange", handleSelectionChange);
         };
     }, []);
+
+    useEffect(() => {
+        if (!activeTableOverlay || !activeTableRef.current) return;
+
+        const shellEl = activeTableRef.current.closest(".task-table-shell");
+        if (!shellEl) return;
+
+        const handleTableShellScroll = () => {
+            requestAnimationFrame(syncActiveTableControls);
+        };
+
+        shellEl.addEventListener("scroll", handleTableShellScroll, { passive: true });
+        window.addEventListener("resize", handleTableShellScroll);
+
+        return () => {
+            shellEl.removeEventListener("scroll", handleTableShellScroll);
+            window.removeEventListener("resize", handleTableShellScroll);
+        };
+    }, [activeTableOverlay]);
 
     async function delTask(ev) {
         const result = await tryCatchDecorator(deleteTask)(taskId);
@@ -859,6 +1382,9 @@ const TaskMenu = () => {
         { key: "italic", label: t(language, "italic"), icon: Italic01, action: () => runEditorCommand("italic") },
         { key: "strikethrough", label: t(language, "strikethrough"), icon: Strikethrough01, action: () => runEditorCommand("strikeThrough") },
         { key: "unordered-list", label: t(language, "bulletList"), icon: Dotpoints01, action: () => runEditorCommand("insertUnorderedList") },
+        { key: "blockquote", label: t(language, "blockquote"), icon: QuoteIcon, action: insertQuoteBlock },
+        { key: "callout", label: t(language, "callout"), icon: AlertSquare, action: insertCalloutBlock },
+        { key: "table", label: t(language, "table"), icon: LayoutGrid02, action: insertTableBlock },
     ];
 
     if (!openedTaskId) {
@@ -1026,7 +1552,6 @@ const TaskMenu = () => {
                                     type="button"
                                     className={`task-menu-icon-btn ${activeEditorFormats[key] ? "is-active" : ""}`}
                                     aria-label={label}
-                                    title={label}
                                     aria-pressed={activeEditorFormats[key]}
                                     onMouseDown={ev => {
                                         ev.preventDefault();
@@ -1036,7 +1561,7 @@ const TaskMenu = () => {
                                     {text ? <span className="task-menu-toolbar-text">{text}</span> : <Icon className="h-[14px] w-[14px]" />}
                                     {ordered && <span className="task-menu-toolbar-order">1.</span>}
                                 </button>
-                                    <p className="absolute whitespace-pre left-1/2 -translate-x-[50%] top-[120%]
+                                    <p className="pointer-events-none absolute whitespace-pre left-1/2 -translate-x-[50%] top-[120%]
             opacity-0 group-hover/task-btn:opacity-100 transition ease-linear duration-200
              text-white bg-gray-800 rounded text-xs p-1">{label}</p>
                                 </div>
@@ -1095,6 +1620,153 @@ const TaskMenu = () => {
                                     <div className="task-mention-empty">{t(language, "mentionNoResults")}</div>
                                 )}
                             </div>
+                        )}
+                        {isCalloutTypeMenuOpen && (
+                            <div
+                                ref={calloutTypeMenuRef}
+                                className="task-callout-type-menu option-menu-surface"
+                                style={{
+                                    top: `${calloutTypeMenuPosition.top}px`,
+                                    left: `${calloutTypeMenuPosition.left}px`,
+                                    transform: "translateY(calc(-100% - 8px))",
+                                }}
+                                onClick={ev => ev.stopPropagation()}
+                            >
+                                <button
+                                    type="button"
+                                    className="task-callout-type-option"
+                                    aria-label={t(language, "calloutInfo")}
+                                    onMouseDown={ev => {
+                                        ev.preventDefault();
+                                        updateActiveCalloutType("info");
+                                    }}
+                                >
+                                    <span className="task-callout-type-option-icon">
+                                        {renderCalloutTypeIcon("info")}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="task-callout-type-option"
+                                    aria-label={t(language, "calloutAlert")}
+                                    onMouseDown={ev => {
+                                        ev.preventDefault();
+                                        updateActiveCalloutType("warning");
+                                    }}
+                                >
+                                    <span className="task-callout-type-option-icon">
+                                        {renderCalloutTypeIcon("warning")}
+                                    </span>
+                                </button>
+                            </div>
+                        )}
+                        {activeTableOverlay && (
+                            <div
+                                className="task-table-active-outline"
+                                style={{
+                                    top: `${activeTableOverlay.top}px`,
+                                    left: `${activeTableOverlay.left}px`,
+                                    width: `${activeTableOverlay.width}px`,
+                                    height: `${activeTableOverlay.height}px`,
+                                }}
+                                aria-hidden="true"
+                            />
+                        )}
+                        {activeTableOverlay && (
+                            <>
+                                {activeTableOverlay.columnHandles.map(handle => (
+                                    <button
+                                        key={handle.key}
+                                        type="button"
+                                        className="task-table-handle task-table-handle-column"
+                                        style={{
+                                            top: `${handle.top}px`,
+                                            left: `${handle.left}px`,
+                                        }}
+                                    onMouseDown={ev => {
+                                        ev.preventDefault();
+                                        lockTableUiInteraction();
+                                        addTableColumn(handle.insertAtIndex);
+                                    }}
+                                        aria-label={t(language, "table")}
+                                    >
+                                        <span className="task-table-handle-dot" />
+                                        <Plus className="task-table-handle-plus h-[12px] w-[12px]" />
+                                    </button>
+                                ))}
+                                {activeTableOverlay.rowHandles.map(handle => (
+                                    <button
+                                        key={handle.key}
+                                        type="button"
+                                        className="task-table-handle task-table-handle-row"
+                                        style={{
+                                            top: `${handle.top}px`,
+                                            left: `${handle.left}px`,
+                                        }}
+                                    onMouseDown={ev => {
+                                        ev.preventDefault();
+                                        lockTableUiInteraction();
+                                        addTableRow(handle.insertAtIndex);
+                                    }}
+                                        aria-label={t(language, "table")}
+                                    >
+                                        <span className="task-table-handle-dot" />
+                                        <Plus className="task-table-handle-plus h-[12px] w-[12px]" />
+                                    </button>
+                                ))}
+                            </>
+                        )}
+                        {tableCellMenuState && (
+                            <>
+                                <button
+                                    type="button"
+                                    className="task-table-cell-menu-trigger"
+                                    style={{
+                                        top: `${tableCellMenuState.top}px`,
+                                        left: `${tableCellMenuState.left}px`,
+                                    }}
+                                    onMouseDown={ev => {
+                                        ev.preventDefault();
+                                        ev.stopPropagation();
+                                        lockTableUiInteraction();
+                                        setTableCellMenuState(prev => prev ? { ...prev, isOpen: !prev.isOpen } : prev);
+                                    }}
+                                    aria-label="Cell options"
+                                >
+                                    <ChevronDown className="h-[12px] w-[12px]" />
+                                </button>
+                                {tableCellMenuState.isOpen && (
+                                    <div
+                                        ref={tableCellMenuRef}
+                                        className="task-table-cell-menu option-menu-surface"
+                                        style={{
+                                            top: `${tableCellMenuState.top + 26}px`,
+                                            left: `${Math.max(tableCellMenuState.left - 180, 0)}px`,
+                                        }}
+                                        onClick={ev => ev.stopPropagation()}
+                                    >
+                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("top"); }}>
+                                            {t(language, "tableAlignTop")}
+                                        </button>
+                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("middle"); }}>
+                                            {t(language, "tableAlignMiddle")}
+                                        </button>
+                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("bottom"); }}>
+                                            {t(language, "tableAlignBottom")}
+                                        </button>
+                                        <div className="task-table-cell-menu-divider" />
+                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableColumn(); }}>
+                                            {t(language, "tableDeleteColumn")}
+                                        </button>
+                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableRow(); }}>
+                                            {t(language, "tableDeleteRow")}
+                                        </button>
+                                        <button type="button" className="task-table-cell-menu-option is-danger" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteActiveTable(); }}>
+                                            {t(language, "tableDeleteTable")}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                         {relatedLinksEnabled && (
                         <section className="mt-4 border-t border-[rgba(0,0,0,0.15)] pt-4">

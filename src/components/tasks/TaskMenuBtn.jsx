@@ -1,17 +1,22 @@
 import React from 'react'
 
 export default function TaskMenuBtn({icon: Icon, iconClassName, onClick, disabled, tooltip = null, buttonClassName = ""}) {
+    const [isTooltipVisible, setIsTooltipVisible] = React.useState(false);
+
     return (
-        <div className="inline rounded-full border border-transparent cursor-pointer">
+        <div className="inline rounded-full border border-transparent">
             <button
                 type="button"
-                className={`task-menu-icon-btn relative group/task-btn ${buttonClassName}`}
+                className={`task-menu-icon-btn relative ${buttonClassName}`}
                 onClick={ev => {
                     ev.preventDefault();
                     ev.stopPropagation();
                     onClick?.(ev);
                 }}
-
+                onMouseEnter={() => setIsTooltipVisible(true)}
+                onMouseLeave={() => setIsTooltipVisible(false)}
+                onFocus={() => setIsTooltipVisible(false)}
+                onBlur={() => setIsTooltipVisible(false)}
                 disabled={disabled}
             >
                 {Icon ? (
@@ -19,9 +24,15 @@ export default function TaskMenuBtn({icon: Icon, iconClassName, onClick, disable
                 ) : (
                     <span className={`${iconClassName} ${disabled ? "opacity-50" : ""}`}></span>
                 )}
-                {tooltip && <p className="absolute whitespace-pre left-1/2 -translate-x-[50%] top-[120%]
-            opacity-0 group-hover/task-btn:opacity-100 transition ease-linear duration-200
-             text-white bg-gray-800 rounded text-xs p-1">{tooltip}</p>}
+                {tooltip && (
+                    <p
+                        className={`pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white transition ease-linear duration-150 ${
+                            isTooltipVisible ? "opacity-100" : "opacity-0"
+                        }`}
+                    >
+                        {tooltip}
+                    </p>
+                )}
             </button>
         </div>
     )
