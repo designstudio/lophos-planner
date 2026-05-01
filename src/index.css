@@ -610,6 +610,22 @@ body[data-scroll-locked="true"],
         text-overflow: ellipsis;
     }
 
+    .header-month-overview-holiday-chip {
+        display: inline-flex;
+        max-width: 100%;
+        align-items: center;
+        border-radius: 9999px;
+        padding: 0.16rem 0.4rem;
+        font-size: 0.625rem;
+        line-height: 1;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #92400e;
+        background-color: rgba(251, 191, 36, 0.18);
+    }
+
     .header-month-overview-more {
         font-size: 0.6rem;
         line-height: 1;

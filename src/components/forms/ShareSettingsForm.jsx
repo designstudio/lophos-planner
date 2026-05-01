@@ -387,7 +387,9 @@ export default function ShareSettingsForm() {
 
                     {shareEnabled && (
                         <div className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(250,250,252)] p-2">
+                            <label htmlFor="public-share-url" className="sr-only">{t(language, "shareTitle")}</label>
                             <input
+                                id="public-share-url"
                                 type="text"
                                 value={publicShareUrl}
                                 readOnly
@@ -447,11 +449,14 @@ export default function ShareSettingsForm() {
 
                             {/* Agenda name */}
                             <div className="flex-1">
+                                <label htmlFor="agenda-name-settings" className="sr-only">{t(language, "agendaName")}</label>
                                 <input
+                                    id="agenda-name-settings"
                                     type="text"
                                     value={agendaName}
                                     onChange={ev => setAgendaName(ev.target.value)}
                                     className="w-full bg-transparent text-base text-black focus:outline-none"
+                                    aria-label={t(language, "agendaName")}
                                 />
                             </div>
                         </div>
@@ -482,6 +487,7 @@ export default function ShareSettingsForm() {
                                     onChange={ev => setAgendaColor(ev.target.value)}
                                     placeholder="#3b82f6"
                                     className="min-w-0 flex-1 bg-transparent text-sm text-black placeholder:text-black/45 focus:outline-none"
+                                    aria-label={t(language, "agendaColor")}
                                 />
                             </div>
                         </div>

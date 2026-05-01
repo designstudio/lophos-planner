@@ -318,6 +318,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         </div>
 
                         <div className="min-w-0">
+                            <label htmlFor="name" className="sr-only">{t(language, "name")}</label>
                             <input
                                 type="text"
                                 id="name"
@@ -329,6 +330,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                             />
 
+                            <label htmlFor="email" className="sr-only">{t(language, "emailField")}</label>
                             <input
                                 type="email"
                                 id="email"
@@ -343,6 +345,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                     </div>
 
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label htmlFor="password" className="sr-only">{t(language, "password")}</label>
                         <input
                             type="password"
                             id="password"
@@ -354,6 +357,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                         />
 
+                        <label htmlFor="confirmPassword" className="sr-only">{t(language, "confirmPassword")}</label>
                         <input
                             type="password"
                             id="confirmPassword"

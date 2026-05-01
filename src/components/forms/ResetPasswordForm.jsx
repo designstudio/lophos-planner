@@ -136,6 +136,7 @@ export default function ResetPasswordForm() {
                     {isRecoveryMode ? (
                         <>
                             <div className="form-group">
+                                <label htmlFor="password" className="sr-only">{t(language, "newPassword")}</label>
                                 <input
                                     type="password"
                                     id="password"
@@ -149,6 +150,7 @@ export default function ResetPasswordForm() {
                             </div>
 
                             <div className="form-group">
+                                <label htmlFor="confirmPassword" className="sr-only">{t(language, "confirmPassword")}</label>
                                 <input
                                     type="password"
                                     id="confirmPassword"
@@ -163,6 +165,7 @@ export default function ResetPasswordForm() {
                         </>
                     ) : (
                         <div className="form-group">
+                            <label htmlFor="email" className="sr-only">{t(language, "emailField")}</label>
                             <input
                                 type="email"
                                 id="email"

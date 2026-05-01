@@ -1,23 +1,38 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import Lottie from "lottie-react";
 import todoLoadingAnimation from "./assets/todo-loading.json";
-import TaskListContainer from './components/tasks/TaskListContainer';
-import BoardViewContainer from './components/tasks/BoardViewContainer.jsx';
-import LoginForm from "./components/forms/LoginForm";
-import SignUpForm from "./components/forms/SignUpForm";
-import UpdateUserForm from "./components/forms/UpdateUserForm";
-import ShareSettingsForm from "./components/forms/ShareSettingsForm.jsx";
-import InviteCollaboratorForm from "./components/forms/InviteCollaboratorForm.jsx";
-import CreateAgendaForm from "./components/forms/CreateAgendaForm.jsx";
-import StatusGeneratorForm from "./components/forms/StatusGeneratorForm.jsx";
 import { useAuth } from "./contexts/AuthContext";
-import ResetPasswordForm from "./components/forms/ResetPasswordForm";
-import InvitePage from "./components/InvitePage";
-import TaskMenu from "./components/tasks/TaskMenu";
-import SearchTaskForm from "./components/forms/SearchTaskForm.jsx";
 import Header from "./components/Header";
 import { getAppLanguage, getLocale } from "./scripts/i18n.js";
 import { openForm } from "./scripts/utils.js";
+
+const TaskListContainer = React.lazy(() => import("./components/tasks/TaskListContainer"));
+const BoardViewContainer = React.lazy(() => import("./components/tasks/BoardViewContainer.jsx"));
+const LoginForm = React.lazy(() => import("./components/forms/LoginForm"));
+const SignUpForm = React.lazy(() => import("./components/forms/SignUpForm"));
+const UpdateUserForm = React.lazy(() => import("./components/forms/UpdateUserForm"));
+const ShareSettingsForm = React.lazy(() => import("./components/forms/ShareSettingsForm.jsx"));
+const InviteCollaboratorForm = React.lazy(() => import("./components/forms/InviteCollaboratorForm.jsx"));
+const CreateAgendaForm = React.lazy(() => import("./components/forms/CreateAgendaForm.jsx"));
+const StatusGeneratorForm = React.lazy(() => import("./components/forms/StatusGeneratorForm.jsx"));
+const ResetPasswordForm = React.lazy(() => import("./components/forms/ResetPasswordForm"));
+const InvitePage = React.lazy(() => import("./components/InvitePage"));
+const TaskMenu = React.lazy(() => import("./components/tasks/TaskMenu"));
+const SearchTaskForm = React.lazy(() => import("./components/forms/SearchTaskForm.jsx"));
+
+function AppLoadingScreen({ fixed = false }) {
+    return (
+        <div className={`${fixed ? "fixed inset-0 z-50" : "min-w-screen min-h-screen"} bg-white dark:bg-black`}>
+            <div className="flex min-h-screen items-center justify-center">
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 84, height: 84 }} />
+            </div>
+        </div>
+    );
+}
+
+function SurfaceFallback() {
+    return <AppLoadingScreen fixed />;
+}
 
 function HomePage() {
     const { currentUser, agendas, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery } = useAuth();
@@ -81,40 +96,36 @@ function HomePage() {
     }, [currentUser, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery]);
 
     if (!isAuthReady) {
-        return (
-            <div className="min-w-screen min-h-screen bg-white dark:bg-black">
-                <div className="flex min-h-screen items-center justify-center">
-                    <Lottie animationData={todoLoadingAnimation} loop style={{ width: 84, height: 84 }} />
-                </div>
-            </div>
-        );
+        return <AppLoadingScreen />;
     }
 
     return (
         <div className="min-w-screen min-h-screen bg-white dark:bg-black">
             <main className="max-container">
                 <Header />
-                {currentUser ? (
-                    <>
-                        <TaskListContainer />
-                        <BoardViewContainer />
-                        <SearchTaskForm />
-                        <UpdateUserForm recoveryMode={isPasswordRecovery} />
-                        <CreateAgendaForm />
-                        <StatusGeneratorForm />
-                        <ShareSettingsForm />
-                        <InviteCollaboratorForm />
-                        <ResetPasswordForm />
-                        <TaskMenu />
-                    </>
-                ) : (
-                    <>
-                        <LoginForm />
-                        <SignUpForm />
-                        <ResetPasswordForm />
-                    </>
-                )}
-                <InvitePage />
+                <Suspense fallback={<SurfaceFallback />}>
+                    {currentUser ? (
+                        <>
+                            <TaskListContainer />
+                            <BoardViewContainer />
+                            <SearchTaskForm />
+                            <UpdateUserForm recoveryMode={isPasswordRecovery} />
+                            <CreateAgendaForm />
+                            <StatusGeneratorForm />
+                            <ShareSettingsForm />
+                            <InviteCollaboratorForm />
+                            <ResetPasswordForm />
+                            <TaskMenu />
+                        </>
+                    ) : (
+                        <>
+                            <LoginForm />
+                            <SignUpForm />
+                            <ResetPasswordForm />
+                        </>
+                    )}
+                    <InvitePage />
+                </Suspense>
             </main>
         </div>
     );

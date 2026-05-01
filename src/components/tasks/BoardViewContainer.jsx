@@ -18,6 +18,7 @@ import {
 } from "../../scripts/api.js";
 import { formDate, getDefaultBoardColumns, matchesShortId, openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { supabase } from "../../scripts/supabase.js";
+import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 
 function sortBoardTasks(list) {
     return [...list].sort((taskA, taskB) => {
@@ -89,7 +90,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
     const { setTaskData } = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
     const openedTask = searchParams.get("task") || searchParams.get("openedTask");
-    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const isMobile = useIsMobileViewport();
     const canDrag = !isMobile;
     const MAX_TASK_NAME_LENGTH = isMobile ? 54 : 58;
     const isTaskNameTruncated = task.name.length > MAX_TASK_NAME_LENGTH;
@@ -159,7 +160,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
         >
             <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
-                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] ${isTaskDone ? "opacity-40 line-through" : ""}`}>
+                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] ${isTaskDone ? "opacity-40 line-through" : ""}`}>
                         {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                         {relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -178,6 +179,8 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                             ev.stopPropagation();
                             onToggleDone(task.id);
                         }}
+                        aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
+                        title={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
                         <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
                     </button>
@@ -312,7 +315,8 @@ function BoardColumn({
                                 ev.currentTarget.blur();
                             }
                         }}
-                        className="min-w-0 flex-1 bg-transparent text-[21px] font-bold leading-[28px] tracking-[-0.5px] text-black/30 outline-none dark:text-white/30"
+                        className="min-w-0 flex-1 bg-transparent text-[18px] font-bold leading-[28px] tracking-[-0.5px] text-black/30 outline-none dark:text-white/30 lg:text-[21px]"
+                        aria-label="Título da coluna"
                     />
                     <button
                         type="button"
@@ -401,7 +405,8 @@ function BoardColumn({
                         onBlur={handleFocusOut}
                         onKeyDown={handleKeyDown}
                         placeholder=""
-                        className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[14px] text-black outline-none transition-colors duration-150 dark:bg-transparent dark:text-white"
+                        className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-black outline-none transition-colors duration-150 dark:bg-transparent dark:text-white lg:text-[14px] lg:leading-[41px]"
+                        aria-label="Adicionar tarefa na coluna"
                     />
                 </form>
 

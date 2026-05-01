@@ -24,15 +24,11 @@ export default function LoginForm() {
         const email = formData.get("email");
         const password = formData.get("password");
 
-        console.log("[LOGIN FORM] submit start", { email });
-
         try {
             setIsSubmitting(true);
             setErrorMessage("");
 
             const res = await login(email, password);
-
-            console.log("[LOGIN FORM] submit result", res);
 
             if (res?.type === "error") {
                 setErrorMessage(res.errorMessage || t(language, "login"));
@@ -93,6 +89,9 @@ export default function LoginForm() {
                     <input type="text" defaultValue="login-form" name="form-id" id="form-id" className="hidden" />
 
                     <div className="form-group">
+                        <label htmlFor="email" className="sr-only">
+                            {t(language, "emailField")}
+                        </label>
                         <input
                             type="email"
                             id="email"
@@ -106,6 +105,9 @@ export default function LoginForm() {
                     </div>
 
                     <div className="form-group">
+                        <label htmlFor="password" className="sr-only">
+                            {t(language, "password")}
+                        </label>
                         <input
                             type="password"
                             id="password"

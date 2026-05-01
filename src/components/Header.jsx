@@ -42,8 +42,11 @@ const Header = () => {
     const calendarRef = React.useRef(null);
     const fetchTimeoutRef = React.useRef(null);
 
-    const newDate = new Date();
-    newDate.setDate(newDate.getDate() + (weekShift * 7));
+    const newDate = React.useMemo(() => {
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + (weekShift * 7));
+        return nextDate;
+    }, [weekShift]);
 
     function openLoginForm() {
         openForm("login-form");
@@ -110,12 +113,32 @@ const Header = () => {
     }, []);
 
     React.useEffect(() => {
-        setCalendarMonth(startOfMonth(newDate));
-    }, [newDate.getFullYear(), newDate.getMonth(), newDate.getDate(), weekShift]);
+        const nextMonth = startOfMonth(newDate);
+        setCalendarMonth(prevMonth => {
+            if (
+                prevMonth.getFullYear() === nextMonth.getFullYear()
+                && prevMonth.getMonth() === nextMonth.getMonth()
+            ) {
+                return prevMonth;
+            }
+
+            return nextMonth;
+        });
+    }, [newDate]);
 
     React.useEffect(() => {
         if (isCalendarOpen) return;
-        setCalendarMonth(startOfMonth(newDate));
+        const nextMonth = startOfMonth(newDate);
+        setCalendarMonth(prevMonth => {
+            if (
+                prevMonth.getFullYear() === nextMonth.getFullYear()
+                && prevMonth.getMonth() === nextMonth.getMonth()
+            ) {
+                return prevMonth;
+            }
+
+            return nextMonth;
+        });
     }, [isCalendarOpen, newDate]);
 
     React.useEffect(() => {
@@ -222,7 +245,7 @@ const Header = () => {
         return () => {
             isCancelled = true;
         };
-    }, [calendarMonth, language]);
+    }, [calendarMonth.getFullYear(), calendarMonth.getMonth(), language]);
 
     const weekdayLabels = React.useMemo(() => {
         const baseSunday = new Date(2024, 0, 7);
@@ -385,7 +408,7 @@ const Header = () => {
             <div className="relative" ref={calendarRef}>
                 <button
                     type="button"
-                    className="header-month-trigger text-[36px] font-bold leading-[42px] tracking-[-0.5px] capitalize text-black dark:text-white"
+                    className="header-month-trigger text-[22px] font-bold leading-[28px] tracking-[-0.5px] capitalize text-black dark:text-white lg:text-[36px] lg:leading-[42px]"
                     onClick={() => setIsCalendarOpen(prev => !prev)}
                     aria-label={t(language, "changeTaskDate")}
                     aria-expanded={isCalendarOpen}
@@ -464,6 +487,14 @@ const Header = () => {
                                                                 {dayItem.date.getDate()}
                                                             </span>
                                                             <div className="header-month-overview-day-chips">
+                                                                {dayItem.holidayName && (
+                                                                    <span
+                                                                        className="header-month-overview-holiday-chip"
+                                                                        title={dayItem.holidayName}
+                                                                    >
+                                                                        {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                    </span>
+                                                                )}
                                                                 {(calendarTasksByDate[dayItem.key] || []).slice(0, 4).map(task => (
                                                                     <span
                                                                         key={task.id}
@@ -497,7 +528,13 @@ const Header = () => {
             <div className="flex gap-2">
 
                 {currentUser ?
-                    <button className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black" onClick={openProfileMenu}>
+                    <button
+                        type="button"
+                        className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black"
+                        onClick={openProfileMenu}
+                        aria-label={t(language, "profile")}
+                        title={t(language, "profile")}
+                    >
                         <span className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
                         {isImageAvatar(currentUser?.avatar) ? (
                             <img src={currentUser.avatar} alt={currentUser?.name || "Profile"} className="h-full w-full object-cover" />

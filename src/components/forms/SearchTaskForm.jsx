@@ -10,6 +10,7 @@ export default function SearchTaskForm() {
     const { currentUser, appLanguage } = useAuth();
     const [tasks, setTasks] = React.useState([]);
     const language = appLanguage || getAppLanguage(currentUser?.language);
+    const clearSearchLabel = language === "ptBR" ? "Limpar busca" : "Clear search";
     const inputRef = React.useRef(null);
     const modalRef = React.useRef(null);
 
@@ -93,12 +94,16 @@ export default function SearchTaskForm() {
                 <h3 className="font-bold text-xl tracking-tight">{t(language, "search")}</h3>
 
                 <form className="relative" onSubmit={ev => ev.preventDefault()}>
+                    <label htmlFor="search-task-name" className="sr-only">
+                        {t(language, "search")}
+                    </label>
                     <input
                         ref={inputRef}
                         className="my-6 w-full border-b bg-transparent py-1 focus:outline-none"
                         type="text"
                         name="search-task-name"
                         id="search-task-name"
+                        aria-label={t(language, "search")}
                         onChange={handleSearchChange}
                         style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
                     />
@@ -107,6 +112,7 @@ export default function SearchTaskForm() {
                         type="button"
                         className="clear-search absolute top-10 -translate-y-[50%] right-2 hidden"
                         onClick={clearSearch}
+                        aria-label={clearSearchLabel}
                     >
                         <XCircle className="h-5 w-5" />
                     </button>

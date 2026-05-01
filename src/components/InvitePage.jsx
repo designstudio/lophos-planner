@@ -29,17 +29,16 @@ export default function InvitePage() {
             <div className="invite-blur fixed top-0 left-0 h-full w-full z-[80]"
                  style={{ backgroundColor: "rgba(5, 5, 5, 0.2)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
                  onClick={closeInvitePage}></div>
-            <div className="invite-page fixed h-screen bg-[rgb(250,250,252)] w-[98%] mx-auto lg:w-[35rem] px-10 py-10 lg:top-0 top-2
-             lg:right-0 right-[1%] transition-all z-[90]">
-                <h1 className="text-3xl lg:text-5xl font-bold tracking-[-0.15rem] leading-[3.5rem]">
+            <div className="invite-page fixed right-1 top-2 z-[90] flex h-[calc(100vh-1rem)] w-[calc(100%-0.5rem)] max-w-[35rem] flex-col overflow-y-auto rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 shadow-xl transition-all sm:right-3 sm:w-[32rem] sm:px-8 sm:py-8 lg:right-4 lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-[35rem] lg:px-10 lg:py-10">
+                <h1 className="max-w-[12ch] text-[32px] font-bold leading-[1.05] tracking-[-0.09em] sm:text-[42px] lg:text-[52px]">
                     {t(language, "aboutHeadline")}
                 </h1>
-                <div className="w-full border-b-2 border-black py-4 my-6 relative">
-                    <p className="text-[0.9rem]">
+                <div className="relative my-6 w-full border-b-2 border-black py-4">
+                    <p className="max-w-[18rem] pr-24 text-[0.95rem] leading-6">
                         {t(language, "aboutSubline1")} <br/>
                         {t(language, "aboutSubline2")}
                     </p>
-                    <div className="w-20 h-25 absolute right-0 bottom-1/2">
+                    <div className="absolute bottom-1/2 right-0 h-20 w-20 sm:h-24 sm:w-24">
                         <svg className="h-auto w-[7rem]" width="668" height="668" viewBox="0 0 668 668" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <mask id="mask0_1107_61" style={{ maskType: "alpha" }} maskUnits="userSpaceOnUse" x="0" y="0" width="668" height="668">
                                 <path d="M0 334C0 217.09 0 158.633 22.7465 113.979C42.7548 74.7007 74.6812 42.766 113.95 22.7524C158.592 0 217.033 0 333.913 0C450.793 0 509.234 0 553.876 22.7524C593.144 42.766 625.071 74.7007 645.08 113.979C667.826 158.633 667.826 217.09 667.826 334C667.826 450.91 667.826 509.367 645.08 554.02C625.071 593.299 593.144 625.234 553.876 645.248C509.234 668 450.793 668 333.913 668C217.033 668 158.592 668 113.95 645.248C74.6812 625.234 42.7548 593.299 22.7465 554.02C0 509.367 0 450.91 0 334Z" fill="#050505"/>
@@ -50,21 +49,23 @@ export default function InvitePage() {
                         </svg>
                     </div>
                 </div>
-                <p className="md:text-[1.4rem] font-[600] leading-8 tracking-tight py-4">
+                <p className="py-4 text-[1.05rem] font-[600] leading-8 tracking-tight sm:text-[1.2rem] md:text-[1.35rem]">
                     {t(language, "aboutDescription")}
                 </p>
 
-                <div className="flex gap-6 justify-center my-2">
+                <div className="my-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
                     {pendingAgendaInviteToken && !currentUser ? (
                         <button
-                            className="py-2 px-8 border border-black bg-black text-gray-100 rounded-full font-bold"
+                            type="button"
+                            className="w-full rounded-full border border-black bg-black px-8 py-3 font-bold text-gray-100 sm:w-auto"
                             onClick={openSignupForm}
                         >
                             {t(language, "acceptInvite")}
                         </button>
                     ) : (
                         <button
-                            className="py-2 px-8 border border-black bg-black text-gray-100 rounded-full font-bold"
+                            type="button"
+                            className="w-full rounded-full border border-black bg-black px-8 py-3 font-bold text-gray-100 sm:w-auto"
                             onClick={closeInvitePage}
                         >
                             {t(language, "startNow")}
@@ -72,14 +73,16 @@ export default function InvitePage() {
                     )}
                     {!currentUser && !pendingAgendaInviteToken &&
                         <button
-                            className="py-2 px-8 border border-black text-gray-700 rounded-full font-bold"
+                            type="button"
+                            className="w-full rounded-full border border-black px-8 py-3 font-bold text-gray-700 sm:w-auto"
                             onClick={openLoginForm}
                         >{t(language, "logIn")}
                         </button>
                     }
                     {pendingAgendaInviteToken && !currentUser &&
                         <button
-                            className="py-2 px-8 border border-black text-gray-700 rounded-full font-bold"
+                            type="button"
+                            className="w-full rounded-full border border-black px-8 py-3 font-bold text-gray-700 sm:w-auto"
                             onClick={openLoginForm}
                         >
                             {t(language, "logIn")}
@@ -87,7 +90,7 @@ export default function InvitePage() {
                     }
 
                 </div>
-                <footer className="absolute bottom-4 text-gray-400">{t(language, "aboutCopyright")}</footer>
+                <footer className="mt-auto pt-6 text-sm text-gray-400">{t(language, "aboutCopyright")}</footer>
 
             </div>
         </div>

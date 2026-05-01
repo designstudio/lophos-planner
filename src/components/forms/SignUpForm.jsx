@@ -103,6 +103,7 @@ export default function SignUpForm() {
 
                     <div className="space-y-4">
                         <div className="form-group">
+                            <label htmlFor="name" className="sr-only">{t(language, "fullName")}</label>
                             <input
                                 type="text"
                                 id="name"
@@ -116,6 +117,7 @@ export default function SignUpForm() {
                         </div>
 
                         <div className="form-group">
+                            <label htmlFor="email" className="sr-only">{t(language, "emailAddress")}</label>
                             <input
                                 type="email"
                                 id="email"
@@ -129,6 +131,7 @@ export default function SignUpForm() {
                         </div>
 
                         <div className="form-group">
+                            <label htmlFor="password" className="sr-only">{t(language, "passwordMin")}</label>
                             <input
                                 type="password"
                                 id="password"
@@ -142,6 +145,7 @@ export default function SignUpForm() {
                         </div>
 
                         <div className="form-group">
+                            <label htmlFor="confirmPassword" className="sr-only">{t(language, "confirmPassword")}</label>
                             <input
                                 type="password"
                                 id="confirmPassword"

@@ -6,7 +6,6 @@ import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getTaskById, normalizeTaskRecord, updateTask } from "../../scripts/api.js";
 import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
-import { setPageScrollLocked } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
@@ -380,15 +379,6 @@ const TaskListContainer = () => {
             supabase.removeChannel(channel);
         };
     }, [currentUser?.uid, currentUser?.currentAgendaId, shouldSortCompletedTasks]);
-
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            const openedBlur = document.querySelector(".blur-bg.active");
-            setPageScrollLocked(Boolean(openedBlur));
-        }, 50);
-
-        return () => clearInterval(intervalId);
-    }, []);
 
     useEffect(() => {
         const shift = weekShift * 7;

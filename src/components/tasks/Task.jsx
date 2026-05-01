@@ -7,13 +7,14 @@ import {useTaskMenu} from "../../contexts/TaskMenuContext.jsx";
 import { matchesShortId, toShortId, openForm } from "../../scripts/utils.js";
 import {ALLOWED_COLORS} from "./TaskMenuColorPicker.jsx";
 import { StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
+import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 
 function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
 export default function Task({taskListInd, ind, data, date, tasksCol, relatedLinksEnabled = true}) {
-    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
+    const isMobile = useIsMobileViewport();
     const canDrag = !isMobile;
     const MAX_TASK_NAME_LENGTH = isMobile ? 40 : 34;
     const isDraggingRef = React.useRef(false);
@@ -150,7 +151,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
              }}>
             <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
                 <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
-                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
+                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
                         { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -166,6 +167,8 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                         type="button"
                         className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100"
                         onClick={handleToggleDone}
+                        aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
+                        title={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
                         <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
                     </button>

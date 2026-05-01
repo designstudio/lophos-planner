@@ -2,7 +2,7 @@ import React from "react";
 import Lottie from "lottie-react";
 import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02 } from "@untitledui/icons";
+import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03 } from "@untitledui/icons";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
@@ -10,6 +10,7 @@ import { getCountryCodeForLanguage, getHolidaysByYears } from "./scripts/holiday
 import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
+import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -73,7 +74,7 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
 
     return (
         <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
-            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-black ${task.done ? "opacity-40 line-through" : ""}`}>
+            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-[16px] leading-[22px] text-black lg:text-[14px] lg:leading-[41px] ${task.done ? "opacity-40 line-through" : ""}`}>
                 {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                 {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -120,6 +121,7 @@ function isImageAvatar(value) {
 }
 
 const MODAL_EXIT_DURATION_MS = 140;
+const PUBLIC_REFRESH_INTERVAL_MS = 30000;
 
 export default function PublicSharePage() {
     const { shareToken } = useParams();
@@ -159,8 +161,11 @@ export default function PublicSharePage() {
         }
     }, []);
 
+    const isMobile = useIsMobileViewport();
+
     React.useEffect(() => {
         let mounted = true;
+        let intervalId = null;
 
         async function refreshPublicAgenda(showLoading = false) {
             if (showLoading) {
@@ -196,18 +201,36 @@ export default function PublicSharePage() {
             }
         }
 
+        function startPolling() {
+            if (intervalId !== null || document.visibilityState !== "visible") return;
+
+            intervalId = window.setInterval(() => {
+                refreshPublicAgenda(false);
+            }, PUBLIC_REFRESH_INTERVAL_MS);
+        }
+
+        function stopPolling() {
+            if (intervalId === null) return;
+            clearInterval(intervalId);
+            intervalId = null;
+        }
+
         refreshPublicAgenda(true);
-        const intervalId = setInterval(() => {
-            refreshPublicAgenda(false);
-        }, 5000);
+        startPolling();
 
         function handleVisibilityChange() {
-            if (document.visibilityState !== "visible") return;
+            if (document.visibilityState !== "visible") {
+                stopPolling();
+                return;
+            }
+
             refreshPublicAgenda(false);
+            startPolling();
         }
 
         function handleWindowFocus() {
             refreshPublicAgenda(false);
+            startPolling();
         }
 
         window.addEventListener("focus", handleWindowFocus);
@@ -215,7 +238,7 @@ export default function PublicSharePage() {
 
         return () => {
             mounted = false;
-            clearInterval(intervalId);
+            stopPolling();
             window.removeEventListener("focus", handleWindowFocus);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
@@ -237,7 +260,6 @@ export default function PublicSharePage() {
     const weekStartsOn = owner?.weekStartsOn || "Monday";
     const agendaAccent = agenda?.color || "#3b82f6";
     const relatedLinksEnabled = agenda?.related_links_enabled ?? true;
-    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
     const publicTaskTitleMaxLength = isMobile ? 40 : 34;
 
     const now = new Date();
@@ -699,7 +721,7 @@ export default function PublicSharePage() {
                 <div className="relative">
                     <button
                         type="button"
-                        className="header-month-trigger text-[36px] font-bold leading-[42px] tracking-[-0.5px] capitalize text-black"
+                        className="header-month-trigger text-[22px] font-bold leading-[28px] tracking-[-0.5px] capitalize text-black lg:text-[36px] lg:leading-[42px]"
                         onClick={() => setIsCalendarOpen(prev => !prev)}
                         aria-label={t(language, "changeTaskDate")}
                         aria-expanded={isCalendarOpen}
@@ -773,6 +795,14 @@ export default function PublicSharePage() {
                                                                     {dayItem.date.getDate()}
                                                                 </span>
                                                                 <div className="header-month-overview-day-chips">
+                                                                    {dayItem.holidayName && (
+                                                                        <span
+                                                                            className="header-month-overview-holiday-chip"
+                                                                            title={dayItem.holidayName}
+                                                                        >
+                                                                            {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                        </span>
+                                                                    )}
                                                                     {(calendarTasksByDate[dayItem.key] || []).slice(0, 4).map(task => (
                                                                         <span
                                                                             key={task.id}
@@ -847,6 +877,7 @@ export default function PublicSharePage() {
             <main className="w-full flex flex-col gap-[30px] px-6 pb-6 pt-4 lg:grid lg:grid-cols-6 lg:gap-6 lg:px-6 lg:pt-10">
                 {dates.slice(0, 5).map((date, index) => {
                     const dateKey = formDate(date);
+                    const holidayName = holidayNamesByDate[dateKey] || "";
                     const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
                     const label = language === "ptBR"
                         ? dayText.replace("-feira", "").replace(/^./, c => c.toUpperCase())
@@ -856,13 +887,24 @@ export default function PublicSharePage() {
                     return (
                         <div className="public-day-block min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
+
+                            {holidayName && (
+                                <div className="task-row-border h-[41px] w-full border-b bg-white">
+                                    <p className="task-holiday-item">
+                                        <span className="task-holiday-badge gap-1">
+                                            <Umbrella03 className="h-4 w-4 shrink-0" />
+                                            <span>{t(language, "holidayLabel")} - {holidayName}</span>
+                                        </span>
+                                    </p>
+                                </div>
+                            )}
 
                             {tasksData[dateKey].map(task => (
                                 <button
@@ -879,7 +921,6 @@ export default function PublicSharePage() {
 
                             {/* Apenas 1 linha vazia por dia no mobile, 10 no desktop */}
                             {(() => {
-                                const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
                                 const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 10 - tasksData[dateKey].length);
                                     return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
                                         <div className="task-row-border h-[41px] w-full border-b" key={`empty-${dateKey}-${emptyIndex}`} />
@@ -892,6 +933,7 @@ export default function PublicSharePage() {
                 <div className="min-w-0 flex flex-col gap-[30px]">
                     {dates.slice(5).map((date, index) => {
                         const dateKey = formDate(date);
+                        const holidayName = holidayNamesByDate[dateKey] || "";
                         const dayText = new Intl.DateTimeFormat(getLocale(language), { weekday: "long" }).format(date);
                         const label = language === "ptBR"
                             ? dayText.replace("-feira", "").replace(/^./, c => c.toUpperCase())
@@ -901,13 +943,24 @@ export default function PublicSharePage() {
                         return (
                             <div className="public-day-block min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label tracking-[-0.5px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label tracking-[-0.5px] ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
+
+                            {holidayName && (
+                                <div className="task-row-border h-[41px] w-full border-b bg-white">
+                                    <p className="task-holiday-item">
+                                        <span className="task-holiday-badge gap-1">
+                                            <Umbrella03 className="h-4 w-4 shrink-0" />
+                                            <span>{t(language, "holidayLabel")} - {holidayName}</span>
+                                        </span>
+                                    </p>
+                                </div>
+                            )}
 
                             {tasksData[dateKey].map(task => (
                                 <button
@@ -924,7 +977,6 @@ export default function PublicSharePage() {
 
                             {/* Apenas 1 linha vazia por dia no mobile, 4 no desktop */}
                                 {(() => {
-                                    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
                                     const emptyRows = isMobile ? Math.max(0, 1 - tasksData[dateKey].length) : Math.max(0, 4 - tasksData[dateKey].length);
                                         return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
                                             <div className="task-row-border h-[41px] w-full border-b" key={`empty-tail-${dateKey}-${emptyIndex}`} />
@@ -946,7 +998,7 @@ export default function PublicSharePage() {
                             return (
                                 <div className="min-w-0 flex flex-col" key={column.id}>
                                     <div className={`flex items-start justify-between border-b-2 py-3 ${index === 0 && isColumnBlankTitle ? "opacity-40" : ""}`}>
-                                        <h2 className={`public-date-label min-w-0 tracking-[-0.5px] ${isColumnBlankTitle ? "opacity-30" : "text-black"}`}>
+                                        <h2 className={`public-date-label min-w-0 text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${isColumnBlankTitle ? "opacity-30" : "text-black"}`}>
                                             {column.title || ""}
                                         </h2>
                                         <h3 className="public-weekday-label text-black opacity-20">{""}</h3>
@@ -966,7 +1018,6 @@ export default function PublicSharePage() {
                                     ))}
 
                                     {(() => {
-                                        const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 1023px)").matches;
                                         const emptyRows = isMobile ? Math.max(0, 1 - columnTasks.length) : Math.max(0, 7 - columnTasks.length);
                                         return Array.from({ length: emptyRows }).map((_, emptyIndex) => (
                                             <div className="task-row-border h-[41px] w-full border-b" key={`board-empty-${column.id}-${emptyIndex}`} />
@@ -1078,6 +1129,7 @@ export default function PublicSharePage() {
                                 value={searchQuery}
                                 onChange={ev => setSearchQuery(ev.target.value)}
                                 style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
+                                aria-label={t(language, "search")}
                             />
 
                             <button
