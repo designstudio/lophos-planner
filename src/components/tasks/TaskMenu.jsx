@@ -30,6 +30,24 @@ function QuoteIcon(props) {
     );
 }
 
+function NumberedListIcon(props) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="-0.5 -0.5 12 12"
+            fill="none"
+            aria-hidden="true"
+            {...props}
+        >
+            <path d="M5.041666666666666 2.75h4.125" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5.041666666666666 5.5h4.125" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5.5 8.25h3.6666666666666665" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M1.8333333333333333 7.333333333333333a0.9166666666666666 0.9166666666666666 0 1 1 1.8333333333333333 0c0 0.270875 -0.22916666666666666 0.4583333333333333 -0.4583333333333333 0.6875L1.8333333333333333 9.166666666666666h1.8333333333333333" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2.75 4.583333333333333V1.8333333333333333L1.8333333333333333 2.75" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
 function CalloutInfoIcon(props) {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -104,6 +122,7 @@ function getActiveEditorFormats(editorEl) {
         italic: false,
         strikethrough: false,
         "unordered-list": false,
+        "ordered-list": false,
     };
 
     if (!isSelectionInsideEditor(editorEl, selection)) {
@@ -120,7 +139,8 @@ function getActiveEditorFormats(editorEl) {
         bold: Boolean(closest("strong, b")),
         italic: Boolean(closest("em, i")),
         strikethrough: Boolean(closest("s, strike")),
-        "unordered-list": Boolean(closest("ul, li")),
+        "unordered-list": Boolean(closest("ul")),
+        "ordered-list": Boolean(closest("ol")),
     };
 }
 
@@ -152,12 +172,41 @@ function getMentionMatch(editorEl) {
     };
 }
 
+function getSlashMatch(editorEl) {
+    const selection = window.getSelection();
+    if (!editorEl || !selection || selection.rangeCount === 0 || !selection.isCollapsed) return null;
+    if (!isSelectionInsideEditor(editorEl, selection)) return null;
+
+    const focusNode = selection.focusNode;
+    if (!focusNode || focusNode.nodeType !== Node.TEXT_NODE) return null;
+
+    const textBeforeCaret = focusNode.textContent.slice(0, selection.focusOffset);
+    const match = textBeforeCaret.match(/(?:^|\s)\/([^\s\/]*)$/);
+    if (!match) return null;
+
+    const query = match[1] || "";
+    const startOffset = selection.focusOffset - query.length - 1;
+    if (startOffset < 0) return null;
+
+    const caretRange = selection.getRangeAt(0).cloneRange();
+    caretRange.collapse(true);
+
+    return {
+        query,
+        textNode: focusNode,
+        startOffset,
+        endOffset: selection.focusOffset,
+        caretRange,
+    };
+}
+
 const TaskMenu = () => {
 
     const {taskData, setTaskData} = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
     const { currentUser, agendas } = useAuth();
-    const {id: taskId, date, color, name, done, description, task_type: taskType = "task"} = taskData;
+    const {id: taskId, date, color, name, done, description, task_type: rawTaskType} = taskData;
+    const taskType = rawTaskType || "task";
     const isTaskDone = taskType === "meeting" ? false : done;
     const language = getAppLanguage(currentUser?.language);
     const locale = getLocale(language);
@@ -186,6 +235,8 @@ const TaskMenu = () => {
     const toolbarSentinelRef = React.useRef(null);
     const toolbarRef = React.useRef(null);
     const mentionStateRef = React.useRef(null);
+    const slashStateRef = React.useRef(null);
+    const slashMenuRef = React.useRef(null);
     const tableUiInteractionRef = React.useRef(false);
     const skipNextEditorBlurSyncRef = React.useRef(false);
     const hasToolbarStickyStateChangedRef = React.useRef(false);
@@ -205,6 +256,10 @@ const TaskMenu = () => {
     const [mentionQuery, setMentionQuery] = React.useState("");
     const [mentionPosition, setMentionPosition] = React.useState({ top: 0, left: 0 });
     const [selectedMentionIndex, setSelectedMentionIndex] = React.useState(0);
+    const [isSlashMenuOpen, setIsSlashMenuOpen] = React.useState(false);
+    const [slashQuery, setSlashQuery] = React.useState("");
+    const [slashMenuPosition, setSlashMenuPosition] = React.useState({ top: 0, left: 0 });
+    const [selectedSlashIndex, setSelectedSlashIndex] = React.useState(null);
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const taskTypeMenuRef = React.useRef(null);
     const calloutTypeMenuRef = React.useRef(null);
@@ -246,6 +301,10 @@ const TaskMenu = () => {
         setMentionQuery("");
         setSelectedMentionIndex(0);
         mentionStateRef.current = null;
+        slashStateRef.current = null;
+        setIsSlashMenuOpen(false);
+        setSlashQuery("");
+        setSelectedSlashIndex(null);
         activeCalloutRef.current = null;
         setIsCalloutTypeMenuOpen(false);
         activeTableRef.current = null;
@@ -377,6 +436,20 @@ const TaskMenu = () => {
         document.addEventListener("pointerdown", handlePointerDownOutside);
         return () => document.removeEventListener("pointerdown", handlePointerDownOutside);
     }, [tableCellMenuState]);
+
+    useEffect(() => {
+        if (!isSlashMenuOpen) return;
+
+        const handlePointerDownOutside = ev => {
+            const menuEl = slashMenuRef.current;
+            if (menuEl?.contains(ev.target)) return;
+            if (editorRef.current?.contains(ev.target)) return;
+            closeSlashMenu();
+        };
+
+        document.addEventListener("pointerdown", handlePointerDownOutside);
+        return () => document.removeEventListener("pointerdown", handlePointerDownOutside);
+    }, [isSlashMenuOpen]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -683,6 +756,39 @@ const TaskMenu = () => {
         setIsMentionMenuOpen(true);
     }
 
+    function closeSlashMenu() {
+        slashStateRef.current = null;
+        setIsSlashMenuOpen(false);
+        setSlashQuery("");
+        setSelectedSlashIndex(null);
+    }
+
+    function syncSlashMenu() {
+        const editorEl = editorRef.current;
+        const formEl = formRef.current;
+        if (!editorEl || !formEl) {
+            closeSlashMenu();
+            return;
+        }
+
+        const slashMatch = getSlashMatch(editorEl);
+        if (!slashMatch) {
+            closeSlashMenu();
+            return;
+        }
+
+        const caretRect = slashMatch.caretRange.getBoundingClientRect();
+        const formRect = formEl.getBoundingClientRect();
+        slashStateRef.current = slashMatch;
+        setSlashQuery(slashMatch.query);
+        setSlashMenuPosition({
+            top: Math.max(caretRect.bottom - formRect.top + 12, 0),
+            left: Math.max(caretRect.left - formRect.left, 0),
+        });
+        setIsSlashMenuOpen(true);
+        closeMentionMenu();
+    }
+
     function focusEditor() {
         editorRef.current?.focus();
     }
@@ -819,6 +925,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
     }
 
     function handleEditorPaste(ev) {
@@ -842,6 +949,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
     }
 
     function insertMarkdownBlock(markdown) {
@@ -851,6 +959,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
     }
 
     function insertQuoteBlock() {
@@ -879,6 +988,7 @@ const TaskMenu = () => {
             syncEditorToMarkdown();
             syncActiveEditorFormats();
             syncMentionMenu();
+            syncSlashMenu();
             return;
         }
 
@@ -927,6 +1037,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
     }
 
     function openCalloutTypeMenu(calloutEl, iconButtonEl) {
@@ -959,6 +1070,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
         closeCalloutTypeMenu();
         focusEditor();
     }
@@ -997,6 +1109,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
         requestAnimationFrame(() => {
             focusTableCell(focusCell);
             syncActiveTableControls();
@@ -1037,6 +1150,7 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         syncMentionMenu();
+        syncSlashMenu();
         requestAnimationFrame(() => {
             focusTableCell(focusCell);
             syncActiveTableControls();
@@ -1147,10 +1261,116 @@ const TaskMenu = () => {
         syncEditorToMarkdown();
         syncActiveEditorFormats();
         closeMentionMenu();
+        closeSlashMenu();
         focusEditor();
     }
 
+    const slashCommands = React.useMemo(() => ([
+        {
+            key: "quote",
+            label: t(language, "blockquote"),
+            icon: QuoteIcon,
+            keywords: ["quote", "citacao", "citação", "blockquote"],
+            action: insertQuoteBlock,
+        },
+        {
+            key: "callout",
+            label: t(language, "callout"),
+            icon: AlertSquare,
+            keywords: ["callout", "alerta", "informacao", "informação", "info"],
+            action: insertCalloutBlock,
+        },
+        {
+            key: "table",
+            label: t(language, "table"),
+            icon: LayoutGrid02,
+            keywords: ["table", "tabela", "grid"],
+            action: insertTableBlock,
+        },
+    ]), [language]);
+
+    const slashSuggestions = React.useMemo(() => {
+        const normalizedQuery = normalizeSearchText(slashQuery);
+        if (!normalizedQuery) return slashCommands;
+
+        return slashCommands.filter(command => {
+            const haystack = [
+                command.label,
+                ...(command.keywords || []),
+            ].map(normalizeSearchText).join(" ");
+
+            return haystack.includes(normalizedQuery);
+        });
+    }, [slashCommands, slashQuery]);
+
+    useEffect(() => {
+        setSelectedSlashIndex(null);
+    }, [slashQuery]);
+
+    function insertSlashCommand(command) {
+        const slashMatch = slashStateRef.current;
+        if (!command || !slashMatch) return;
+
+        const range = document.createRange();
+        range.setStart(slashMatch.textNode, slashMatch.startOffset);
+        range.setEnd(slashMatch.textNode, slashMatch.endOffset);
+        range.deleteContents();
+
+        const selection = window.getSelection();
+        const nextRange = document.createRange();
+        nextRange.setStart(range.startContainer, range.startOffset);
+        nextRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(nextRange);
+
+        closeSlashMenu();
+        focusEditor();
+        command.action();
+    }
+
     function handleEditorKeyDown(ev) {
+        if (isSlashMenuOpen) {
+            if (slashSuggestions.length === 0) {
+                if (ev.key === "Escape") {
+                    ev.preventDefault();
+                    closeSlashMenu();
+                }
+                return;
+            }
+
+            if (ev.key === "ArrowDown") {
+                ev.preventDefault();
+                setSelectedSlashIndex(prevIndex => prevIndex === null
+                    ? 0
+                    : (prevIndex + 1) % slashSuggestions.length);
+                return;
+            }
+
+            if (ev.key === "ArrowUp") {
+                ev.preventDefault();
+                setSelectedSlashIndex(prevIndex => prevIndex === null
+                    ? slashSuggestions.length - 1
+                    : (prevIndex - 1 + slashSuggestions.length) % slashSuggestions.length);
+                return;
+            }
+
+            if (ev.key === "Enter" || ev.key === "Tab") {
+                ev.preventDefault();
+                insertSlashCommand(
+                    selectedSlashIndex === null
+                        ? slashSuggestions[0]
+                        : (slashSuggestions[selectedSlashIndex] || slashSuggestions[0])
+                );
+                return;
+            }
+
+            if (ev.key === "Escape") {
+                ev.preventDefault();
+                closeSlashMenu();
+                return;
+            }
+        }
+
         if (!isMentionMenuOpen || mentionSuggestions.length === 0) return;
 
         if (ev.key === "ArrowDown") {
@@ -1240,6 +1460,7 @@ const TaskMenu = () => {
             if (tableUiInteractionRef.current) return;
             syncActiveEditorFormats();
             syncMentionMenu();
+            syncSlashMenu();
             syncActiveTableControls();
             const selection = window.getSelection();
             const context = selection?.focusNode ? getTableContextFromNode(selection.focusNode) : null;
@@ -1382,9 +1603,7 @@ const TaskMenu = () => {
         { key: "italic", label: t(language, "italic"), icon: Italic01, action: () => runEditorCommand("italic") },
         { key: "strikethrough", label: t(language, "strikethrough"), icon: Strikethrough01, action: () => runEditorCommand("strikeThrough") },
         { key: "unordered-list", label: t(language, "bulletList"), icon: Dotpoints01, action: () => runEditorCommand("insertUnorderedList") },
-        { key: "blockquote", label: t(language, "blockquote"), icon: QuoteIcon, action: insertQuoteBlock },
-        { key: "callout", label: t(language, "callout"), icon: AlertSquare, action: insertCalloutBlock },
-        { key: "table", label: t(language, "table"), icon: LayoutGrid02, action: insertTableBlock },
+        { key: "ordered-list", label: t(language, "numberedList"), icon: NumberedListIcon, action: () => runEditorCommand("insertOrderedList") },
     ];
 
     if (!openedTaskId) {
@@ -1501,48 +1720,6 @@ const TaskMenu = () => {
                                 <CheckCircle className={`h-[22px] w-[22px] ${isTaskDone ? "opacity-40" : "opacity-75"}`} />
                             </button>
                         )}
-                        <section className="mb-3 px-1">
-                            <div className="task-menu-type-row">
-                                <h4 className="task-menu-type-label">{t(language, "taskType")}</h4>
-                                <div ref={taskTypeMenuRef} className="relative inline-block">
-                                    <button
-                                        type="button"
-                                        className="task-menu-type-trigger"
-                                        onClick={ev => {
-                                            ev.preventDefault();
-                                            ev.stopPropagation();
-                                            setIsTaskTypeMenuOpen(prev => !prev);
-                                        }}
-                                        aria-expanded={isTaskTypeMenuOpen}
-                                    >
-                                        <span className="flex min-w-0 items-center">
-                                            <span className="truncate text-[#6b7280]">
-                                                {taskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}
-                                            </span>
-                                        </span>
-                                        <ChevronDown className="h-4 w-4 shrink-0 text-black" />
-                                    </button>
-                                    {isTaskTypeMenuOpen && (
-                                        <div className="task-menu-type-menu option-menu-surface" onClick={ev => ev.stopPropagation()}>
-                                            <button
-                                                type="button"
-                                                className={`task-menu-type-option ${taskType !== "meeting" ? "is-active" : ""}`}
-                                                onClick={() => handleTaskTypeSelect("task")}
-                                            >
-                                                <span>{t(language, "taskTypeTask")}</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`task-menu-type-option ${taskType === "meeting" ? "is-active" : ""}`}
-                                                onClick={() => handleTaskTypeSelect("meeting")}
-                                            >
-                                                <span>{t(language, "taskTypeMeeting")}</span>
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
                         <div ref={toolbarSentinelRef} className="task-menu-toolbar-sentinel" aria-hidden="true" />
                         <div ref={toolbarRef} className={`task-menu-toolbar ${isToolbarSticky ? "is-sticky" : ""}`}>
                             {editorToolbarButtons.map(({ key, label, icon: Icon, text, action, ordered = false }) => (
@@ -1566,6 +1743,43 @@ const TaskMenu = () => {
              text-white bg-gray-800 rounded text-xs p-1">{label}</p>
                                 </div>
                             ))}
+                            <div ref={taskTypeMenuRef} className="relative inline-flex shrink-0">
+                                <button
+                                    type="button"
+                                    className="task-menu-type-trigger"
+                                    onClick={ev => {
+                                        ev.preventDefault();
+                                        ev.stopPropagation();
+                                        setIsTaskTypeMenuOpen(prev => !prev);
+                                    }}
+                                    aria-expanded={isTaskTypeMenuOpen}
+                                >
+                                    <span className="truncate">
+                                        {rawTaskType
+                                            ? (taskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask"))
+                                            : t(language, "taskType")}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 shrink-0 text-black" />
+                                </button>
+                                {isTaskTypeMenuOpen && (
+                                    <div className="task-menu-type-menu option-menu-surface" onClick={ev => ev.stopPropagation()}>
+                                        <button
+                                            type="button"
+                                            className={`task-menu-type-option ${taskType !== "meeting" ? "is-active" : ""}`}
+                                            onClick={() => handleTaskTypeSelect("task")}
+                                        >
+                                            <span>{t(language, "taskTypeTask")}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`task-menu-type-option ${taskType === "meeting" ? "is-active" : ""}`}
+                                            onClick={() => handleTaskTypeSelect("meeting")}
+                                        >
+                                            <span>{t(language, "taskTypeMeeting")}</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div
                             ref={editorRef}
@@ -1576,27 +1790,75 @@ const TaskMenu = () => {
                             onInput={() => {
                                 syncEditorToMarkdown();
                                 syncMentionMenu();
+                                syncSlashMenu();
                             }}
-                            onBlur={syncEditorToMarkdown}
+                            onBlur={() => {
+                                syncEditorToMarkdown();
+                                closeMentionMenu();
+                            }}
                             onFocus={() => {
                                 syncActiveEditorFormats();
                                 syncMentionMenu();
+                                syncSlashMenu();
                             }}
                             onKeyDown={handleEditorKeyDown}
                             onKeyUp={() => {
                                 syncActiveEditorFormats();
                                 syncMentionMenu();
+                                syncSlashMenu();
                             }}
                             onMouseUp={() => {
                                 syncActiveEditorFormats();
                                 syncMentionMenu();
+                                syncSlashMenu();
                             }}
                             onPaste={handleEditorPaste}
                             onClick={handleEditorClick}
                         />
+                        {isSlashMenuOpen && (
+                            <div
+                                ref={slashMenuRef}
+                                className="task-inline-menu task-inline-menu-slash"
+                                style={{
+                                    top: `${slashMenuPosition.top}px`,
+                                    left: `${slashMenuPosition.left}px`,
+                                }}
+                            >
+                                <div className="task-inline-menu-section">
+                                    <p className="task-inline-menu-title">{t(language, "insertElement")}</p>
+                                </div>
+                                {slashSuggestions.length > 0 ? (
+                                    slashSuggestions.map((command, index) => {
+                                        const Icon = command.icon;
+                                        return (
+                                            <button
+                                                key={command.key}
+                                                type="button"
+                                                className={`task-inline-menu-option ${index === selectedSlashIndex ? "is-active" : ""}`}
+                                                onMouseEnter={() => setSelectedSlashIndex(index)}
+                                                onMouseDown={ev => {
+                                                    if (ev.button !== 0) return;
+                                                    ev.preventDefault();
+                                                    insertSlashCommand(command);
+                                                }}
+                                            >
+                                                <span className="task-inline-menu-option-icon">
+                                                    <Icon className="h-[16px] w-[16px]" />
+                                                </span>
+                                                <span className="task-inline-menu-option-content">
+                                                    <span className="task-inline-menu-option-label">{command.label}</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="task-inline-menu-empty">{t(language, "slashNoResults")}</div>
+                                )}
+                            </div>
+                        )}
                         {isMentionMenuOpen && (
                             <div
-                                className="task-mention-menu"
+                                className="task-inline-menu task-inline-menu-mention"
                                 style={{
                                     top: `${mentionPosition.top}px`,
                                     left: `${mentionPosition.left}px`,
@@ -1607,17 +1869,19 @@ const TaskMenu = () => {
                                         <button
                                             key={task.id}
                                             type="button"
-                                            className={`task-mention-option ${index === selectedMentionIndex ? "is-active" : ""}`}
+                                            className={`task-inline-menu-option ${index === selectedMentionIndex ? "is-active" : ""}`}
                                             onMouseDown={ev => {
                                                 ev.preventDefault();
                                                 insertTaskMention(task);
                                             }}
                                         >
-                                            <span className="task-mention-option-label">@{task.name}</span>
+                                            <span className="task-inline-menu-option-content">
+                                                <span className="task-inline-menu-option-label">@{task.name}</span>
+                                            </span>
                                         </button>
                                     ))
                                 ) : (
-                                    <div className="task-mention-empty">{t(language, "mentionNoResults")}</div>
+                                    <div className="task-inline-menu-empty">{t(language, "mentionNoResults")}</div>
                                 )}
                             </div>
                         )}
