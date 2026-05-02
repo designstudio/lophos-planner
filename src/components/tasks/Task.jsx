@@ -149,8 +149,12 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                      isDraggingRef.current = false;
                  }, 0);
              }}>
-            <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
-                <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
+            <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`}>
+                <button
+                    type="button"
+                    className={`relative min-w-0 flex-1 text-left ${isTaskNameTruncated ? "group/task-title" : ""}`}
+                    onClick={openTaskMenu}
+                >
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
                         { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
@@ -161,14 +165,13 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                             {data.name}
                         </p>
                     )}
-                </div>
+                </button>
                 {taskType !== "meeting" && (
                     <button
                         type="button"
                         className="toggle-done ml-2 shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 max-lg:opacity-100"
                         onClick={handleToggleDone}
                         aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
-                        title={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
                         <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
                     </button>

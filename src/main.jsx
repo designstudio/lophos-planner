@@ -5,9 +5,9 @@ import './index.css';
 import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
 import TaskMenuContext from "./contexts/TaskMenuContext";
-import { action as signupAction } from "./components/forms/SignUpForm";
-import { action as resetPasswordAction } from "./components/forms/ResetPasswordForm";
-import { action as updateUserAction } from "./components/forms/UpdateUserForm";
+import { signUpAction } from "./components/forms/signUpAction.js";
+import { resetPasswordAction } from "./components/forms/resetPasswordAction.js";
+import { updateUserAction } from "./components/forms/updateUserAction.js";
 import Error from "./components/Error.jsx";
 
 const NotFound = React.lazy(() => import("./components/NotFound"));
@@ -37,7 +37,7 @@ function App() {
                 element={<HomePage />}
                 action={resetPasswordAction(authContext)}
             />
-            <Route path="/signup" action={signupAction(authContext)} />
+            <Route path="/signup" action={signUpAction(authContext)} />
             <Route path="/update-user" action={updateUserAction(authContext)} />
             <Route path="*" element={<LazyPage><NotFound /></LazyPage>} />
         </>

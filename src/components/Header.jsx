@@ -31,9 +31,12 @@ function getUserInitials(user) {
     return initials || "U";
 }
 
-const Header = () => {
+const Header = ({ onOpenAbout = () => {} }) => {
 
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+    const [activeMenu, setActiveMenu] = React.useState(null);
+    const [profileMenuStyle, setProfileMenuStyle] = React.useState({});
+    const [extrasMenuStyle, setExtrasMenuStyle] = React.useState({});
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [taskDates, setTaskDates] = React.useState(() => new Set());
     const [agendaTasks, setAgendaTasks] = React.useState(() => []);
@@ -52,38 +55,28 @@ const Header = () => {
         openForm("login-form");
     }
 
+    function closeHeaderMenus() {
+        setActiveMenu(null);
+    }
+
     function openProfileMenu(ev) {
         ev.stopPropagation();
-        const profileMenu = document.querySelector(".profile-menu");
-        const extrasMenu = document.querySelector(".extras-menu");
-        if (!profileMenu || !extrasMenu) return;
-
-        const wasOpen = profileMenu.classList.contains("active");
-        profileMenu.classList.remove("active");
-        extrasMenu.classList.remove("active");
-        if (wasOpen) return;
-
-        profileMenu.classList.add("active");
         const buttonPos = ev.currentTarget.getBoundingClientRect();
-        profileMenu.style.left = `${Math.round(buttonPos.left + buttonPos.width / 2)}px`;
-        profileMenu.style.top = `${Math.round(buttonPos.bottom) + 8}px`;
+        setProfileMenuStyle({
+            left: `${Math.round(buttonPos.left + buttonPos.width / 2)}px`,
+            top: `${Math.round(buttonPos.bottom) + 8}px`,
+        });
+        setActiveMenu(prevMenu => prevMenu === "profile" ? null : "profile");
     }
 
     function openExtrasMenu(ev) {
         ev.stopPropagation();
-        const extrasMenu = document.querySelector(".extras-menu");
-        const profileMenu = document.querySelector(".profile-menu");
-        if (!extrasMenu || !profileMenu) return;
-
-        const wasOpen = extrasMenu.classList.contains("active");
-        extrasMenu.classList.remove("active");
-        profileMenu.classList.remove("active");
-        if (wasOpen) return;
-
-        extrasMenu.classList.add("active");
         const buttonPos = ev.currentTarget.getBoundingClientRect();
-        extrasMenu.style.right = `${Math.round(window.innerWidth - buttonPos.right - 15)}px`;
-        extrasMenu.style.top = `${Math.round(buttonPos.bottom) + 8}px`;
+        setExtrasMenuStyle({
+            right: `${Math.round(window.innerWidth - buttonPos.right - 15)}px`,
+            top: `${Math.round(buttonPos.bottom) + 8}px`,
+        });
+        setActiveMenu(prevMenu => prevMenu === "extras" ? null : "extras");
     }
 
     function toPrevWeek() {
@@ -140,6 +133,29 @@ const Header = () => {
             return nextMonth;
         });
     }, [isCalendarOpen, newDate]);
+
+    React.useEffect(() => {
+        if (!activeMenu) return undefined;
+
+        function handleCloseMenus() {
+            setActiveMenu(null);
+        }
+
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+            setActiveMenu(null);
+        }
+
+        window.addEventListener("click", handleCloseMenus);
+        window.addEventListener("scroll", handleCloseMenus, { passive: true });
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("click", handleCloseMenus);
+            window.removeEventListener("scroll", handleCloseMenus);
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [activeMenu]);
 
     React.useEffect(() => {
         if (!isCalendarOpen) return undefined;
@@ -533,7 +549,7 @@ const Header = () => {
                         className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black"
                         onClick={openProfileMenu}
                         aria-label={t(language, "profile")}
-                        title={t(language, "profile")}
+                        aria-expanded={activeMenu === "profile"}
                     >
                         <span className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
                         {isImageAvatar(currentUser?.avatar) ? (
@@ -559,8 +575,17 @@ const Header = () => {
                     ))
                 }
             </div>
-            <ProfileMenu />
-            <ExtrasMenu />
+            <ProfileMenu
+                isOpen={activeMenu === "profile"}
+                style={profileMenuStyle}
+                onClose={closeHeaderMenus}
+            />
+            <ExtrasMenu
+                isOpen={activeMenu === "extras"}
+                style={extrasMenuStyle}
+                onClose={closeHeaderMenus}
+                onOpenAbout={onOpenAbout}
+            />
         </header>
     )
 }

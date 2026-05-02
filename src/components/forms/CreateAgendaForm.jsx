@@ -86,7 +86,7 @@ export default function CreateAgendaForm() {
 
                 <form className="mt-6" onSubmit={handleCreateAgenda}>
                     <div className="mt-6">
-                        <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">Editar agenda</h4>
+                        <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "editAgendaSectionTitle")}</h4>
 
                         <div className="flex items-center gap-4">
                             <div className="relative flex-shrink-0">
@@ -101,10 +101,10 @@ export default function CreateAgendaForm() {
                                 <button
                                     type="button"
                                     onClick={() => avatarInputRef.current?.click()}
-                                    className="relative block h-14 w-14 overflow-hidden rounded-full"
+                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
                                 >
                                     {avatar ? (
-                                        <img src={avatar} alt="Agenda avatar" className="h-full w-full object-cover" />
+                                        <img src={avatar} alt={t(language, "agendaAvatarAlt")} className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center bg-white text-sm font-bold text-black/30">
                                             {(name || "A")[0].toUpperCase()}
@@ -128,7 +128,7 @@ export default function CreateAgendaForm() {
                                     type="text"
                                     value={name}
                                     onChange={ev => setName(ev.target.value)}
-                                    placeholder="Nome da agenda"
+                                    placeholder={t(language, "agendaNamePlaceholder")}
                                     className="w-full bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
                                 />
                             </div>
@@ -138,16 +138,16 @@ export default function CreateAgendaForm() {
                     <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
 
                     <div className="mt-6">
-                        <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">Funções</h4>
+                        <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "featuresSectionTitle")}</h4>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <MagicWand01 className="h-4 w-4 text-black" />
-                                <span className="text-[16px] leading-[1.333333] text-black">Ordenar as tarefas concluídas</span>
+                                <span className="text-[16px] leading-[1.333333] text-black">{t(language, "sortCompletedTasksLabel")}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSortCompletedTasks(!sortCompletedTasks)}
-                                className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
+                                className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 transition-colors ${
                                     sortCompletedTasks
                                         ? "bg-black border-black"
                                         : "bg-[rgb(250,250,252)] border-black"
@@ -176,7 +176,7 @@ export default function CreateAgendaForm() {
                                     key={item.value}
                                     type="button"
                                     onClick={() => setColor(item.value)}
-                                    className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 ${color === item.value ? "ring-2 ring-offset-2 ring-black/30" : ""}`}
+                                    className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 ${color === item.value ? "ring-2 ring-offset-2 ring-black/30" : ""}`}
                                     style={{ backgroundColor: item.value }}
                                 />
                             ))}

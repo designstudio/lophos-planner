@@ -1,4 +1,4 @@
-import { Form, redirect, useActionData, useNavigation } from "react-router-dom";
+import { Form, useActionData, useNavigation } from "react-router-dom";
 import Blur from "../Blur.jsx";
 import React from "react";
 
@@ -9,34 +9,6 @@ import { closeForm, openForm } from "../../scripts/utils.js";
 import OptionMenuSelect from "../ui/OptionMenuSelect.jsx";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
-
-export const action = (AuthContext) => async ({ request }) => {
-    const formData = await request.formData();
-    const { updateUser } = AuthContext;
-
-    const name = formData.get("name");
-    const email = formData.get("email");
-    const avatar = formData.get("avatar");
-    const password = formData.get("password");
-    const passwordConfirm = formData.get("confirmPassword");
-    const darkMode = formData.get("dark-mode") === "on";
-    const language = formData.get("language") || "ptBR";
-    const dateFormat = formData.get("date-format") || "DD-MM";
-    const weekStartsOn = formData.get("week-starts-on") || "Monday";
-    const defaultAgendaId = formData.get("default-agenda-id") || null;
-    const defaultView = formData.get("default-view") || "week";
-
-    if (password && password.length < 6) {
-        return "Password must be at least 6 characters";
-    }
-
-    if (passwordConfirm !== password) {
-        return "Passwords don't match";
-    }
-
-    await updateUser(email, password, { name, avatar, darkMode, language, dateFormat, weekStartsOn, defaultAgendaId, defaultView });
-    return redirect("/");
-};
 
 export default function UpdateUserForm({ recoveryMode = false }) {
     const errorMessage = useActionData();
@@ -79,6 +51,8 @@ export default function UpdateUserForm({ recoveryMode = false }) {
     const [avatarErrorMessage, setAvatarErrorMessage] = React.useState("");
     const [avatarLoading, setAvatarLoading] = React.useState(false);
     const deleteModalRef = React.useRef(null);
+    const deleteConfirmButtonRef = React.useRef(null);
+    const deleteCancelButtonRef = React.useRef(null);
     const avatarInputRef = React.useRef(null);
     const wasSubmittingRef = React.useRef(false);
 
@@ -103,16 +77,37 @@ export default function UpdateUserForm({ recoveryMode = false }) {
             modalEl.style.transition = "transform 160ms ease, opacity 160ms ease";
             modalEl.style.transform = "translateY(0)";
             modalEl.style.opacity = "1";
+            deleteCancelButtonRef.current?.focus?.();
         });
     }, [isDeleteModalOpen]);
 
     React.useEffect(() => {
         function handleKeyDown(ev) {
-            if (ev.key !== "Escape") return;
-            if (!isDeleteModalOpen || isDeletingAccount) return;
+            if (!isDeleteModalOpen) return;
+
+            if (ev.key === "Escape") {
+                if (isDeletingAccount) return;
+                ev.preventDefault();
+                closeDeleteAccountModal();
+                return;
+            }
+
+            if (ev.key !== "Tab") return;
+
+            const focusableElements = [
+                deleteConfirmButtonRef.current,
+                deleteCancelButtonRef.current,
+            ].filter(Boolean);
+
+            if (focusableElements.length === 0) return;
+
+            const currentIndex = focusableElements.indexOf(document.activeElement);
+            const nextIndex = ev.shiftKey
+                ? (currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1)
+                : (currentIndex === -1 || currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1);
 
             ev.preventDefault();
-            closeDeleteAccountModal();
+            focusableElements[nextIndex]?.focus?.();
         }
 
         window.addEventListener("keydown", handleKeyDown);
@@ -222,9 +217,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                 {recoveryMode && (
                     <div className="mt-3 rounded-[18px] border border-blue-300 bg-blue-100 px-4 py-4 text-sm text-blue-800">
-                        {language === "enUS"
-                            ? "Set your new password here to finish recovering your account."
-                            : "Defina sua nova senha aqui para concluir a recuperação da conta."}
+                        {t(language, "recoveryHelper")}
                     </div>
                 )}
 
@@ -244,7 +237,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                         <button
                             type="button"
-                            className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
+                            className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-colors ${
                                 formValues.darkMode
                                     ? "bg-[rgb(250,250,252)] border-[rgb(250,250,252)]"
                                     : "bg-black border-[rgb(250,250,252)]"
@@ -273,7 +266,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                     <input type="hidden" name="date-format" value={formValues.dateFormat || "DD-MM"} />
                     <input type="hidden" name="week-starts-on" value={formValues.weekStartsOn || "Monday"} />
 
-                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">Editar perfil</h4>
+                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "editProfileSectionTitle")}</h4>
 
                     <input type="hidden" name="avatar" value={formValues.avatar} />
 
@@ -290,10 +283,10 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 <button
                                     type="button"
                                     onClick={() => avatarInputRef.current?.click()}
-                                    className="relative block h-14 w-14 overflow-hidden rounded-full"
+                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
                                 >
                                     {formValues.avatar ? (
-                                        <img src={formValues.avatar} alt="Profile avatar" className="h-full w-full object-cover" />
+                                        <img src={formValues.avatar} alt={t(language, "profileAvatarAlt")} className="h-full w-full object-cover" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center bg-white text-sm font-bold text-black/30">
                                             {(formValues.name || currentUser?.name || "U")[0].toUpperCase()}
@@ -370,7 +363,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         />
                     </div>
 
-                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">Configurações do sistema</h4>
+                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "systemSettingsSectionTitle")}</h4>
 
                     <div className="divide-y divide-[rgba(0,0,0,0.12)] border-b border-[rgba(0,0,0,0.12)]">
                         <div className="flex items-center justify-between gap-4 py-4">
@@ -381,7 +374,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 disabled={agendas.length === 0}
                                 placeholder="-"
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
                                 options={agendas.length === 0
                                     ? [{ value: "", label: "-" }]
                                     : agendas.map(agenda => ({
@@ -397,7 +390,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 value={formValues.language}
                                 onChange={value => updateField("language", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
                                 options={[
                                     { value: "ptBR", label: t(language, "portugueseBrazil") },
                                     { value: "enUS", label: t(language, "english") },
@@ -411,7 +404,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 value={formValues.dateFormat}
                                 onChange={value => updateField("dateFormat", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
                                 options={[
                                     { value: "DD-MM", label: "DD-MM" },
                                     { value: "MM-DD", label: "MM-DD" },
@@ -425,7 +418,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 value={formValues.weekStartsOn}
                                 onChange={value => updateField("weekStartsOn", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none"
+                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
                                 options={[
                                     { value: "Monday", label: t(language, "monday") },
                                     { value: "Sunday", label: t(language, "sunday") },
@@ -461,12 +454,16 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                 <div
                     ref={deleteModalRef}
                     className="relative mb-6 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-account-modal-title"
+                    aria-describedby="delete-account-modal-description"
                     onClick={ev => ev.stopPropagation()}
                 >
-                    <h4 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
+                    <h4 id="delete-account-modal-title" className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
                         {t(language, "deleteAccountConfirmTitle")}
                     </h4>
-                    <p className="mt-3 text-base leading-7 text-black">
+                    <p id="delete-account-modal-description" className="mt-3 text-base leading-7 text-black">
                         {t(language, "deleteAccountConfirmMessage")}
                     </p>
 
@@ -478,6 +475,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                     <div className="mt-5 flex items-center gap-3">
                         <button
+                            ref={deleteConfirmButtonRef}
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={handleDeleteAccount}
@@ -486,6 +484,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             {isDeletingAccount ? `${t(language, "confirmDeleteAccount")}...` : t(language, "confirmDeleteAccount")}
                         </button>
                         <button
+                            ref={deleteCancelButtonRef}
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={closeDeleteAccountModal}

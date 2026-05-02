@@ -1,39 +1,24 @@
 import React from "react";
 import Blur from "../Blur.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { getAppLanguage } from "../../scripts/i18n.js";
+import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { sendAgendaInvite } from "../../scripts/api.js";
-import { closeForm, openForm } from "../../scripts/utils.js";
-
-function getInviteCopy(language) {
-    return language === "enUS"
-        ? {
-            title: "Invite to collaborate",
-            description: "The person receives an email with the invite and joins the agenda after creating an account or signing in.",
-            emailLabel: "Email",
-            send: "Invite",
-            sending: "Sending...",
-            success: "Invite sent!",
-            error: "Unable to send the invite right now.",
-            cancel: "Cancel",
-        }
-        : {
-            title: "Convidar para colaborar",
-            description: "A pessoa recebe um e-mail com o convite e entra na agenda ao criar conta ou acessar.",
-            emailLabel: "E-mail",
-            send: "Convidar",
-            sending: "Enviando...",
-            success: "Convite enviado!",
-            error: "NÃ£o foi possÃ­vel enviar o convite agora.",
-            cancel: "Cancelar",
-        };
-}
+import { closeForm, openForm, subscribeToModalState } from "../../scripts/utils.js";
 
 export default function InviteCollaboratorForm() {
     const { currentUser, agendas } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
-    const copy = React.useMemo(() => getInviteCopy(language), [language]);
+    const copy = React.useMemo(() => ({
+        title: t(language, "inviteCollaboratorTitle"),
+        description: t(language, "inviteCollaboratorDescription"),
+        emailLabel: t(language, "emailField"),
+        send: t(language, "inviteCollaboratorSend"),
+        sending: t(language, "inviteCollaboratorSending"),
+        success: t(language, "inviteCollaboratorSuccess"),
+        error: t(language, "inviteCollaboratorError"),
+        cancel: t(language, "cancel"),
+    }), [language]);
 
     const inputRef = React.useRef(null);
     const modalRef = React.useRef(null);
@@ -48,9 +33,6 @@ export default function InviteCollaboratorForm() {
             inputRef.current?.select?.();
         };
 
-        const blurEl = modalRef.current?.closest('.blur-bg[data-id="invite-collaborator-form"]');
-        if (!blurEl) return undefined;
-
         let rafId = null;
         let timeoutId = null;
 
@@ -62,22 +44,16 @@ export default function InviteCollaboratorForm() {
             timeoutId = window.setTimeout(focusInput, 180);
         };
 
-        if (blurEl.classList.contains("active")) {
-            scheduleFocus();
-        }
-
-        const observer = new MutationObserver(() => {
-            if (blurEl.classList.contains("active")) {
+        const unsubscribe = subscribeToModalState("invite-collaborator-form", isOpen => {
+            if (isOpen) {
                 scheduleFocus();
                 setErrorMessage("");
                 setSuccessMessage("");
             }
         });
 
-        observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
-
         return () => {
-            observer.disconnect();
+            unsubscribe();
             if (rafId !== null) cancelAnimationFrame(rafId);
             if (timeoutId !== null) window.clearTimeout(timeoutId);
         };

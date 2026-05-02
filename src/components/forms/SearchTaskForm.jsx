@@ -5,10 +5,12 @@ import SearchTask from "../tasks/SearchTask.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { XCircle } from "@untitledui/icons";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
+import { subscribeToModalState } from "../../scripts/utils.js";
 
 export default function SearchTaskForm() {
     const { currentUser, appLanguage } = useAuth();
     const [tasks, setTasks] = React.useState([]);
+    const [query, setQuery] = React.useState("");
     const language = appLanguage || getAppLanguage(currentUser?.language);
     const clearSearchLabel = language === "ptBR" ? "Limpar busca" : "Clear search";
     const inputRef = React.useRef(null);
@@ -19,9 +21,6 @@ export default function SearchTaskForm() {
             inputRef.current?.focus();
             inputRef.current?.select?.();
         };
-
-        const blurEl = modalRef.current?.closest('.blur-bg[data-id="search-form"]');
-        if (!blurEl) return undefined;
 
         let rafId = null;
         let timeoutId = null;
@@ -34,20 +33,14 @@ export default function SearchTaskForm() {
             timeoutId = window.setTimeout(focusInput, 180);
         };
 
-        if (blurEl.classList.contains("active")) {
-            scheduleFocus();
-        }
-
-        const observer = new MutationObserver(() => {
-            if (blurEl.classList.contains("active")) {
+        const unsubscribe = subscribeToModalState("search-form", isOpen => {
+            if (isOpen) {
                 scheduleFocus();
             }
         });
 
-        observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
-
         return () => {
-            observer.disconnect();
+            unsubscribe();
             if (rafId !== null) cancelAnimationFrame(rafId);
             if (timeoutId !== null) window.clearTimeout(timeoutId);
         };
@@ -65,22 +58,15 @@ export default function SearchTaskForm() {
 
     function handleSearchChange(ev) {
         const value = ev.currentTarget.value;
-
-        if (value) {
-            const clearSearchBtn = document.querySelector(".clear-search");
-            clearSearchBtn?.classList.remove("hidden");
-        } else {
-            document.querySelector(".clear-search")?.classList.add("hidden");
-        }
+        setQuery(value);
 
         runSearch(value.trim());
     }
 
     function clearSearch() {
-        const searchInput = document.getElementById("search-task-name");
-        if (searchInput) searchInput.value = "";
-        document.querySelector(".clear-search")?.classList.add("hidden");
+        setQuery("");
         setTasks([]);
+        inputRef.current?.focus();
     }
 
     return (
@@ -104,13 +90,14 @@ export default function SearchTaskForm() {
                         name="search-task-name"
                         id="search-task-name"
                         aria-label={t(language, "search")}
+                        value={query}
                         onChange={handleSearchChange}
                         style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
                     />
 
                     <button
                         type="button"
-                        className="clear-search absolute top-10 -translate-y-[50%] right-2 hidden"
+                        className={`clear-search absolute top-10 right-2 -translate-y-[50%] ${query ? "" : "hidden"}`}
                         onClick={clearSearch}
                         aria-label={clearSearchLabel}
                     >
@@ -121,7 +108,12 @@ export default function SearchTaskForm() {
                 <div className="search-results">
                     {Array.isArray(tasks) &&
                         tasks.map(task => (
-                            <SearchTask key={task.id} data={task} date={new Date(task.date)} />
+                            <SearchTask
+                                key={task.id}
+                                data={task}
+                                date={new Date(task.date)}
+                                onSelect={clearSearch}
+                            />
                         ))}
                 </div>
             </div>

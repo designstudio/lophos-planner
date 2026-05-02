@@ -9,7 +9,6 @@ export function HeaderBtn({textColor, bgColor, icon: Icon, onClick, tooltip=null
         onClick={onClick}
         style={style}
         aria-label={ariaLabel || tooltip || undefined}
-        title={tooltip || ariaLabel || undefined}
         >
         {Icon && <Icon className={`h-4 w-4 lg:h-5 lg:w-5 ${textColor}`} />}
         { tooltip && <p className="absolute left-1/2 top-[120%] -translate-x-[50%]

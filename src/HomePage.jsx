@@ -4,7 +4,7 @@ import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
 import { getAppLanguage, getLocale } from "./scripts/i18n.js";
-import { openForm } from "./scripts/utils.js";
+import { closeForm, openForm } from "./scripts/utils.js";
 
 const TaskListContainer = React.lazy(() => import("./components/tasks/TaskListContainer"));
 const BoardViewContainer = React.lazy(() => import("./components/tasks/BoardViewContainer.jsx"));
@@ -36,6 +36,7 @@ function SurfaceFallback() {
 
 function HomePage() {
     const { currentUser, agendas, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery } = useAuth();
+    const [isAboutOpen, setIsAboutOpen] = React.useState(false);
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
 
@@ -70,27 +71,20 @@ function HomePage() {
     useEffect(() => {
         if (!isAuthReady) return;
 
-        const loginBlur = document.querySelector('[data-id="login-form"]');
-        const signupBlur = document.querySelector('[data-id="signup-form"]');
-        const resetBlur = document.querySelector('[data-id="reset-password-form"]');
-        const updateUserBlur = document.querySelector('[data-id="update-user-form"]');
-
         if (isPasswordRecovery && currentUser) {
-            loginBlur?.classList.remove('active');
-            signupBlur?.classList.remove('active');
-            resetBlur?.classList.remove('active');
-            updateUserBlur?.classList.add('active');
-            document.body.style.overflowY = 'hidden';
+            closeForm("login-form");
+            closeForm("signup-form");
+            closeForm("reset-password-form");
+            openForm("update-user-form");
         } else if (currentUser) {
-            loginBlur?.classList.remove('active');
-            signupBlur?.classList.remove('active');
-            resetBlur?.classList.remove('active');
-            document.body.style.overflowY = 'auto';
+            closeForm("login-form");
+            closeForm("signup-form");
+            closeForm("reset-password-form");
         } else {
             if (pendingAgendaInviteToken) {
                 openForm("signup-form");
             } else {
-                loginBlur?.classList.add('active');
+                openForm("login-form");
             }
         }
     }, [currentUser, isAuthReady, pendingAgendaInviteToken, isPasswordRecovery]);
@@ -102,7 +96,7 @@ function HomePage() {
     return (
         <div className="min-w-screen min-h-screen bg-white dark:bg-black">
             <main className="max-container">
-                <Header />
+                <Header onOpenAbout={() => setIsAboutOpen(true)} />
                 <Suspense fallback={<SurfaceFallback />}>
                     {currentUser ? (
                         <>
@@ -124,7 +118,10 @@ function HomePage() {
                             <ResetPasswordForm />
                         </>
                     )}
-                    <InvitePage />
+                    <InvitePage
+                        isOpen={isAboutOpen}
+                        onClose={() => setIsAboutOpen(false)}
+                    />
                 </Suspense>
             </main>
         </div>

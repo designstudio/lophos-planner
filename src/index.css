@@ -293,6 +293,21 @@ body[data-scroll-locked="true"],
         background-color: rgba(237, 237, 242, 1);
     }
 
+    .task-menu-icon-btn:focus-visible,
+    .task-menu-date-trigger:focus-visible,
+    .task-menu-type-trigger:focus-visible,
+    .task-menu-type-option:focus-visible,
+    .board-column-menu-item:focus-visible,
+    .task-inline-menu-option:focus-visible,
+    .task-callout-type-option:focus-visible,
+    .task-table-handle:focus-visible,
+    .task-table-cell-menu-trigger:focus-visible,
+    .task-table-cell-menu-option:focus-visible,
+    .task-menu-related-links-submit:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.12);
+    }
+
     .task-menu-icon-btn.is-active {
         background-color: rgba(237, 237, 242, 1);
     }
@@ -1232,6 +1247,12 @@ body[data-scroll-locked="true"],
         background: rgba(255, 255, 255, 0.94);
         color: rgba(17, 24, 39, 0.52);
         border: 1px solid rgba(17, 24, 39, 0.08);
+    }
+
+    .task-table-cell-menu-trigger:hover,
+    .task-table-cell-menu-trigger:focus-visible {
+        color: rgba(17, 24, 39, 0.82);
+        background: rgba(255, 255, 255, 1);
     }
 
     .task-table-cell-menu {

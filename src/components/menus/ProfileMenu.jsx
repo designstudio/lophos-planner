@@ -1,10 +1,9 @@
 import {useAuth} from "../../contexts/AuthContext.jsx";
-import {useEffect} from "react";
 import {closeForm, openForm} from "../../scripts/utils.js";
 import { Settings01, LogOut01 } from "@untitledui/icons";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 
-export default function ProfileMenu() {
+export default function ProfileMenu({ isOpen = false, style = {}, onClose = () => {} }) {
 
     const { currentUser, logout, agendas, switchAgenda } = useAuth();
     const language = getAppLanguage(currentUser?.language);
@@ -17,7 +16,7 @@ export default function ProfileMenu() {
 
     function openUpdateUserForm() {
         openForm("update-user-form");
-        document.querySelector(".profile-menu ").classList.remove("active");
+        onClose();
     }
 
     function isImageAvatar(value) {
@@ -26,41 +25,30 @@ export default function ProfileMenu() {
 
     function openAgendaSettingsForm() {
         openForm("share-settings-form");
-        document.querySelector(".profile-menu ").classList.remove("active");
+        onClose();
     }
 
     async function openAgendaSettingsFor(agendaId) {
         await switchAgenda(agendaId);
         openForm("share-settings-form");
-        document.querySelector(".profile-menu ").classList.remove("active");
+        onClose();
     }
 
     function openCreateAgendaForm() {
         closeForm("update-user-form");
         closeForm("share-settings-form");
         openForm("create-agenda-form");
-        document.querySelector(".profile-menu ").classList.remove("active");
+        onClose();
     }
 
     async function handleSwitchAgenda(agendaId) {
         await switchAgenda(agendaId);
-        document.querySelector(".profile-menu ").classList.remove("active");
+        onClose();
     }
 
-    useEffect(() => {
-        window.addEventListener("click", () => {
-            const profileMenu = document.querySelector(".profile-menu");
-            profileMenu.classList.remove("active");
-        })
-
-        window.addEventListener("scroll", () => {
-            const profileMenu = document.querySelector(".profile-menu");
-            profileMenu.classList.remove("active");
-        })
-    }, []);
-
     return (
-        <div className="profile-menu option-menu-surface text-black dark:bg-stone-800 dark:text-white w-64 p-4 -translate-x-[50%] text-center"
+        <div className={`profile-menu ${isOpen ? "active" : ""} option-menu-surface text-black dark:bg-stone-800 dark:text-white w-64 p-4 -translate-x-[50%] text-center`}
+             style={style}
              onClick={ev => ev.stopPropagation()}>
             <div className="text-left pb-3">
                 <h4 className="truncate text-[16px] font-semibold leading-5 text-black dark:text-white">

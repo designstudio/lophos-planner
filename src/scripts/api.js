@@ -447,9 +447,7 @@ export async function updateUserData(id, data) {
 // Agendas
 
 export async function getUserAgendas(userId) {
-    const { data, error } = await supabase.rpc('get_user_agendas', {
-        p_user_id: userId,
-    });
+    const { data, error } = await supabase.rpc('get_user_agendas');
 
     if (error) throw error;
 

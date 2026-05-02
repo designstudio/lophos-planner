@@ -1,34 +1,48 @@
-import { openForm } from "../scripts/utils.js";
+import React from "react";
+import { openForm, setPageScrollLocked } from "../scripts/utils.js";
 import {useAuth} from "../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../scripts/i18n.js";
 
 
-export default function InvitePage() {
+export default function InvitePage({ isOpen = false, onClose = () => {} }) {
 
     function openLoginForm() {
-        closeInvitePage();
+        onClose();
         openForm("login-form");
     }
 
     function openSignupForm() {
-        closeInvitePage();
+        onClose();
         openForm("signup-form");
-    }
-
-    function closeInvitePage() {
-        const invitePage = document.querySelector(".invite");
-        invitePage.classList.remove("active");
     }
 
     const { currentUser, appLanguage, pendingAgendaInviteToken } = useAuth();
     const language = appLanguage || getAppLanguage(currentUser?.language);
 
+    React.useEffect(() => {
+        if (!isOpen) return undefined;
+
+        setPageScrollLocked(true);
+
+        function handleKeyDown(ev) {
+            if (ev.key !== "Escape") return;
+            onClose();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+            setPageScrollLocked(false);
+        };
+    }, [isOpen, onClose]);
+
     return (
-        <div className="invite fixed inset-0 z-[80] h-full w-full pointer-events-none">
+        <div className={`invite ${isOpen ? "active" : ""} fixed inset-0 z-[80] h-full w-full pointer-events-none`}>
 
             <div className="invite-blur fixed top-0 left-0 h-full w-full z-[80]"
                  style={{ backgroundColor: "rgba(5, 5, 5, 0.2)", backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)" }}
-                 onClick={closeInvitePage}></div>
+                 onClick={onClose}></div>
             <div className="invite-page fixed left-1/2 top-1/2 z-[90] flex h-[calc(100vh-1rem)] w-[calc(100%-0.5rem)] max-w-[35rem] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 shadow-xl transition-all sm:h-[calc(100vh-2rem)] sm:w-[32rem] sm:px-8 sm:py-8 lg:h-[calc(100vh-2rem)] lg:w-[35rem] lg:px-10 lg:py-10">
                 <h1 className="max-w-[12ch] text-[32px] font-bold leading-[1.05] tracking-[-0.09em] sm:text-[42px] lg:text-[52px]">
                     {t(language, "aboutHeadline")}
@@ -66,7 +80,7 @@ export default function InvitePage() {
                         <button
                             type="button"
                             className="w-full rounded-full border border-black bg-black px-8 py-3 font-bold text-gray-100 sm:w-auto"
-                            onClick={closeInvitePage}
+                            onClick={onClose}
                         >
                             {t(language, "startNow")}
                         </button>

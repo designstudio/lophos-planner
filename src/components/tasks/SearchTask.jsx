@@ -5,7 +5,7 @@ import { StickerSquare } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { formatDayMonth, getAppLanguage } from "../../scripts/i18n.js";
 
-export default function SearchTask({ data, date, }) {
+export default function SearchTask({ data, date, onSelect = () => {} }) {
     const MAX_TASK_NAME_LENGTH = 34;
     const { currentUser } = useAuth();
     const language = getAppLanguage(currentUser?.language);
@@ -34,8 +34,7 @@ export default function SearchTask({ data, date, }) {
     function handleClick(ev) {
         setStoredWeekShift(weekShift);
         closeForm("search-form");
-        document.getElementById("search-task-name").value = "";
-        document.querySelector(".clear-search").classList.add("hidden");
+        onSelect();
     }
 
     return (

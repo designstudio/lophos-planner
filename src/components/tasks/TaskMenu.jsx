@@ -443,6 +443,70 @@ const TaskMenu = () => {
     }, [tableCellMenuState]);
 
     useEffect(() => {
+        if (!tableCellMenuState?.isOpen) return;
+
+        const menuEl = tableCellMenuRef.current;
+        const focusMenuItem = index => {
+            const menuItems = Array.from(menuEl?.querySelectorAll("button") || []);
+            if (menuItems.length === 0) return;
+            const safeIndex = ((index % menuItems.length) + menuItems.length) % menuItems.length;
+            menuItems[safeIndex]?.focus();
+        };
+
+        const rafId = requestAnimationFrame(() => focusMenuItem(0));
+
+        function handleKeyDown(ev) {
+            if (!tableCellMenuState?.isOpen) return;
+
+            const menuItems = Array.from(menuEl?.querySelectorAll("button") || []);
+            if (menuItems.length === 0) return;
+            const currentIndex = menuItems.indexOf(document.activeElement);
+
+            if (ev.key === "Escape") {
+                ev.preventDefault();
+                setTableCellMenuState(prevState => prevState ? { ...prevState, isOpen: false } : prevState);
+                return;
+            }
+
+            if (ev.key === "ArrowDown") {
+                ev.preventDefault();
+                focusMenuItem(currentIndex === -1 ? 0 : currentIndex + 1);
+                return;
+            }
+
+            if (ev.key === "ArrowUp") {
+                ev.preventDefault();
+                focusMenuItem(currentIndex === -1 ? menuItems.length - 1 : currentIndex - 1);
+                return;
+            }
+
+            if (ev.key === "Home") {
+                ev.preventDefault();
+                focusMenuItem(0);
+                return;
+            }
+
+            if (ev.key === "End") {
+                ev.preventDefault();
+                focusMenuItem(menuItems.length - 1);
+                return;
+            }
+
+            if (ev.key === "Tab") {
+                ev.preventDefault();
+                focusMenuItem(currentIndex === -1 ? 0 : currentIndex + (ev.shiftKey ? -1 : 1));
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            cancelAnimationFrame(rafId);
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [tableCellMenuState]);
+
+    useEffect(() => {
         if (!isSlashMenuOpen) return;
 
         const handlePointerDownOutside = ev => {
@@ -1802,6 +1866,9 @@ const TaskMenu = () => {
                             ref={editorRef}
                             className="task-menu-editor mt-4"
                             contentEditable
+                            role="textbox"
+                            aria-label={t(language, "notesPlaceholder")}
+                            aria-multiline="true"
                             suppressContentEditableWarning
                             data-placeholder={t(language, "notesPlaceholder")}
                             onInput={() => {
@@ -1836,6 +1903,8 @@ const TaskMenu = () => {
                             <div
                                 ref={slashMenuRef}
                                 className="task-inline-menu task-inline-menu-slash"
+                                role="listbox"
+                                aria-label={t(language, "insertElement")}
                                 style={{
                                     top: `${slashMenuPosition.top}px`,
                                     left: `${slashMenuPosition.left}px`,
@@ -1852,6 +1921,8 @@ const TaskMenu = () => {
                                                 key={command.key}
                                                 type="button"
                                                 className={`task-inline-menu-option ${index === selectedSlashIndex ? "is-active" : ""}`}
+                                                role="option"
+                                                aria-selected={index === selectedSlashIndex}
                                                 onMouseEnter={() => setSelectedSlashIndex(index)}
                                                 onMouseDown={ev => {
                                                     if (ev.button !== 0) return;
@@ -1876,6 +1947,8 @@ const TaskMenu = () => {
                         {isMentionMenuOpen && (
                             <div
                                 className="task-inline-menu task-inline-menu-mention"
+                                role="listbox"
+                                aria-label={t(language, "linkTask")}
                                 style={{
                                     top: `${mentionPosition.top}px`,
                                     left: `${mentionPosition.left}px`,
@@ -1887,6 +1960,8 @@ const TaskMenu = () => {
                                             key={task.id}
                                             type="button"
                                             className={`task-inline-menu-option ${index === selectedMentionIndex ? "is-active" : ""}`}
+                                            role="option"
+                                            aria-selected={index === selectedMentionIndex}
                                             onMouseDown={ev => {
                                                 ev.preventDefault();
                                                 insertTaskMention(task);
@@ -2012,7 +2087,7 @@ const TaskMenu = () => {
                                         lockTableUiInteraction();
                                         setTableCellMenuState(prev => prev ? { ...prev, isOpen: !prev.isOpen } : prev);
                                     }}
-                                    aria-label="Cell options"
+                                    aria-label={t(language, "table")}
                                 >
                                     <ChevronDown className="h-[12px] w-[12px]" />
                                 </button>
@@ -2020,29 +2095,31 @@ const TaskMenu = () => {
                                     <div
                                         ref={tableCellMenuRef}
                                         className="task-table-cell-menu option-menu-surface"
+                                        role="menu"
+                                        aria-label="Opções da célula"
                                         style={{
                                             top: `${tableCellMenuState.top + 26}px`,
                                             left: `${Math.max(tableCellMenuState.left - 180, 0)}px`,
                                         }}
                                         onClick={ev => ev.stopPropagation()}
                                     >
-                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("top"); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("top"); }}>
                                             {t(language, "tableAlignTop")}
                                         </button>
-                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("middle"); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("middle"); }}>
                                             {t(language, "tableAlignMiddle")}
                                         </button>
-                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("bottom"); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); setActiveCellVerticalAlign("bottom"); }}>
                                             {t(language, "tableAlignBottom")}
                                         </button>
                                         <div className="task-table-cell-menu-divider" />
-                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableColumn(); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableColumn(); }}>
                                             {t(language, "tableDeleteColumn")}
                                         </button>
-                                        <button type="button" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableRow(); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteSelectedTableRow(); }}>
                                             {t(language, "tableDeleteRow")}
                                         </button>
-                                        <button type="button" className="task-table-cell-menu-option is-danger" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteActiveTable(); }}>
+                                        <button type="button" role="menuitem" className="task-table-cell-menu-option is-danger" onMouseDown={ev => { ev.preventDefault(); lockTableUiInteraction(); deleteActiveTable(); }}>
                                             {t(language, "tableDeleteTable")}
                                         </button>
                                     </div>
@@ -2079,7 +2156,7 @@ const TaskMenu = () => {
                                     className="task-menu-related-links-submit"
                                 >
                                     <span className="text-base leading-none">+</span>
-                                    {editingRelatedLinkIndex === null ? "Add" : t(language, "update")}
+                                    {editingRelatedLinkIndex === null ? t(language, "add") : t(language, "update")}
                                 </button>
                             </div>
                             {editingRelatedLinkIndex !== null && (

@@ -1,10 +1,12 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { updateTask, tryCatchDecorator } from "../scripts/api.js";
-import { clearTaskFromUrl, closeForm, setPageScrollLocked } from "../scripts/utils.js";
+import { clearTaskFromUrl, closeForm, hasOpenModals, isModalOpen, registerModal, setPageScrollLocked, subscribeToModalState } from "../scripts/utils.js";
 
 export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
     const blurRef = useRef(null);
     const openedAtRef = useRef(0);
+    const lastFocusedElementRef = useRef(null);
+    const [isActive, setIsActive] = useState(() => forceActive || isModalOpen(type));
     const topSpacingClass = ["task-menu", "search-form", "share-settings-form", "update-user-form", "invite-collaborator-form", "status-generator-form"].includes(type)
         ? "pt-16"
         : "pt-6";
@@ -18,25 +20,59 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         const el = blurRef.current;
         if (!el) return;
 
+        const unregister = registerModal(type, el);
+
         if (forceActive) {
             openedAtRef.current = Date.now();
             setPageScrollLocked(true);
         }
-
-        const observer = new MutationObserver(() => {
-            if (el.classList.contains('active')) {
-                openedAtRef.current = Date.now();
-            }
-        });
-
-        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
         return () => {
-            observer.disconnect();
-            if (!document.querySelector(".blur-bg.active")) {
+            unregister();
+            if (!hasOpenModals()) {
                 setPageScrollLocked(false);
             }
         };
-    }, [forceActive]);
+    }, [forceActive, type]);
+
+    useEffect(() => {
+        return subscribeToModalState(type, nextIsOpen => {
+            setIsActive(nextIsOpen || forceActive);
+            if (nextIsOpen) {
+                openedAtRef.current = Date.now();
+            }
+        });
+    }, [forceActive, type]);
+
+    useEffect(() => {
+        if (!isActive) {
+            const lastFocusedElement = lastFocusedElementRef.current;
+            if (lastFocusedElement && lastFocusedElement.isConnected) {
+                lastFocusedElement.focus?.();
+            }
+            return;
+        }
+
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLElement && !blurRef.current?.contains(activeElement)) {
+            lastFocusedElementRef.current = activeElement;
+        }
+
+        const focusFirstElement = () => {
+            const focusableElement = blurRef.current?.querySelector(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+
+            if (focusableElement instanceof HTMLElement) {
+                focusableElement.focus();
+                return;
+            }
+
+            blurRef.current?.focus();
+        };
+
+        const rafId = requestAnimationFrame(focusFirstElement);
+        return () => cancelAnimationFrame(rafId);
+    }, [isActive]);
 
     async function closeModal() {
         const selection = typeof window !== "undefined" ? window.getSelection?.() : null;
@@ -121,13 +157,17 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
     }, [forceActive, type]);
 
     return (
-        <div ref={blurRef} data-id={type} className={`blur-bg ${forceActive ? "active" : ""} fixed inset-0 z-[60]
+        <div ref={blurRef} data-id={type} className={`blur-bg ${isActive ? "active" : ""} fixed inset-0 z-[60]
         overflow-y-auto overscroll-contain px-4 ${topSpacingClass} pb-10 transition-all duration-[160ms] ease-linear cursor-default flex justify-center items-start`}
              style={{
                  backgroundColor: "rgba(5, 5, 5, 0.2)",
                  backdropFilter: "blur(2px)",
                  WebkitBackdropFilter: "blur(2px)",
              }}
+             role="dialog"
+             aria-modal="true"
+             aria-hidden={!isActive}
+             tabIndex={-1}
              onClick={handleTaskMenuClose} >
             { children }
         </div>

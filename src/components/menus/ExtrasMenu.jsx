@@ -1,36 +1,30 @@
 import {ExtrasMenuBtn} from "./ExtrasMenuBtn.jsx";
-import {useEffect, useRef} from "react";
+import {useRef} from "react";
 import { openForm } from "../../scripts/utils.js";
 import { SearchMd, Send01, Globe02 } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import OptionMenuSelect from "../ui/OptionMenuSelect.jsx";
 
-export default function ExtrasMenu() {
+export default function ExtrasMenu({ isOpen = false, style = {}, onClose = () => {}, onOpenAbout = () => {} }) {
     const { currentUser, appLanguage, setLanguagePreference, agendas } = useAuth();
     const language = appLanguage || getAppLanguage(currentUser?.language);
     const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
     const extrasMenuRef = useRef(null);
 
-    function closeExtrasMenu() {
-        const extrasMenu = document.querySelector(".extras-menu");
-        extrasMenu.classList.remove("active");
-    }
-
     function openInvitePage() {
-        const invitePage = document.querySelector(".invite");
-        invitePage.classList.add("active");
-        closeExtrasMenu();
+        onOpenAbout();
+        onClose();
     }
 
     function openSearchForm() {
         openForm("search-form");
-        closeExtrasMenu();
+        onClose();
     }
 
     function openShareForm() {
         openForm("share-settings-form");
-        closeExtrasMenu();
+        onClose();
     }
 
     const extrasBtns = [
@@ -52,30 +46,11 @@ export default function ExtrasMenu() {
         ] : []),
     ];
 
-    useEffect(() => {
-        function handleClick() {
-            const extrasMenu = document.querySelector(".extras-menu");
-            extrasMenu?.classList.remove("active");
-        }
-
-        function handleScroll() {
-            const extrasMenu = document.querySelector(".extras-menu");
-            extrasMenu?.classList.remove("active");
-        }
-
-        window.addEventListener("click", handleClick);
-        window.addEventListener("scroll", handleScroll, { passive: true });
-
-        return () => {
-            window.removeEventListener("click", handleClick);
-            window.removeEventListener("scroll", handleScroll);
-        };
-    }, []);
-
     return (
         <div
             ref={extrasMenuRef}
-            className="extras-menu option-menu-surface text-black dark:bg-stone-800 dark:text-white w-48 p-1.5 text-center"
+            className={`extras-menu ${isOpen ? "active" : ""} option-menu-surface text-black dark:bg-stone-800 dark:text-white w-48 p-1.5 text-center`}
+            style={style}
             onClick={ev => ev.stopPropagation()}>
             <ul className="px-0.5">
                 {

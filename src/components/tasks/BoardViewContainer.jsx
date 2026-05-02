@@ -158,8 +158,12 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                 }, 0);
             }}
         >
-            <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`} onClick={openTaskMenu}>
-                <div className={`relative min-w-0 flex-1 ${isTaskNameTruncated ? "group/task-title" : ""}`}>
+            <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`}>
+                <button
+                    type="button"
+                    className={`relative min-w-0 flex-1 text-left ${isTaskNameTruncated ? "group/task-title" : ""}`}
+                    onClick={openTaskMenu}
+                >
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] ${isTaskDone ? "opacity-40 line-through" : ""}`}>
                         {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                         {relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
@@ -170,7 +174,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                             {task.name}
                         </p>
                     )}
-                </div>
+                </button>
                 {taskType !== "meeting" && (
                     <button
                         type="button"
@@ -180,7 +184,6 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                             onToggleDone(task.id);
                         }}
                         aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
-                        title={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
                         <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
                     </button>

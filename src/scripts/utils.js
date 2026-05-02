@@ -47,12 +47,86 @@ export function matchesShortId(fullValue, shortValue) {
 export const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 let modalAnimationToken = 0;
 const modalCloseTimers = new WeakMap();
+const modalRegistry = new Map();
 let modalRecoveryListenersBound = false;
 let modalRecoveryRafId = null;
 const MODAL_OPEN_DURATION_MS = 160;
 const MODAL_CLOSE_DURATION_MS = 160;
 const MODAL_CLOSE_FALLBACK_MS = 200;
 const MODAL_TRANSLATE_Y_PX = 24;
+
+function getOrCreateModalEntry(modalId) {
+    const existingEntry = modalRegistry.get(modalId);
+    if (existingEntry) return existingEntry;
+
+    const nextEntry = {
+        element: null,
+        isOpen: false,
+        subscribers: new Set(),
+    };
+    modalRegistry.set(modalId, nextEntry);
+    return nextEntry;
+}
+
+function cleanupModalEntry(modalId) {
+    const entry = modalRegistry.get(modalId);
+    if (!entry) return;
+    if (entry.element || entry.subscribers.size > 0 || entry.isOpen) return;
+    modalRegistry.delete(modalId);
+}
+
+function setModalOpenState(modalId, isOpen) {
+    const entry = getOrCreateModalEntry(modalId);
+    if (entry.isOpen === isOpen) return;
+
+    entry.isOpen = isOpen;
+    entry.subscribers.forEach(callback => {
+        callback(isOpen);
+    });
+}
+
+function getRegisteredModalElement(modalId) {
+    return modalRegistry.get(modalId)?.element || null;
+}
+
+export function hasOpenModals() {
+    for (const entry of modalRegistry.values()) {
+        if (entry.isOpen) return true;
+    }
+
+    return false;
+}
+
+export function registerModal(modalId, element) {
+    const entry = getOrCreateModalEntry(modalId);
+    entry.element = element;
+
+    return () => {
+        const currentEntry = modalRegistry.get(modalId);
+        if (!currentEntry) return;
+        if (currentEntry.element === element) {
+            currentEntry.element = null;
+        }
+        cleanupModalEntry(modalId);
+    };
+}
+
+export function subscribeToModalState(modalId, callback) {
+    const entry = getOrCreateModalEntry(modalId);
+    entry.subscribers.add(callback);
+    callback(entry.isOpen);
+
+    return () => {
+        const currentEntry = modalRegistry.get(modalId);
+        if (!currentEntry) return;
+        currentEntry.subscribers.delete(callback);
+        cleanupModalEntry(modalId);
+    };
+}
+
+export function isModalOpen(modalId) {
+    return Boolean(modalRegistry.get(modalId)?.isOpen);
+}
 
 function scheduleRecoverZombieBlurs() {
     if (typeof window === "undefined") return;
@@ -72,6 +146,7 @@ function hardResetBlurState(blurEl, blurId) {
     panel?.getAnimations().forEach(animation => animation.cancel());
 
     blurEl.classList.remove("active");
+    setModalOpenState(blurId, false);
     blurEl.dataset.closing = "false";
     blurEl.dataset.closeStartedAt = "";
     blurEl.style.opacity = "";
@@ -86,11 +161,9 @@ function hardResetBlurState(blurEl, blurId) {
 }
 
 function recoverZombieBlurs() {
-    const activeBlurs = document.querySelectorAll(".blur-bg.active");
-
-    activeBlurs.forEach(blurEl => {
-        const blurId = blurEl.getAttribute("data-id");
-        if (!blurId) return;
+    modalRegistry.forEach((entry, blurId) => {
+        const blurEl = entry.element;
+        if (!blurEl || !entry.isOpen) return;
 
         const panel = blurEl.querySelector(`.${blurId}`);
         const panelStyle = panel ? window.getComputedStyle(panel) : null;
@@ -140,20 +213,18 @@ export async function formTransition(from, to) {
 export function openForm(formBlurId) {
     ensureModalRecoveryListeners();
     setPageScrollLocked(true);
+    setModalOpenState(formBlurId, true);
 
-    document.querySelector(".profile-menu")?.classList.remove("active");
-    document.querySelector(".extras-menu")?.classList.remove("active");
-
-    document.querySelectorAll(".blur-bg").forEach(blurEl => {
-        const blurId = blurEl.getAttribute("data-id");
-        if (!blurId || blurId === formBlurId) return;
+    modalRegistry.forEach((entry, blurId) => {
+        const blurEl = entry.element;
+        if (!blurEl || blurId === formBlurId) return;
 
         if (blurEl.classList.contains("active") || blurEl.dataset.closing === "true") {
             hardResetBlurState(blurEl, blurId);
         }
     });
 
-    const formBlur = document.querySelector(`[data-id='${formBlurId}']`);
+    const formBlur = getRegisteredModalElement(formBlurId);
     if (!formBlur) return;
 
     const pendingCloseTimer = modalCloseTimers.get(formBlur);
@@ -181,6 +252,7 @@ export function openForm(formBlurId) {
     formBlur.dataset.animationToken = String(++modalAnimationToken);
     formBlur.dataset.closing = "false";
     formBlur.classList.add("active");
+    setModalOpenState(formBlurId, true);
     formBlur.scrollTop = 0;
     setPageScrollLocked(true);
 
@@ -208,8 +280,9 @@ export function openForm(formBlurId) {
 
 export function closeForm(formBlurId) {
     ensureModalRecoveryListeners();
+    setModalOpenState(formBlurId, false);
 
-    const fromForm = document.querySelector(`.blur-bg[data-id="${formBlurId}"]`);
+    const fromForm = getRegisteredModalElement(formBlurId);
     if (!fromForm) return Promise.resolve();
 
     if (!fromForm.classList.contains("active")) {
@@ -219,6 +292,7 @@ export function closeForm(formBlurId) {
             modalCloseTimers.delete(fromForm);
         }
         fromForm.classList.remove("active");
+        setModalOpenState(formBlurId, false);
         fromForm.dataset.closing = "false";
         fromForm.dataset.closeStartedAt = "";
         return Promise.resolve();
@@ -264,9 +338,10 @@ export function closeForm(formBlurId) {
         }
         fromForm.style.opacity = "";
         fromForm.classList.remove("active");
+        setModalOpenState(formBlurId, false);
         fromForm.dataset.closing = "false";
         fromForm.dataset.closeStartedAt = "";
-        if (!document.querySelector(".blur-bg.active")) {
+        if (!hasOpenModals()) {
             setPageScrollLocked(false);
         }
     };

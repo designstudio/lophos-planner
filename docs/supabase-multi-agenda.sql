@@ -143,6 +143,12 @@ as $$
         bc.created_at
     from public.board_columns bc
     where bc.agenda_id = p_agenda_id
+      and exists (
+          select 1
+          from public.agenda_members am
+          where am.agenda_id = p_agenda_id
+            and am.uid = auth.uid()
+      )
     order by
         bc.sort_order asc,
         bc.created_at asc,
@@ -153,7 +159,6 @@ revoke all on function public.get_agenda_board_columns(uuid) from public;
 revoke all on function public.get_agenda_board_columns(uuid) from anon;
 revoke all on function public.get_agenda_board_columns(uuid) from authenticated;
 
-grant execute on function public.get_agenda_board_columns(uuid) to anon;
 grant execute on function public.get_agenda_board_columns(uuid) to authenticated;
 
 insert into public.board_columns (id, uid, agenda_id, title, sort_order, hidden)
@@ -264,11 +269,18 @@ as $$
     from public.agendas a
     inner join public.agenda_members am
         on am.agenda_id = a.id
-       and am.uid = coalesce(p_user_id, auth.uid())
+       and am.uid = auth.uid()
+    where coalesce(p_user_id, auth.uid()) = auth.uid()
     order by
         (am.role = 'owner') desc,
         a.created_at asc;
 $$;
+
+revoke all on function public.get_user_agendas(uuid) from public;
+revoke all on function public.get_user_agendas(uuid) from anon;
+revoke all on function public.get_user_agendas(uuid) from authenticated;
+
+grant execute on function public.get_user_agendas(uuid) to authenticated;
 
 create or replace function public.get_agenda_members(p_agenda_id uuid)
 returns table (
@@ -295,10 +307,22 @@ as $$
     left join public.users u
         on u.id = am.uid
     where am.agenda_id = p_agenda_id
+      and exists (
+          select 1
+          from public.agenda_members caller_membership
+          where caller_membership.agenda_id = p_agenda_id
+            and caller_membership.uid = auth.uid()
+      )
     order by
         (am.role = 'owner') desc,
         am.created_at asc;
 $$;
+
+revoke all on function public.get_agenda_members(uuid) from public;
+revoke all on function public.get_agenda_members(uuid) from anon;
+revoke all on function public.get_agenda_members(uuid) from authenticated;
+
+grant execute on function public.get_agenda_members(uuid) to authenticated;
 
 -- 7) RLS
 alter table public.agendas enable row level security;

@@ -3,7 +3,7 @@ import Blur from "../Blur.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { createTask, getAgendaTasks, getBoardColumns, tryCatchDecorator } from "../../scripts/api.js";
-import { getStoredWeekShift, parseDateOnly } from "../../scripts/utils.js";
+import { getStoredWeekShift, parseDateOnly, subscribeToModalState } from "../../scripts/utils.js";
 import {
     buildStatusHistoryTaskPayload,
     buildStatusText,
@@ -97,22 +97,10 @@ export default function StatusGeneratorForm() {
     }, [currentUser?.uid, currentUser?.currentAgendaId, currentUser?.weekStartsOn, language]);
 
     React.useEffect(() => {
-        const blurEl = modalRef.current?.closest('.blur-bg[data-id="status-generator-form"]');
-        if (!blurEl) return undefined;
-
-        const runGeneration = () => {
-            if (!blurEl.classList.contains("active")) return;
+        return subscribeToModalState("status-generator-form", isOpen => {
+            if (!isOpen) return;
             void generateStatus();
-        };
-
-        if (blurEl.classList.contains("active")) {
-            runGeneration();
-        }
-
-        const observer = new MutationObserver(runGeneration);
-        observer.observe(blurEl, { attributes: true, attributeFilter: ["class"] });
-
-        return () => observer.disconnect();
+        });
     }, [generateStatus]);
 
     React.useEffect(() => {
