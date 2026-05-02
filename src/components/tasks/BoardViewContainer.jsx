@@ -368,7 +368,7 @@ function BoardColumn({
                             {canDelete && (
                                 <button
                                     type="button"
-                                    className="board-column-menu-item"
+                                    className="board-column-menu-item is-danger"
                                     onClick={() => {
                                         onDeleteColumn(column.id);
                                         setIsMenuOpen(false);

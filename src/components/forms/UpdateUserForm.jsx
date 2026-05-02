@@ -445,7 +445,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                         <button
                             type="button"
-                            className="app-button-hover my-2 rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:opacity-100"
+                            className="app-button-hover my-2 rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:text-[#b80531] hover:opacity-100"
                             onClick={openDeleteAccountModal}
                         >
                             <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAccount")}

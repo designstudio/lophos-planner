@@ -298,7 +298,8 @@ body[data-scroll-locked="true"],
     }
 
     .task-menu-delete-btn:hover {
-        background-color: rgba(237, 237, 242, 1);
+        color: #b80531;
+        background-color: #ea00381a;
     }
 
     .task-menu-date-trigger {
@@ -807,6 +808,11 @@ body[data-scroll-locked="true"],
         background-color: #f2f2f2;
     }
 
+    .board-column-menu-item.is-danger:hover:not(:disabled) {
+        color: #b80531;
+        background-color: #ea00381a;
+    }
+
     .board-column-menu-item:disabled {
         opacity: 0.35;
         cursor: not-allowed;
@@ -1248,6 +1254,11 @@ body[data-scroll-locked="true"],
 
     .task-table-cell-menu-option.is-danger {
         color: #dc2626;
+    }
+
+    .task-table-cell-menu-option.is-danger:hover {
+        color: #b80531;
+        background: #ea00381a;
     }
 
     .task-table-cell-menu-divider {
