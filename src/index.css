@@ -465,7 +465,12 @@ body[data-scroll-locked="true"],
         line-height: 1.2;
         font-weight: 800;
         letter-spacing: -0.04em;
-        color: #111827;
+        color: #000000;
+        transition: opacity 0.15s ease;
+    }
+
+    .header-month-overview-month-title:hover {
+        opacity: 0.72;
     }
 
     .header-month-overview-controls {
@@ -477,12 +482,12 @@ body[data-scroll-locked="true"],
     .header-month-overview-controls .task-menu-calendar-nav {
         width: 40px;
         height: 40px;
-        background-color: #111827;
+        background-color: #000000;
         color: #ffffff;
     }
 
     .header-month-overview-controls .task-menu-calendar-nav:hover {
-        background-color: #111827;
+        background-color: #000000;
         opacity: 0.82;
     }
 
@@ -542,7 +547,7 @@ body[data-scroll-locked="true"],
         padding: 0.1rem 0.1rem 0.2rem;
         border-radius: 0;
         font-size: 0.9rem;
-        color: #111827;
+        color: #000000;
         transition: color 0.15s ease;
         background-color: transparent;
     }

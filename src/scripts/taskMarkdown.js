@@ -140,7 +140,7 @@ export function renderTaskMarkdown(markdown) {
 function prefixMarkdownBlock(markdown) {
     return (markdown || "")
         .split("\n")
-        .map(line => `> ${line}`.trimEnd())
+        .map(line => `> ${line}`)
         .join("\n");
 }
 
@@ -159,6 +159,13 @@ export function createTaskTurndownService() {
         emDelimiter: "*",
         strongDelimiter: "**",
         headingStyle: "atx",
+    });
+
+    turndownService.addRule("lineBreak", {
+        filter: "br",
+        replacement() {
+            return "  \n";
+        },
     });
 
     turndownService.addRule("taskCallout", {
