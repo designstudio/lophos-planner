@@ -119,6 +119,60 @@ function isSelectionInsideEditor(editorEl, selection) {
     );
 }
 
+function isEditorLineEmpty(element) {
+    if (!element) return false;
+
+    const normalizedText = (element.textContent || "")
+        .replace(/\u200B/g, "")
+        .replace(/\u00A0/g, " ")
+        .trim();
+
+    if (normalizedText.length > 0) return false;
+
+    return !element.querySelector("img, svg, table, .task-callout, .task-table-shell");
+}
+
+function placeCaretAtStart(element) {
+    if (!element) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+function exitBlockquoteOnEmptyLine(editorEl) {
+    const selection = window.getSelection();
+    if (!editorEl || !selection || selection.rangeCount === 0 || !selection.isCollapsed) return false;
+    if (!isSelectionInsideEditor(editorEl, selection)) return false;
+
+    const focusElement = getElementFromNode(selection.focusNode);
+    const blockquoteEl = focusElement?.closest("blockquote");
+    if (!blockquoteEl || !editorEl.contains(blockquoteEl)) return false;
+
+    const currentLineEl = focusElement?.closest("p, div");
+    if (!currentLineEl || !blockquoteEl.contains(currentLineEl) || !isEditorLineEmpty(currentLineEl)) return false;
+
+    const exitParagraph = document.createElement("p");
+    exitParagraph.appendChild(document.createElement("br"));
+
+    const hasOtherQuoteLines = Array.from(blockquoteEl.children).some(child => child !== currentLineEl);
+
+    if (hasOtherQuoteLines) {
+        currentLineEl.remove();
+        blockquoteEl.insertAdjacentElement("afterend", exitParagraph);
+    } else {
+        blockquoteEl.replaceWith(exitParagraph);
+    }
+
+    placeCaretAtStart(exitParagraph);
+    return true;
+}
+
 function getActiveEditorFormats(editorEl) {
     const selection = window.getSelection();
     const emptyState = {
@@ -1398,6 +1452,18 @@ const TaskMenu = () => {
     }
 
     function handleEditorKeyDown(ev) {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+            const didExitBlockquote = exitBlockquoteOnEmptyLine(editorRef.current);
+            if (didExitBlockquote) {
+                ev.preventDefault();
+                syncEditorToMarkdown();
+                syncActiveEditorFormats();
+                syncMentionMenu();
+                syncSlashMenu();
+                return;
+            }
+        }
+
         if (isSlashMenuOpen) {
             if (slashSuggestions.length === 0) {
                 if (ev.key === "Escape") {
