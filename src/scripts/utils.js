@@ -106,6 +106,12 @@ export function registerModal(modalId, element) {
         if (!currentEntry) return;
         if (currentEntry.element === element) {
             currentEntry.element = null;
+            if (currentEntry.isOpen) {
+                currentEntry.isOpen = false;
+                currentEntry.subscribers.forEach(callback => {
+                    callback(false);
+                });
+            }
         }
         cleanupModalEntry(modalId);
     };
