@@ -9,7 +9,7 @@ create table if not exists public.agendas (
     uid uuid not null references public.users(id) on delete cascade,
     name text not null,
     avatar text,
-    color text not null default '#3b82f6',
+    color text not null default 'var(--color-brand-accent)',
     sort_completed_tasks boolean not null default true,
     related_links_enabled boolean not null default true,
     share_token text,
@@ -21,7 +21,7 @@ alter table public.agendas
     add column if not exists avatar text;
 
 alter table public.agendas
-    add column if not exists color text not null default '#3b82f6';
+    add column if not exists color text not null default 'var(--color-brand-accent)';
 
 alter table public.agendas
     add column if not exists sort_completed_tasks boolean not null default true;

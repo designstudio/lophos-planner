@@ -64,7 +64,7 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
             ev.target.value = "";
             const result = await tryCatchDecorator(createTask)({
                 name: formData.get("add-task-name"),
-                color: "white text-black dark:text-white dark:bg-black",
+                color: "ds-background-surface text-ds-text-default",
                 date: formDate(date),
                 uid: currentUser.uid,
                 agenda_id: currentUser.currentAgendaId,
@@ -92,7 +92,7 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
                     curInput.value = "";
                     const result = await tryCatchDecorator(createTask)({
                         name: formData.get("add-task-name"),
-                        color: "white text-black dark:text-white dark:bg-black",
+                        color: "ds-background-surface text-ds-text-default",
                         date: formDate(date),
                         uid: currentUser.uid,
                         agenda_id: currentUser.currentAgendaId,

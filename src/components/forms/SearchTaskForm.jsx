@@ -73,11 +73,10 @@ export default function SearchTaskForm() {
         <Blur bgColor="bg-black" type="search-form">
             <div
                 ref={modalRef}
-                className="search-form relative bg-white rounded-xl p-4 lg:p-8 w-[28rem]
-                z-20 text-gray-600 transition-all duration-[160ms] ease-linear"
+                className="search-form ds-modal-shell relative z-20 w-[28rem] p-4 transition-all duration-[160ms] ease-linear lg:p-8"
                 onClick={ev => ev.stopPropagation()}
             >
-                <h3 className="font-bold text-xl tracking-tight">{t(language, "search")}</h3>
+                <h3 className="ds-type-h4 text-ds-text-default">{t(language, "search")}</h3>
 
                 <form className="relative" onSubmit={ev => ev.preventDefault()}>
                     <label htmlFor="search-task-name" className="sr-only">
@@ -85,14 +84,13 @@ export default function SearchTaskForm() {
                     </label>
                     <input
                         ref={inputRef}
-                        className="my-6 w-full border-b bg-transparent py-1 focus:outline-none"
+                        className="ds-input-line my-6 py-1"
                         type="text"
                         name="search-task-name"
                         id="search-task-name"
                         aria-label={t(language, "search")}
                         value={query}
                         onChange={handleSearchChange}
-                        style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
                     />
 
                     <button

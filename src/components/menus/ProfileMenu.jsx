@@ -47,19 +47,19 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
     }
 
     return (
-        <div className={`profile-menu ${isOpen ? "active" : ""} option-menu-surface text-black dark:bg-stone-800 dark:text-white w-64 p-4 -translate-x-[50%] text-center`}
-             style={style}
+        <div className={`profile-menu ${isOpen ? "active" : ""} option-menu-surface rounded-ds-xl text-ds-text-default w-64 p-4 -translate-x-[50%] text-center`}
+             style={{ ...style, borderRadius: "var(--radius-xl)" }}
              onClick={ev => ev.stopPropagation()}>
             <div className="text-left pb-3">
-                <h4 className="truncate text-[16px] font-semibold leading-5 text-black dark:text-white">
+                <h4 className="ds-type-body truncate font-semibold text-ds-text-default">
                     {currentUser?.name}
                 </h4>
-                <p className="truncate text-[13px] leading-5 text-[#858585]">
+                <p className="ds-type-caption truncate text-ds-text-subtle">
                     {currentUser?.email}
                 </p>
             </div>
 
-            <div className="border-t border-[rgba(0,0,0,0.12)]" />
+            <div className="border-t border-ds-border-default" />
 
             <div className="mt-3 space-y-2 text-left">
                 {orderedAgendas.map(agenda => (
@@ -69,12 +69,21 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
                         return (
                     <div
                         key={agenda.id}
-                        className={`rounded-md px-3 py-2 transition-colors duration-150 ${isActive ? "agenda-accent-soft-bg" : "bg-white hover:agenda-accent-soft-bg"}`}
+                        className={`rounded-ds-lg px-3 py-2 transition-colors duration-150 ${isActive ? "agenda-accent-soft-bg" : "bg-ds-background-surface hover:agenda-accent-soft-bg"}`}
+                        style={{ borderRadius: "var(--radius-lg)" }}
                     >
                         <div className="flex items-center justify-between gap-2">
-                            <div className={`h-6 w-6 shrink-0 rounded-full bg-white text-center text-[12px] leading-6 text-black ${isImageAvatar((agenda.avatar || "").trim()) ? "" : "border border-black/30"}`}>
+                            <div
+                                className={`flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-ds-full bg-ds-background-surface text-center ds-type-caption text-ds-text-default ${isImageAvatar((agenda.avatar || "").trim()) ? "" : "border border-ds-border-strong"}`}
+                                style={{ borderRadius: "var(--radius-full)" }}
+                            >
                                 {isImageAvatar((agenda.avatar || "").trim()) ? (
-                                    <img src={agenda.avatar} alt={agenda.name} className="h-full w-full rounded-full object-cover" />
+                                    <img
+                                        src={agenda.avatar}
+                                        alt={agenda.name}
+                                        className="h-full w-full rounded-ds-full object-cover"
+                                        style={{ borderRadius: "var(--radius-full)" }}
+                                    />
                                 ) : (
                                     (agenda.name || "A").trim().slice(0, 1).toUpperCase()
                                 )}
@@ -82,7 +91,7 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
                             <button
                                 type="button"
                                 onClick={async () => await handleSwitchAgenda(agenda.id)}
-                                className={`flex-1 truncate text-left text-[14px] leading-5 text-black ${isActive ? "font-bold" : "font-normal"}`}
+                                className={`ds-type-body-sm flex-1 truncate text-left text-ds-text-default ${isActive ? "font-bold" : "font-normal"}`}
                             >
                                 {agenda.name}
                             </button>
@@ -90,8 +99,12 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
                                 <button
                                     type="button"
                                     onClick={async () => await openAgendaSettingsFor(agenda.id)}
-                                    className="rounded-full px-3 py-1 text-[12px] text-black"
-                                    style={{ backgroundColor: 'var(--agenda-accent-soft)' }}
+                                    className="ds-type-caption inline-flex min-h-[28px] items-center justify-center rounded-ds-full px-3 py-1 text-ds-text-default"
+                                    style={{
+                                        backgroundColor: "var(--agenda-accent-soft)",
+                                        borderRadius: "var(--radius-full)",
+                                        lineHeight: "1",
+                                    }}
                                 >
                                     {t(language, "settings")}
                                 </button>
@@ -106,12 +119,17 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
             <button
                 type="button"
                 onClick={openCreateAgendaForm}
-                className="app-button-hover mt-3 w-full rounded-full bg-black px-3 py-1.5 text-[14px] font-[700] text-white"
+                className="ds-button-primary ds-type-button app-button-hover mt-3 w-full px-3 py-1.5"
+                style={{
+                    backgroundColor: "var(--color-text-default)",
+                    color: "var(--color-text-inverse)",
+                    borderRadius: "var(--radius-full)",
+                }}
             >
                 {t(language, "newAgenda")}
             </button>
 
-            <div className="mt-3 flex w-full justify-between border-t border-[#e5e5e5] pt-4 pb-1 text-sm dark:border-gray-700">
+            <div className="ds-type-body-sm mt-3 flex w-full justify-between border-t border-ds-border-default pt-4 pb-1">
                 <button
                     type="button"
                     onClick={openUpdateUserForm}

@@ -349,10 +349,10 @@ const Header = ({ onOpenAbout = () => {} }) => {
 
     function getTaskChipClassName(task) {
         const color = (task?.color || "").toString();
-        if (color.includes("amber-500")) return "bg-amber-500 text-black";
-        if (color.includes("green-500")) return "bg-green-500 text-white";
-        if (color.includes("red-500")) return "bg-rose-500 text-white";
-        return "bg-[rgba(244,244,247,1)] text-black dark:bg-black dark:text-white";
+        if (color.includes("amber-500")) return "bg-ds-warning-solid text-ds-text-on-accent";
+        if (color.includes("green-500")) return "bg-ds-success-solid text-ds-text-inverse";
+        if (color.includes("red-500")) return "bg-ds-danger-solid text-ds-text-inverse";
+        return "bg-ds-background-surface-muted text-ds-text-default";
     }
 
     const monthLabel = React.useMemo(() => {
@@ -387,30 +387,35 @@ const Header = ({ onOpenAbout = () => {} }) => {
 
     const headerBtns = [
         {
-            textColor: "text-black dark:text-black",
-            bgColor: "bg-[#f2f2f2] dark:bg-[#f2f2f2]",
+            textColor: "text-ds-text-default",
+            bgColor: "bg-ds-background-surface-muted",
+            backgroundColor: "var(--color-bg-surface-muted)",
             icon: Star06,
             tooltip: t(language, "generateStatus"),
             onClick: () => openForm("status-generator-form"),
         },
         {
-            textColor: "text-gray-900 dark:text-white",
-            bgColor: "",
+            textColor: "text-ds-text-default",
+            bgColor: "bg-ds-background-surface-muted",
+            backgroundColor: "var(--color-bg-surface-muted)",
             icon: DotsVertical,
             tooltip: t(language, "extras"),
             onClick: openExtrasMenu,
-            style: { backgroundColor: '#f2f2f2' },
         },
         {
-            textColor: "text-white dark:text-gray-100",
-            bgColor: "bg-black dark:bg-black",
+            textColor: "text-ds-text-inverse",
+            iconColor: "var(--color-text-inverse)",
+            bgColor: "bg-ds-text-default",
+            backgroundColor: "var(--color-text-default)",
             icon: ChevronLeft,
             onClick: toPrevWeek,
             className: "ml-4",
         },
         {
-            textColor: "text-white dark:text-gray-100",
-            bgColor: "bg-black dark:bg-black",
+            textColor: "text-ds-text-inverse",
+            iconColor: "var(--color-text-inverse)",
+            bgColor: "bg-ds-text-default",
+            backgroundColor: "var(--color-text-default)",
             icon: ChevronRight,
             onClick: toNextWeek,
         },
@@ -419,12 +424,12 @@ const Header = ({ onOpenAbout = () => {} }) => {
     const monthName = new Intl.DateTimeFormat(locale, { month: "long" }).format(newDate);
     return (
         <header
-            className="max-container flex justify-between items-center w-full gap-6 padding-x py-4 pb-3 lg:py-5 lg:pb-3 max-lg:py-6 max-lg:pb-3 bg-white max-lg:sticky max-lg:top-0 z-50
-            dark:bg-gray-800 dark:text-white dark:border-gray-700">
+            className="max-container flex justify-between items-center w-full gap-6 padding-x py-4 pb-3 lg:py-5 lg:pb-3 max-lg:py-6 max-lg:pb-3 max-lg:sticky max-lg:top-0 z-50
+            bg-ds-background-surface text-ds-text-default">
             <div className="relative" ref={calendarRef}>
                 <button
                     type="button"
-                    className="header-month-trigger text-[22px] font-bold leading-[28px] tracking-[-0.5px] capitalize text-black dark:text-white lg:text-[36px] lg:leading-[42px]"
+                    className="header-month-trigger ds-type-h1 capitalize text-ds-text-default"
                     onClick={() => setIsCalendarOpen(prev => !prev)}
                     aria-label={t(language, "changeTaskDate")}
                     aria-expanded={isCalendarOpen}
@@ -504,20 +509,25 @@ const Header = ({ onOpenAbout = () => {} }) => {
                                                             </span>
                                                             <div className="header-month-overview-day-chips">
                                                                 {dayItem.holidayName && (
-                                                                    <span
-                                                                        className="header-month-overview-holiday-chip"
-                                                                        title={dayItem.holidayName}
-                                                                    >
-                                                                        {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                    <span className="relative inline-flex max-w-full group/header-holiday-chip">
+                                                                        <span className="header-month-overview-holiday-chip">
+                                                                            {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                        </span>
+                                                                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/header-holiday-chip:opacity-100 group-hover/header-holiday-chip:delay-[700ms]">
+                                                                            {dayItem.holidayName}
+                                                                        </p>
                                                                     </span>
                                                                 )}
                                                                 {(calendarTasksByDate[dayItem.key] || []).slice(0, 4).map(task => (
-                                                                    <span
-                                                                        key={task.id}
-                                                                        className={`header-month-overview-task-chip ${getTaskChipClassName(task)} ${task?.done ? "opacity-50 line-through" : ""}`}
-                                                                        title={task.name}
-                                                                    >
-                                                                        {task.name}
+                                                                    <span key={task.id} className="relative inline-flex max-w-full group/header-task-chip">
+                                                                        <span
+                                                                            className={`header-month-overview-task-chip ${getTaskChipClassName(task)} ${task?.done ? "opacity-50 line-through" : ""}`}
+                                                                        >
+                                                                            {task.name}
+                                                                        </span>
+                                                                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/header-task-chip:opacity-100 group-hover/header-task-chip:delay-[700ms]">
+                                                                            {task.name}
+                                                                        </p>
                                                                     </span>
                                                                 ))}
                                                                 {(calendarTasksByDate[dayItem.key] || []).length > 4 && (
@@ -546,7 +556,7 @@ const Header = ({ onOpenAbout = () => {} }) => {
                 {currentUser ?
                     <button
                         type="button"
-                        className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible rounded-full bg-[#f2f2f2] text-black dark:bg-[#f2f2f2] dark:text-black"
+                        className="app-button-hover profile-menu-btn relative group flex h-10 w-10 items-center justify-center overflow-visible bg-ds-background-surface-muted text-ds-text-default"
                         onClick={openProfileMenu}
                         aria-label={t(language, "profile")}
                         aria-expanded={activeMenu === "profile"}
@@ -560,11 +570,11 @@ const Header = ({ onOpenAbout = () => {} }) => {
                         </span>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]
         whitespace-nowrap opacity-0 group-hover:opacity-100 transition ease-linear duration-200
-         text-white tooltip-surface rounded text-xs p-1 pointer-events-none z-50">{t(language, "profile")}</p>
+         text-ds-text-inverse tooltip-surface ds-type-caption p-1 pointer-events-none z-50">{t(language, "profile")}</p>
                     </button>
                     : <HeaderBtn {...{
-                        textColor: "text-gray-900 dark:text-white",
-                        bgColor: "bg-blue-200 dark:bg-blue-700",
+                        textColor: "text-ds-text-default",
+                        bgColor: "bg-ds-brand-accent-subtle",
                         icon: User03,
                         onClick: openLoginForm,
                         tooltip: t(language, "login"),

@@ -715,7 +715,7 @@ function AuthProvider({ children }) {
         }
     }
 
-    async function createAgenda(name, avatar = "", color = "#3b82f6", options = {}) {
+    async function createAgenda(name, avatar = "", color = "var(--color-brand-accent)", options = {}) {
         if (!currentUser?.uid) {
             return { type: 'error', errorMessage: 'User session not found.' };
         }
@@ -761,7 +761,7 @@ function AuthProvider({ children }) {
         }));
     }
 
-    async function renameAgenda(agendaId, name, avatar = "", color = "#3b82f6", sortCompletedTasks = null, relatedLinksEnabled = null) {
+    async function renameAgenda(agendaId, name, avatar = "", color = "var(--color-brand-accent)", sortCompletedTasks = null, relatedLinksEnabled = null) {
         if (!currentUser?.uid || !agendaId) {
             return { type: 'error', errorMessage: 'Agenda not found.' };
         }

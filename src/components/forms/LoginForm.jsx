@@ -65,14 +65,14 @@ export default function LoginForm() {
     return (
         <Blur type="login-form">
             <div
-                className="login-form relative top-4 z-20 mx-auto w-full max-w-[512px] rounded-[24px] bg-[rgb(250,250,252)] p-6 text-black shadow-lg outline-none"
+                className="login-form ds-modal-shell relative top-4 z-20 mx-auto w-full max-w-[512px] p-6 outline-none"
                 onClick={ev => ev.stopPropagation()}
             >
                 <div className="w-full flex justify-between items-center mb-6">
-                    <h3 className="text-[21px] font-bold leading-[1.333333] tracking-[-0.5px] text-black">Oi! {t(language, "welcomeBack")}</h3>
+                    <h3 className="ds-type-h4 text-ds-text-default">Oi! {t(language, "welcomeBack")}</h3>
                     <button
                         type="button"
-                        className="inline-flex h-10 items-center justify-center rounded-full bg-[rgba(17,24,39,0.06)] px-5 text-sm font-bold leading-none text-black transition-opacity duration-150 hover:opacity-80"
+                        className="ds-type-button inline-flex h-10 items-center justify-center rounded-full bg-ds-background-surface-muted px-5 text-ds-text-default transition-opacity duration-150 hover:opacity-80"
                         onClick={() => formTransition("login-form", "signup-form")}
                     >
                         {t(language, "signUp")}
@@ -80,7 +80,7 @@ export default function LoginForm() {
                 </div>
 
                 {errorMessage && (
-                    <div className="mb-4 rounded-[18px] border border-red-300 bg-red-100 px-4 py-4 text-sm text-red-700">
+                    <div className="ds-alert ds-alert-danger mb-4">
                         {errorMessage}
                     </div>
                 )}
@@ -100,7 +100,7 @@ export default function LoginForm() {
                             value={email}
                             onChange={ev => setEmail(ev.target.value)}
                             placeholder={t(language, "emailField")}
-                            className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
+                            className="input-base pb-3 pt-2"
                         />
                     </div>
 
@@ -116,13 +116,13 @@ export default function LoginForm() {
                             value={password}
                             onChange={ev => setPassword(ev.target.value)}
                             placeholder={t(language, "password")}
-                            className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
+                            className="input-base pb-3 pt-2"
                         />
                     </div>
 
                     <button
                         type="button"
-                        className="w-full text-right text-[16px] font-normal text-[#0000004d] hover:underline"
+                        className="ds-type-body w-full text-right text-ds-text-subtle hover:underline"
                         onClick={() => formTransition("login-form", "reset-password-form")}
                     >
                         {t(language, "forgotPassword")}
@@ -131,7 +131,7 @@ export default function LoginForm() {
                     <button
                         type="submit"
                         disabled={!canSubmit || isSubmitting || isGoogleSubmitting}
-                        className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-black px-6 text-base font-bold text-white transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-20"
+                        className="ds-button-primary ds-type-body mt-5 inline-flex h-12 w-full items-center justify-center px-6 font-bold transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-20"
                     >
                         {isSubmitting ? t(language, "loggingIn") : t(language, "login")}
                     </button>
@@ -141,9 +141,9 @@ export default function LoginForm() {
                             type="button"
                             disabled={isSubmitting || isGoogleSubmitting}
                             onClick={handleGoogleLogin}
-                            className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border border-black bg-white px-4 text-[14px] font-medium text-black transition-colors duration-150 hover:bg-[#fff8f5] disabled:cursor-default disabled:opacity-20"
+                            className="ds-type-button inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border border-ds-border-strong bg-ds-background-surface px-4 text-ds-text-default transition-colors duration-150 hover:bg-ds-background-surface-muted disabled:cursor-default disabled:opacity-20"
                         >
-                            <span className="inline-flex h-[18px] w-[18px] items-center justify-center text-[18px] font-bold leading-none">G</span>
+                            <span className="ds-type-body-lg inline-flex h-[18px] w-[18px] items-center justify-center font-bold leading-none">G</span>
                             <span>{isGoogleSubmitting ? t(language, "googleLoginLoading") : t(language, "googleLogin")}</span>
                         </button>
                     </div>

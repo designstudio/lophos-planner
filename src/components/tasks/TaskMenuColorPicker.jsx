@@ -1,10 +1,10 @@
 import TaskMenuBtn from "./TaskMenuBtn.jsx";
 
 export const ALLOWED_COLORS = new Set([
-    "white text-black dark:text-white dark:bg-black",
-    "amber-500 text-black",
-    "green-500 text-white",
-    "red-500 text-white",
+    "ds-background-surface text-ds-text-default",
+    "ds-warning-solid text-ds-text-on-accent",
+    "ds-success-solid text-ds-text-inverse",
+    "ds-danger-solid text-ds-text-inverse",
 ]);
 
 export function TaskMenuColorPicker({ setColor }) {
@@ -12,7 +12,7 @@ export function TaskMenuColorPicker({ setColor }) {
     const colors = [...ALLOWED_COLORS];
 
     return (
-        <div className="task-menu-color-picker bg-[rgb(250,250,252)] border border-[rgba(0,0,0,0.15)] rounded-xl w-20 py-4 z-20 -translate-x-[50%] text-center"
+        <div className="task-menu-color-picker w-20 -translate-x-[50%] rounded-xl border border-ds-border-default bg-ds-background-surface p-4 z-20 text-center"
              onClick={ev => ev.stopPropagation()}>
             <div className="flex gap-2 flex-wrap justify-center">
                 {

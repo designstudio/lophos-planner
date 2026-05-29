@@ -168,15 +168,16 @@ export default function StatusGeneratorForm() {
         <Blur bgColor="bg-black" type="status-generator-form">
             <div
                 ref={modalRef}
-                className="status-generator-form relative mb-6 w-[44rem] max-w-[calc(100vw-2rem)] z-20 rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg"
+                className="status-generator-form ds-modal-shell relative z-20 mb-6 w-[44rem] max-w-[calc(100vw-2rem)] px-6 py-7"
+                style={{ backgroundColor: "var(--color-bg-page)" }}
                 onClick={ev => ev.stopPropagation()}
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                        <h3 className="text-[24px] font-bold tracking-tight text-black">
+                        <h3 className="ds-type-h3 text-ds-text-default">
                             {t(language, "statusGeneratorTitle")}
                         </h3>
-                        <p className="mt-1 text-sm leading-5 text-[#6b7280]">
+                        <p className="ds-type-body-sm mt-1 text-ds-text-muted">
                             {t(language, "statusGeneratorDescription")}
                         </p>
                     </div>
@@ -185,20 +186,20 @@ export default function StatusGeneratorForm() {
                         type="button"
                         onClick={generateStatus}
                         disabled={isLoading}
-                        className="rounded-full border border-black px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ds-button-secondary ds-type-button rounded-full px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {isLoading ? t(language, "statusGeneratorGenerating") : t(language, "statusGeneratorGenerate")}
                     </button>
                 </div>
 
                 {error && (
-                    <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <p className="ds-alert ds-alert-danger mt-4">
                         {error}
                     </p>
                 )}
 
                 {message && (
-                    <p className="mt-4 rounded-2xl bg-black/5 px-4 py-3 text-sm text-black">
+                    <p className="ds-alert mt-4 border-ds-border-muted bg-ds-background-surface-muted text-ds-text-default">
                         {message}
                     </p>
                 )}
@@ -207,7 +208,11 @@ export default function StatusGeneratorForm() {
                     value={statusText}
                     onChange={ev => setStatusText(ev.target.value)}
                     placeholder={t(language, "statusGeneratorEmpty")}
-                    className="mt-5 min-h-[24rem] w-full resize-y rounded-[24px] border border-black/10 bg-white p-4 text-[14px] leading-6 text-black outline-none transition-colors duration-150 focus:border-black/20"
+                    className="ds-type-body-sm mt-5 min-h-[24rem] w-full resize-y rounded-ds-2xl border border-ds-border-default bg-ds-background-surface p-4 text-ds-text-default outline-none transition-colors duration-150 focus:border-ds-border-strong"
+                    style={{
+                        backgroundColor: "var(--color-bg-surface)",
+                        borderRadius: "var(--radius-2xl)",
+                    }}
                 />
 
                 <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -215,7 +220,7 @@ export default function StatusGeneratorForm() {
                         type="button"
                         onClick={generateStatus}
                         disabled={isLoading}
-                        className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ds-button-secondary ds-type-button rounded-full px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {t(language, "statusGeneratorGenerate")}
                     </button>
@@ -223,7 +228,7 @@ export default function StatusGeneratorForm() {
                         type="button"
                         onClick={handleCopy}
                         disabled={!statusText.trim()}
-                        className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ds-button-secondary ds-type-button rounded-full px-4 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {copied ? t(language, "copied") : t(language, "statusGeneratorCopy")}
                     </button>
@@ -231,7 +236,7 @@ export default function StatusGeneratorForm() {
                         type="button"
                         onClick={handleSaveHistory}
                         disabled={!statusText.trim() || isSaving}
-                        className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ds-button-primary ds-type-button rounded-full px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {isSaving ? t(language, "statusGeneratorSaving") : t(language, "statusGeneratorSaveHistory")}
                     </button>

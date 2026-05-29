@@ -6,7 +6,7 @@ export default function LoadingIndicator({ size = 80, className = "" }) {
             role="status"
         >
             <span
-                className="block animate-spin rounded-full border-[4px] border-black/10 border-t-black"
+                className="block animate-spin rounded-ds-full border-4 border-ds-border-default border-t-ds-text-default"
                 style={{ width: size, height: size }}
                 aria-hidden="true"
             />

@@ -235,7 +235,7 @@ export default function OptionMenuSelect({
                 <span className="min-w-0 flex-1 whitespace-nowrap text-left">
                     {selectedOption?.label ?? placeholder}
                 </span>
-                <ChevronDown className="h-4 w-4 shrink-0 text-black" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-ds-text-default" />
             </button>
 
             {isOpen && typeof document !== "undefined" && ReactDOM.createPortal(
@@ -258,9 +258,9 @@ export default function OptionMenuSelect({
                                 }}
                                 type="button"
                                 className={[
-                                    "block w-full whitespace-nowrap rounded-[12px] px-4 py-2 text-left text-sm text-black transition-colors bg-transparent hover:bg-[#f2f2f2] focus-visible:outline-none focus-visible:bg-[#f2f2f2] focus-visible:ring-2 focus-visible:ring-black/10",
-                                    isSelected ? `bg-[#f2f2f2] hover:bg-[#f2f2f2] ${selectedOptionClassName}` : "",
-                                    isHighlighted && !isSelected ? "bg-[#f2f2f2]" : "",
+                                    "ds-menu-item ds-type-body-sm block w-full whitespace-nowrap rounded-ds-lg px-4 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-focus",
+                                    isSelected ? `is-active ${selectedOptionClassName}` : "",
+                                    isHighlighted && !isSelected ? "is-active" : "",
                                     optionClassName,
                                 ].filter(Boolean).join(" ")}
                                 onClick={() => handleSelect(option.value)}

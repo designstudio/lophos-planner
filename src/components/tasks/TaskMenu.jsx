@@ -1875,7 +1875,7 @@ const TaskMenu = () => {
                                 </button>
                                     <p className="pointer-events-none absolute whitespace-pre left-1/2 -translate-x-[50%] top-[120%]
             opacity-0 group-hover/task-btn:opacity-100 transition ease-linear duration-200
-             text-white bg-gray-800 rounded text-xs p-1">{label}</p>
+             tooltip-surface rounded-ds-sm ds-type-caption p-1">{label}</p>
                                 </div>
                             ))}
                             <div ref={taskTypeMenuRef} className="relative inline-flex shrink-0">
@@ -2263,7 +2263,7 @@ const TaskMenu = () => {
                                                     >
                                                         <Edit02 className="h-[14px] w-[14px]" />
                                                     </button>
-                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/edit-link:opacity-100">
+                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption opacity-0 transition ease-linear duration-200 group-hover/edit-link:opacity-100">
                                                         {t(language, "editLink")}
                                                     </p>
                                                 </div>
@@ -2279,7 +2279,7 @@ const TaskMenu = () => {
                                                     >
                                                         <X className="h-[14px] w-[14px]" />
                                                     </button>
-                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/remove-link:opacity-100">
+                                                    <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption opacity-0 transition ease-linear duration-200 group-hover/remove-link:opacity-100">
                                                         {t(language, "removeLink")}
                                                     </p>
                                                 </div>

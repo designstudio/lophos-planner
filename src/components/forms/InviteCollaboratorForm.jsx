@@ -99,20 +99,20 @@ export default function InviteCollaboratorForm() {
         <Blur bgColor="bg-black" type="invite-collaborator-form">
             <div
                 ref={modalRef}
-                className="invite-collaborator-form relative z-20 w-[28rem] rounded-xl bg-[rgb(250,250,252)] p-4 text-gray-600 transition-all duration-[160ms] ease-linear lg:p-8"
+                className="invite-collaborator-form ds-modal-shell relative z-20 w-[28rem] p-4 transition-all duration-[160ms] ease-linear lg:p-8"
                 onClick={ev => ev.stopPropagation()}
             >
                 <div>
-                    <h3 className="text-xl font-bold tracking-tight text-black">
+                    <h3 className="ds-type-h4 text-ds-text-default">
                         {copy.title}
                     </h3>
-                    <p className="mt-2 text-sm leading-6 text-black/70">
+                    <p className="ds-type-body-sm mt-2 text-ds-text-muted">
                         {copy.description}
                     </p>
                 </div>
 
                 <form className="mt-6" onSubmit={handleSubmit}>
-                    <label className="block text-sm font-bold text-black" htmlFor="invite-collaborator-email">
+                    <label className="ds-type-label block text-ds-text-default" htmlFor="invite-collaborator-email">
                         {copy.emailLabel}
                     </label>
                     <input
@@ -121,17 +121,17 @@ export default function InviteCollaboratorForm() {
                         type="email"
                         value={email}
                         onChange={ev => setEmail(ev.target.value)}
-                        className="mt-2 w-full border-b border-[rgba(0,0,0,0.15)] bg-transparent py-2 text-[16px] text-black focus:border-black focus:outline-none"
+                        className="ds-input-line mt-2 py-2"
                     />
 
                     {errorMessage && (
-                        <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                        <p className="ds-alert ds-alert-danger mt-3">
                             {errorMessage}
                         </p>
                     )}
 
                     {successMessage && (
-                        <p className="mt-3 rounded-md bg-green-100 px-3 py-2 text-sm text-green-700">
+                        <p className="ds-alert ds-alert-success mt-3">
                             {successMessage}
                         </p>
                     )}
@@ -140,14 +140,14 @@ export default function InviteCollaboratorForm() {
                         <button
                             type="submit"
                             disabled={isSending || !email.trim()}
-                            className="app-button-hover rounded-full bg-black px-6 py-2 text-[16px] font-bold leading-[1.333] text-white disabled:opacity-20"
+                            className="app-button-hover ds-button-primary ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {isSending ? copy.sending : copy.send}
                         </button>
                         <button
                             type="button"
                             onClick={handleClose}
-                            className="app-button-hover rounded-full border border-black px-6 py-2 text-[16px] font-bold leading-[1.333] text-black"
+                            className="app-button-hover ds-button-secondary ds-type-body rounded-full px-6 py-2 font-bold"
                         >
                             {copy.cancel}
                         </button>

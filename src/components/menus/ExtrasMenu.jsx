@@ -49,8 +49,8 @@ export default function ExtrasMenu({ isOpen = false, style = {}, onClose = () =>
     return (
         <div
             ref={extrasMenuRef}
-            className={`extras-menu ${isOpen ? "active" : ""} option-menu-surface text-black dark:bg-stone-800 dark:text-white w-48 p-1.5 text-center`}
-            style={style}
+            className={`extras-menu ${isOpen ? "active" : ""} option-menu-surface rounded-ds-xl text-ds-text-default w-48 p-1.5 text-center`}
+            style={{ ...style, borderRadius: "var(--radius-xl)" }}
             onClick={ev => ev.stopPropagation()}>
             <ul className="px-0.5">
                 {
@@ -59,15 +59,15 @@ export default function ExtrasMenu({ isOpen = false, style = {}, onClose = () =>
                     ))
                 }
             </ul>
-            <div className="mx-1.5 mt-2 border-t border-[rgba(0,0,0,0.12)] py-2.5">
-                <label className="flex items-center gap-2 px-1.5 text-sm text-black">
+            <div className="mx-1.5 mt-2 border-t border-ds-border-default py-2.5">
+                <label className="ds-type-body-sm flex items-center gap-2 px-1.5 text-ds-text-default">
                     <Globe02 className="h-[18px] w-[18px] shrink-0" />
                     <OptionMenuSelect
                         value={language}
                         onChange={value => setLanguagePreference(value)}
                         portalAnchorRef={extrasMenuRef}
                         wrapperClassName="flex-1"
-                        triggerClassName="bg-transparent pr-6 text-sm text-black outline-none"
+                        triggerClassName="bg-transparent pr-6 ds-type-body-sm text-ds-text-default outline-none"
                         portalGap={0}
                         options={[
                             { value: "ptBR", label: t(language, "portugueseBrazil") },

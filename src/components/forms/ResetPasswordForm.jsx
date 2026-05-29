@@ -51,18 +51,18 @@ export default function ResetPasswordForm() {
     return (
         <Blur type="reset-password-form">
             <div
-                className="reset-password-form relative top-4 z-20 mx-auto w-full max-w-[512px] rounded-[24px] bg-[rgb(250,250,252)] p-6 text-black shadow-lg outline-none"
+                className="reset-password-form ds-modal-shell relative top-4 z-20 mx-auto w-full max-w-[512px] p-6 outline-none"
                 onClick={ev => ev.stopPropagation()}
             >
                 <div className="w-full flex justify-between items-center mb-6">
-                    <h3 className="text-[21px] font-bold leading-[1.333333] tracking-[-0.5px] text-black">
+                    <h3 className="ds-type-h4 text-ds-text-default">
                         {isRecoveryMode ? t(language, "resetPasswordRecoveryTitle") : t(language, "resetPasswordTitle")}
                     </h3>
 
                     {!isRecoveryMode ? (
                         <button
                             type="button"
-                            className="inline-flex h-10 items-center justify-center rounded-full bg-[rgba(17,24,39,0.06)] px-5 text-sm font-bold leading-none text-black transition-opacity duration-150 hover:opacity-80"
+                            className="ds-type-button inline-flex h-10 items-center justify-center rounded-full bg-ds-background-surface-muted px-5 text-ds-text-default transition-opacity duration-150 hover:opacity-80"
                             onClick={() => formTransition("reset-password-form", "login-form")}
                         >
                             {t(language, "login")}
@@ -70,24 +70,24 @@ export default function ResetPasswordForm() {
                     ) : null}
                 </div>
 
-                <p className="mb-6 text-[15px] leading-6 text-[#0000008d]">
+                <p className="ds-type-body mb-6 text-ds-text-subtle">
                     {isRecoveryMode ? t(language, "resetRecoveryDescription") : t(language, "resetDescription")}
                 </p>
 
                 {successMessage && (
-                    <div className="mb-4 rounded-[18px] border border-green-300 bg-green-100 px-4 py-4 text-sm text-green-700">
+                    <div className="ds-alert ds-alert-success mb-4">
                         {successMessage}
                     </div>
                 )}
 
                 {errorMessage && (
-                    <div className="mb-4 rounded-[18px] border border-red-300 bg-red-100 px-4 py-4 text-sm text-red-700">
+                    <div className="ds-alert ds-alert-danger mb-4">
                         {errorMessage}
                     </div>
                 )}
 
                 {!isRecoveryMode && cooldownRemaining > 0 && (
-                    <div className="mb-4 rounded-[18px] border border-amber-300 bg-amber-100 px-4 py-4 text-sm text-amber-800">
+                    <div className="ds-alert ds-alert-warning mb-4">
                         {language === "enUS"
                             ? `Please wait ${cooldownRemaining} seconds before trying again.`
                             : `Aguarde ${cooldownRemaining} segundos antes de tentar novamente.`}
@@ -110,7 +110,7 @@ export default function ResetPasswordForm() {
                                     value={password}
                                     onChange={ev => setPassword(ev.target.value)}
                                     placeholder={t(language, "newPassword")}
-                                    className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
+                                    className="input-base pb-3 pt-2"
                                 />
                             </div>
 
@@ -124,7 +124,7 @@ export default function ResetPasswordForm() {
                                     value={confirmPassword}
                                     onChange={ev => setConfirmPassword(ev.target.value)}
                                     placeholder={t(language, "confirmPassword")}
-                                    className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
+                                    className="input-base pb-3 pt-2"
                                 />
                             </div>
                         </>
@@ -139,7 +139,7 @@ export default function ResetPasswordForm() {
                                 value={email}
                                 onChange={ev => setEmail(ev.target.value)}
                                 placeholder={t(language, "emailField")}
-                                className="input-base border-b border-[rgba(0,0,0,0.15)] pb-3 pt-2 text-[16px] text-black placeholder:text-[#0000008d] focus:border-black"
+                                className="input-base pb-3 pt-2"
                             />
                         </div>
                     )}
@@ -147,7 +147,7 @@ export default function ResetPasswordForm() {
                     <button
                         type="submit"
                         disabled={!canSubmit || isSubmitting}
-                        className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-black px-6 text-base font-bold text-white transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-20"
+                        className="ds-button-primary ds-type-body mt-5 inline-flex h-12 w-full items-center justify-center px-6 font-bold transition-opacity duration-150 hover:opacity-90 disabled:cursor-default disabled:opacity-20"
                     >
                         {isSubmitting
                             ? `${isRecoveryMode ? t(language, "saveNewPassword") : t(language, "sendResetLink")}...`

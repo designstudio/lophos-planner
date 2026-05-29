@@ -26,7 +26,7 @@ export default function TaskMenuBtn({icon: Icon, iconClassName, onClick, disable
                 )}
                 {tooltip && (
                     <p
-                        className={`pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded bg-gray-800 p-1 text-xs text-white transition ease-linear duration-150 ${
+                        className={`pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre tooltip-surface ds-type-caption p-1 transition ease-linear duration-150 ${
                             isTooltipVisible ? "opacity-100" : "opacity-0"
                         }`}
                     >

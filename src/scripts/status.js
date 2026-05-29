@@ -162,7 +162,7 @@ export function buildStatusHistoryTaskPayload({
         date: formDate(today),
         uid,
         agenda_id,
-        color: "white text-black dark:text-white dark:bg-black",
+        color: "ds-background-surface text-ds-text-default",
         done: true,
         related_links: [],
         order: 9999,

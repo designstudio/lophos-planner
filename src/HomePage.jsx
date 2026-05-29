@@ -59,12 +59,12 @@ function HomePage() {
     }, [currentAgenda?.name]);
 
     useEffect(() => {
-        const accent = currentAgenda?.color || '#3b82f6';
+        const accent = currentAgenda?.color || 'var(--color-brand-accent)';
         document.documentElement.style.setProperty('--agenda-accent', accent);
 
         const soft = /^#([0-9a-fA-F]{6})$/.test(accent)
             ? `${accent}22`
-            : 'rgba(59, 130, 246, 0.2)';
+            : 'var(--color-brand-accent-subtle)';
         document.documentElement.style.setProperty('--agenda-accent-soft', soft);
     }, [currentAgenda?.id, currentAgenda?.color]);
 

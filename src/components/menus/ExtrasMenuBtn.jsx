@@ -3,7 +3,7 @@ export function ExtrasMenuBtn({ text, icon: Icon, onClick }) {
         <li>
             <button
                 type="button"
-                className="w-full flex items-center gap-2 rounded-[12px] px-3.5 py-2 text-left text-sm bg-transparent hover:bg-[#f2f2f2] dark:hover:bg-stone-900 cursor-pointer transition-colors focus:outline-none focus-visible:bg-[#f2f2f2]"
+                className="ds-menu-item ds-type-body-sm w-full flex items-center gap-2 rounded-ds-lg px-3.5 py-2 text-left cursor-pointer focus:outline-none"
                 onClick={onClick}
             >
                 {Icon && (

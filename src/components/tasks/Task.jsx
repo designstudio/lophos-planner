@@ -155,13 +155,13 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                     className={`relative min-w-0 flex-1 text-left ${isTaskNameTruncated ? "group/task-title" : ""}`}
                     onClick={openTaskMenu}
                 >
-                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
+                    <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "ds-background-surface text-ds-text-default"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
                         { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
                         { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
                     </h5>
                     {isTaskNameTruncated && (
-                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded bg-gray-800 p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
+                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
                             {data.name}
                         </p>
                     )}

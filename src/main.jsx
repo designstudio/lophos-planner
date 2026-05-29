@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import HomePage from './HomePage';
+import './styles/tokens.css';
 import './index.css';
 import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
@@ -19,6 +20,21 @@ function LazyPage({ children }) {
 
 function App() {
     const authContext = useAuth();
+
+    React.useEffect(() => {
+        const root = document.documentElement;
+        const themeColor = getComputedStyle(root).getPropertyValue("--color-bg-page").trim();
+        if (!themeColor) return;
+
+        let meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) {
+            meta = document.createElement("meta");
+            meta.setAttribute("name", "theme-color");
+            document.head.appendChild(meta);
+        }
+
+        meta.setAttribute("content", themeColor);
+    }, []);
 
     const router = createBrowserRouter(createRoutesFromElements(
         <>

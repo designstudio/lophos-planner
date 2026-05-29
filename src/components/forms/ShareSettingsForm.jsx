@@ -7,12 +7,13 @@ import { Camera01, MagicWand01, Check, Trash03, Link01, ImageUserPlus, Plus } fr
 import { closeForm, openForm, subscribeToModalState } from "../../scripts/utils.js";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
+const DEFAULT_AGENDA_COLOR = "var(--color-brand-accent)";
 const AGENDA_COLORS = [
-    { nameKey: "blue", value: "#3b82f6" },
-    { nameKey: "green", value: "#22c55e" },
-    { nameKey: "yellow", value: "#eab308" },
-    { nameKey: "pink", value: "#ec4899" },
-    { nameKey: "orange", value: "#f97316" },
+    { nameKey: "primary", value: "var(--color-brand-primary)" },
+    { nameKey: "accent", value: "var(--color-brand-accent)" },
+    { nameKey: "success", value: "var(--color-success-solid)" },
+    { nameKey: "warning", value: "var(--color-warning-solid)" },
+    { nameKey: "danger", value: "var(--color-danger-solid)" },
 ];
 
 export default function ShareSettingsForm() {
@@ -28,7 +29,7 @@ export default function ShareSettingsForm() {
     const [errorMessage, setErrorMessage] = React.useState("");
     const [agendaName, setAgendaName] = React.useState("");
     const [agendaAvatar, setAgendaAvatar] = React.useState("");
-    const [agendaColor, setAgendaColor] = React.useState("#3b82f6");
+    const [agendaColor, setAgendaColor] = React.useState(DEFAULT_AGENDA_COLOR);
     const [sortCompletedTasks, setSortCompletedTasks] = React.useState(true);
     const [relatedLinksEnabled, setRelatedLinksEnabled] = React.useState(true);
     const [agendaMembers, setAgendaMembers] = React.useState([]);
@@ -72,7 +73,7 @@ export default function ShareSettingsForm() {
     React.useEffect(() => {
         setAgendaName(currentAgenda?.name || "");
         setAgendaAvatar(currentAgenda?.avatar || "");
-        setAgendaColor(currentAgenda?.color || "#3b82f6");
+        setAgendaColor(currentAgenda?.color || DEFAULT_AGENDA_COLOR);
         setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
         setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
     }, [
@@ -119,7 +120,7 @@ export default function ShareSettingsForm() {
             if (!isOpen) return;
             setAgendaName(currentAgenda?.name || "");
             setAgendaAvatar(currentAgenda?.avatar || "");
-            setAgendaColor(currentAgenda?.color || "#3b82f6");
+            setAgendaColor(currentAgenda?.color || DEFAULT_AGENDA_COLOR);
             setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
             setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
             setLocalShareEnabled(initialShareEnabled);
@@ -230,14 +231,14 @@ export default function ShareSettingsForm() {
     const hasAgendaChanges = React.useMemo(() => {
         const prevName = (currentAgenda?.name || "").trim();
         const prevAvatar = (currentAgenda?.avatar || "").trim();
-        const prevColor = (currentAgenda?.color || "#3b82f6").trim();
+        const prevColor = (currentAgenda?.color || DEFAULT_AGENDA_COLOR).trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
         const prevRelatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
 
         return (
             agendaName.trim() !== prevName ||
             agendaAvatar.trim() !== prevAvatar ||
-            (agendaColor.trim() || "#3b82f6") !== prevColor ||
+            (agendaColor.trim() || DEFAULT_AGENDA_COLOR) !== prevColor ||
             sortCompletedTasks !== prevSortCompletedTasks ||
             relatedLinksEnabled !== prevRelatedLinksEnabled
         );
@@ -250,10 +251,10 @@ export default function ShareSettingsForm() {
         if (!currentAgenda?.id) return;
         const nextName = agendaName.trim();
         const nextAvatar = agendaAvatar.trim();
-        const nextColor = agendaColor.trim() || "#3b82f6";
+        const nextColor = agendaColor.trim() || DEFAULT_AGENDA_COLOR;
         const prevName = (currentAgenda?.name || "").trim();
         const prevAvatar = (currentAgenda?.avatar || "").trim();
-        const prevColor = (currentAgenda?.color || "#3b82f6").trim();
+        const prevColor = (currentAgenda?.color || DEFAULT_AGENDA_COLOR).trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
         const prevRelatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
         if (!nextName || !hasPendingChanges) return;
@@ -362,53 +363,80 @@ export default function ShareSettingsForm() {
         {!isDeleteModalOpen && (
         <Blur type="share-settings-form">
             <div
-                className="share-settings-form relative mb-6 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="share-settings-form ds-modal-shell relative z-20 mb-6 w-[32rem] max-w-full px-6 py-7 transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
-                <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "agendaSettingsTitle")}</h3>
+                <h3 className="ds-type-h4 text-ds-text-default">{t(language, "agendaSettingsTitle")}</h3>
 
-                <div className="mt-6 rounded-[13px] bg-black p-4 text-white">
+                <div
+                    className="mt-6 rounded-lg bg-ds-text-default p-4 text-ds-text-inverse"
+                    style={{
+                        backgroundColor: "var(--color-text-default)",
+                        color: "var(--color-text-inverse)",
+                        borderRadius: "var(--radius-lg)",
+                    }}
+                >
                     <div className="flex items-center justify-between gap-3">
                         <div>
-                            <p className="text-[12px] font-bold">{t(language, "sharePublishWeb")}</p>
-                            <p className="text-[16px] leading-5">{t(language, "sharePublishDescription")}</p>
+                            <p className="ds-type-caption font-bold">{t(language, "sharePublishWeb")}</p>
+                            <p className="ds-type-body">{t(language, "sharePublishDescription")}</p>
                         </div>
 
                         <button
                             type="button"
-                            className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none transition-colors ${
+                            className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none ${
                                 shareEnabled
-                                    ? "bg-[rgb(250,250,252)] border-[rgb(250,250,252)]"
-                                    : "bg-black border-[rgb(250,250,252)]"
+                                    ? "border-ds-background-surface bg-ds-background-surface"
+                                    : "border-ds-background-surface bg-ds-text-default"
                             }`}
                             onClick={handleToggleShare}
                             disabled={loading}
+                            style={{
+                                backgroundColor: shareEnabled ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                borderRadius: "var(--radius-full)",
+                            }}
                         >
                             <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                 shareEnabled
-                                    ? "translate-x-[20px] bg-black"
-                                    : "translate-x-0 bg-[rgb(250,250,252)]"
-                            }`}>
-                                {shareEnabled && <Check className="h-3 w-3 text-[rgb(250,250,252)]" strokeWidth={3} />}
+                                    ? "translate-x-[20px] bg-ds-text-default"
+                                    : "translate-x-0 bg-ds-background-surface"
+                            }`}
+                                style={{
+                                    backgroundColor: shareEnabled ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderRadius: "var(--radius-full)",
+                                }}>
+                                {shareEnabled && <Check className="h-3 w-3 text-ds-text-inverse" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
 
                     {shareEnabled && (
-                        <div className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(250,250,252)] p-2">
+                        <div
+                            className="mt-4 flex items-center gap-2 rounded-md bg-ds-background-surface p-2"
+                            style={{
+                                backgroundColor: "var(--color-bg-page)",
+                                borderRadius: "var(--radius-md)",
+                            }}
+                        >
                             <label htmlFor="public-share-url" className="sr-only">{t(language, "shareTitle")}</label>
                             <input
                                 id="public-share-url"
                                 type="text"
                                 value={publicShareUrl}
                                 readOnly
-                                className="w-full bg-transparent px-2 text-base text-black focus:outline-none"
+                                className="ds-type-body w-full bg-transparent px-2 text-ds-text-default focus:outline-none"
+                                style={{ color: "var(--color-text-default)" }}
                             />
                             <button
                                 type="button"
                                 onClick={copyShareUrl}
                                 disabled={!shareToken}
-                                className="app-button-hover rounded-full bg-black px-4 py-1.5 text-[14px] font-bold text-white disabled:opacity-20"
+                                className="app-button-hover ds-button-primary ds-type-button rounded-full px-4 py-1.5 disabled:opacity-20"
+                                style={{
+                                    backgroundColor: "var(--color-text-default)",
+                                    color: "var(--color-text-inverse)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
                             >
                                 {copied ? t(language, "copied") : t(language, "copy")}
                             </button>
@@ -417,7 +445,7 @@ export default function ShareSettingsForm() {
                 </div>
 
                 <div className="mt-6">
-                    <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "editAgendaSectionTitle")}</h4>
+                    <h4 className="ds-type-label mb-4 text-ds-text-default">{t(language, "editAgendaSectionTitle")}</h4>
 
                     <div className="mt-3">
                         <div className="flex items-center gap-4">
@@ -434,24 +462,40 @@ export default function ShareSettingsForm() {
                                 <button
                                     type="button"
                                     onClick={() => avatarInputRef.current?.click()}
-                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
+                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2"
+                                    style={{
+                                        backgroundColor: "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}
                                 >
                                     {agendaAvatar ? (
                                         <img src={agendaAvatar} alt={t(language, "agendaAvatarAlt")} className="h-full w-full object-cover" />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-white text-sm font-bold text-black/30">
+                                        <div
+                                            className="ds-type-button flex h-full w-full items-center justify-center text-ds-text-inverse"
+                                            style={{ backgroundColor: "var(--color-text-default)" }}
+                                        >
                                             {(agendaName || "A")[0].toUpperCase()}
                                         </div>
                                     )}
                                 </button>
-                                <div className="pointer-events-none absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-black">
+                                <div
+                                    className="pointer-events-none absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-ds-text-default"
+                                    style={{
+                                        backgroundColor: "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}
+                                >
                                     {avatarLoading ? (
-                                        <svg className="h-[10px] w-[10px] animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <svg className="h-[10px] w-[10px] animate-spin text-ds-text-inverse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                         </svg>
                                     ) : (
-                                        <Camera01 className="h-[10px] w-[10px] text-white" />
+                                        <Camera01
+                                            className="h-[10px] w-[10px] text-ds-text-inverse"
+                                            style={{ color: "var(--color-text-inverse)" }}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -464,56 +508,56 @@ export default function ShareSettingsForm() {
                                     type="text"
                                     value={agendaName}
                                     onChange={ev => setAgendaName(ev.target.value)}
-                                    className="w-full bg-transparent text-base text-black focus:outline-none"
+                                    className="ds-type-body w-full bg-transparent text-ds-text-default focus:outline-none"
                                     aria-label={t(language, "agendaName")}
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
+                    <div className="mt-6 border-t border-ds-border-muted" />
 
                     <div className="mt-6">
-                        <p className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "agendaColor")}</p>
+                        <p className="ds-type-label mb-4 text-ds-text-default">{t(language, "agendaColor")}</p>
                         <div className="mt-3 flex items-center gap-2">
                             {AGENDA_COLORS.map(item => (
                                 <button
                                     key={item.value}
                                     type="button"
                                     onClick={() => setAgendaColor(item.value)}
-                                    className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 ${agendaColor === item.value ? "ring-2 ring-offset-2 ring-black/30" : ""}`}
+                                    className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${agendaColor === item.value ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
                                     style={{ backgroundColor: item.value }}
                                 />
                             ))}
                             <div className="flex flex-1 items-center gap-3">
                                 <span
-                                    className={`h-7 w-7 flex-shrink-0 rounded-full ${!AGENDA_COLORS.some(c => c.value === agendaColor) ? "ring-2 ring-offset-2 ring-black/30" : ""}`}
+                                    className={`h-7 w-7 flex-shrink-0 rounded-full ${!AGENDA_COLORS.some(c => c.value === agendaColor) ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
                                     style={{ backgroundColor: agendaColor }}
                                 />
                                 <input
                                     type="text"
                                     value={agendaColor}
                                     onChange={ev => setAgendaColor(ev.target.value)}
-                                    placeholder="#3b82f6"
-                                    className="min-w-0 flex-1 bg-transparent text-sm text-black placeholder:text-black/45 focus:outline-none"
+                                    placeholder={DEFAULT_AGENDA_COLOR}
+                                    className="ds-type-body-sm min-w-0 flex-1 bg-transparent text-ds-text-default placeholder:text-ds-text-subtle focus:outline-none"
                                     aria-label={t(language, "agendaColor")}
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
+                    <div className="mt-6 border-t border-ds-border-muted" />
 
                     <div className="mt-6">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h4 className="text-[16px] font-bold leading-[1.333333] text-black">{membersCopy.title}</h4>
+                                <h4 className="ds-type-label text-ds-text-default">{membersCopy.title}</h4>
                             </div>
                         </div>
 
                         <div className="mt-4">
                             {membersLoading ? (
-                                <p className="text-sm text-black/60">
+                                <p className="ds-type-body-sm text-ds-text-muted">
                                     {t(language, "loadingShort")}
                                 </p>
                             ) : (
@@ -531,26 +575,38 @@ export default function ShareSettingsForm() {
                                             return (
                                                 <div
                                                     key={member.uid || member.email || displayName}
-                                                    className={`relative h-9 w-9 overflow-hidden rounded-full border-2 border-white ${index === 0 ? "" : "-ml-2.5"}`}
-                                                    title={displayName}
+                                                    className={`group/member-avatar relative ${index === 0 ? "" : "-ml-2.5"}`}
                                                 >
-                                                    {member.avatar ? (
-                                                        <img
-                                                            src={member.avatar}
-                                                            alt={displayName}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className={`flex h-full w-full items-center justify-center text-[12px] font-bold ${isOwner ? "bg-black text-white" : "bg-[rgb(250,250,252)] text-black"}`}>
-                                                            {getMemberInitials(member)}
-                                                        </div>
-                                                    )}
+                                                    <div
+                                                        className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-ds-background-surface"
+                                                    >
+                                                        {member.avatar ? (
+                                                            <img
+                                                                src={member.avatar}
+                                                                alt={displayName}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className={`ds-type-caption flex h-full w-full items-center justify-center font-bold ${isOwner ? "bg-ds-text-default text-ds-text-inverse" : "bg-ds-background-surface text-ds-text-default"}`}
+                                                                style={!isOwner ? { backgroundColor: "var(--color-bg-page)" } : undefined}
+                                                            >
+                                                                {getMemberInitials(member)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-1 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/member-avatar:opacity-100 group-hover/member-avatar:delay-[700ms]">
+                                                        {displayName}
+                                                    </p>
                                                 </div>
                                             );
                                         })}
                                     </div>
 
-                                    <div className="ml-[3px] flex min-h-10 flex-1 items-center justify-center gap-1 rounded-[200px] border-0 bg-[rgba(0,0,0,.05)] px-4 py-[0.4rem] text-[14px] font-bold text-black transition-opacity hover:opacity-70">
+                                    <div
+                                        className="ds-type-button ml-[3px] flex min-h-10 flex-1 items-center justify-center gap-1 rounded-full border-0 bg-ds-background-surface-muted px-4 py-[0.4rem] text-ds-text-default transition-opacity hover:opacity-70"
+                                        style={{ backgroundColor: "var(--color-bg-surface-muted)" }}
+                                    >
                                         <Plus className="h-4 w-4 shrink-0" />
                                         <span>{membersCopy.invite}</span>
                                     </div>
@@ -559,58 +615,76 @@ export default function ShareSettingsForm() {
                         </div>
                     </div>
 
-                    <div className="mt-6 border-t border-[rgba(0,0,0,0.1)]" />
+                    <div className="mt-6 border-t border-ds-border-muted" />
 
                     <div className="mt-6">
-                        <h4 className="mb-4 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "featuresSectionTitle")}</h4>
+                        <h4 className="ds-type-label mb-4 text-ds-text-default">{t(language, "featuresSectionTitle")}</h4>
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
-                                <MagicWand01 className="h-4 w-4 text-black" />
-                                <span className="text-[16px] leading-[1.333333] text-black">{t(language, "sortCompletedTasksLabel")}</span>
+                                <MagicWand01 className="h-4 w-4 text-ds-text-default" />
+                                <span className="ds-type-body text-ds-text-default">{t(language, "sortCompletedTasksLabel")}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSortCompletedTasks(!sortCompletedTasks)}
-                                className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 transition-colors ${
+                                className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${
                                     sortCompletedTasks
-                                        ? "bg-black border-black"
-                                        : "bg-[rgb(250,250,252)] border-black"
+                                        ? "border-ds-text-default bg-ds-text-default"
+                                        : "border-ds-text-default bg-ds-background-surface"
                                 }`}
+                                style={{
+                                    backgroundColor: sortCompletedTasks ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderColor: "var(--color-text-default)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
                             >
                                 <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                     sortCompletedTasks
-                                    ? "translate-x-[20px] bg-[rgb(250,250,252)]"
-                                        : "translate-x-0 bg-black"
-                                }`}>
+                                        ? "translate-x-[20px] bg-ds-background-surface"
+                                        : "translate-x-0 bg-ds-text-default"
+                                }`}
+                                    style={{
+                                        backgroundColor: sortCompletedTasks ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}>
                                     {sortCompletedTasks && (
-                                        <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                                        <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
                                     )}
                                 </div>
                             </button>
                         </div>
                         <div className="mt-4 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
-                                <Link01 className="h-4 w-4 text-black" />
-                                <span className="text-[16px] leading-[1.333333] text-black">{t(language, "relatedLinksFeatureLabel")}</span>
+                                <Link01 className="h-4 w-4 text-ds-text-default" />
+                                <span className="ds-type-body text-ds-text-default">{t(language, "relatedLinksFeatureLabel")}</span>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setRelatedLinksEnabled(!relatedLinksEnabled)}
-                                className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2 transition-colors ${
+                                className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${
                                     relatedLinksEnabled
-                                        ? "bg-black border-black"
-                                        : "bg-[rgb(250,250,252)] border-black"
+                                        ? "border-ds-text-default bg-ds-text-default"
+                                        : "border-ds-text-default bg-ds-background-surface"
                                 }`}
                                 aria-pressed={relatedLinksEnabled}
                                 aria-label={t(language, "relatedLinksFeatureLabel")}
+                                style={{
+                                    backgroundColor: relatedLinksEnabled ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderColor: "var(--color-text-default)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
                             >
                                 <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                     relatedLinksEnabled
-                                    ? "translate-x-[20px] bg-[rgb(250,250,252)]"
-                                        : "translate-x-0 bg-black"
-                                }`}>
+                                        ? "translate-x-[20px] bg-ds-background-surface"
+                                        : "translate-x-0 bg-ds-text-default"
+                                }`}
+                                    style={{
+                                        backgroundColor: relatedLinksEnabled ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}>
                                     {relatedLinksEnabled && (
-                                        <Check className="h-3 w-3 text-black" strokeWidth={3} />
+                                        <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
                                     )}
                                 </div>
                             </button>
@@ -619,7 +693,7 @@ export default function ShareSettingsForm() {
 
                     </div>
                 {errorMessage && (
-                    <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{errorMessage}</p>
+                    <p className="ds-alert ds-alert-danger mt-3">{errorMessage}</p>
                 )}
 
                 <div className="mt-6 w-full flex justify-between items-center">
@@ -631,13 +705,18 @@ export default function ShareSettingsForm() {
                             !agendaName.trim() ||
                             !hasPendingChanges
                         }
-                        className="app-button-hover py-1.5 px-5 border border-black bg-black text-white rounded-full font-bold disabled:opacity-20"
+                        className="app-button-hover ds-button-primary ds-type-body rounded-full border border-transparent px-5 py-1.5 font-bold disabled:opacity-20"
+                        style={{
+                            backgroundColor: "var(--color-text-default)",
+                            color: "var(--color-text-inverse)",
+                            borderRadius: "var(--radius-full)",
+                        }}
                     >
                         {t(language, "save")}
                     </button>
                     <button
                         type="button"
-                        className="app-button-hover rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:text-[#b80531] hover:opacity-100"
+                        className="app-button-hover ds-danger-trigger-hover ds-type-button rounded-full px-3 py-2 font-normal text-ds-danger-solid"
                         onClick={openDeleteAgendaModal}
                     >
                         <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAgenda")}
@@ -648,25 +727,25 @@ export default function ShareSettingsForm() {
         )}
 
         {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAgendaModal}>
+            <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 ds-overlay" onClick={closeDeleteAgendaModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative mb-6 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="ds-modal-shell relative mb-6 w-[32rem] max-w-full px-6 py-7"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="delete-agenda-modal-title"
                     aria-describedby="delete-agenda-modal-description"
                     onClick={ev => ev.stopPropagation()}
                 >
-                    <h4 id="delete-agenda-modal-title" className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
+                    <h4 id="delete-agenda-modal-title" className="ds-type-h4 text-ds-text-default">
                         {t(language, "deleteAgendaConfirmTitle")}
                     </h4>
-                    <p id="delete-agenda-modal-description" className="mt-3 text-base leading-7 text-black">
+                    <p id="delete-agenda-modal-description" className="ds-type-body mt-3 text-ds-text-default">
                         {t(language, "deleteAgendaConfirmMessage")}
                     </p>
 
                     {deleteAgendaError && (
-                        <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                        <p className="ds-alert ds-alert-danger mt-3">
                             {deleteAgendaError}
                         </p>
                     )}
@@ -677,7 +756,7 @@ export default function ShareSettingsForm() {
                             type="button"
                             disabled={isDeletingAgenda}
                             onClick={handleDeleteAgenda}
-                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-20"
+                            className="app-button-hover ds-button-danger ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {t(language, "confirmDeleteAgenda")}
                         </button>
@@ -686,7 +765,7 @@ export default function ShareSettingsForm() {
                             type="button"
                             disabled={isDeletingAgenda}
                             onClick={closeDeleteAgendaModal}
-                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-20"
+                            className="app-button-hover ds-button-secondary ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {t(language, "cancelDeleteAgenda")}
                         </button>

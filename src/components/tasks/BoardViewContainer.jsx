@@ -101,7 +101,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
 
     const taskMenuPayload = React.useMemo(() => ({
         ...task,
-        color: task.color || "white text-black dark:text-white dark:bg-black",
+        color: task.color || "ds-background-surface text-ds-text-default",
         description: task.description || "",
         relatedLinks,
         is_board_task: true,
@@ -170,7 +170,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
                     </h5>
                     {isTaskNameTruncated && (
-                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded bg-gray-800 p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
+                        <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
                             {task.name}
                         </p>
                     )}
@@ -323,7 +323,7 @@ function BoardColumn({
                     />
                     <button
                         type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black opacity-0 transition-opacity duration-150 hover:bg-[rgba(17,24,39,0.08)] group-hover:opacity-100"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ds-text-default opacity-0 transition-opacity duration-150 hover:bg-ds-background-surface-muted group-hover:opacity-100"
                         onClick={() => setIsMenuOpen(prev => !prev)}
                     >
                         <DotsHorizontal className="h-5 w-5" />
@@ -835,7 +835,7 @@ export default function BoardViewContainer() {
         const boardOrder = getColumnTasks(columnId).length;
         const result = await tryCatchDecorator(createTask)({
             name: nextName,
-            color: "white text-black dark:text-white dark:bg-black",
+            color: "ds-background-surface text-ds-text-default",
             date: formDate(new Date()),
             uid: currentUser.uid,
             agenda_id: agendaId,

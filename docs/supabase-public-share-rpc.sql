@@ -81,7 +81,7 @@ begin
             'id', v_agenda.id,
             'name', v_agenda.name,
             'avatar', coalesce(v_agenda.avatar, ''),
-            'color', coalesce(v_agenda.color, '#3b82f6'),
+            'color', coalesce(v_agenda.color, 'var(--color-brand-accent)'),
             'sort_completed_tasks', coalesce(v_agenda.sort_completed_tasks, true),
             'related_links_enabled', coalesce(v_agenda.related_links_enabled, true)
         ),

@@ -458,13 +458,13 @@ export async function getUserAgendas(userId) {
 }
 
 export async function createAgenda(userId, name, options = {}) {
-    const { setAsCurrent = true, avatar = null, color = '#3b82f6', sortCompletedTasks = true, relatedLinksEnabled = true } = options;
+    const { setAsCurrent = true, avatar = null, color = 'var(--color-brand-accent)', sortCompletedTasks = true, relatedLinksEnabled = true } = options;
 
     const payload = {
         uid: userId,
         name: (name || '').trim() || 'Nova agenda',
         avatar: (avatar || '').trim() || null,
-        color: (color || '').trim() || '#3b82f6',
+        color: (color || '').trim() || 'var(--color-brand-accent)',
         sort_completed_tasks: sortCompletedTasks,
         related_links_enabled: relatedLinksEnabled,
     };
@@ -504,12 +504,12 @@ export async function createAgenda(userId, name, options = {}) {
     };
 }
 
-export async function updateAgendaName(userId, agendaId, name, avatar = null, color = '#3b82f6', sortCompletedTasks = null, relatedLinksEnabled = null) {
+export async function updateAgendaName(userId, agendaId, name, avatar = null, color = 'var(--color-brand-accent)', sortCompletedTasks = null, relatedLinksEnabled = null) {
     const nextName = (name || '').trim();
     if (!nextName) throw new Error('Agenda name is required.');
 
     const nextAvatar = (avatar || '').trim() || null;
-    const nextColor = (color || '').trim() || '#3b82f6';
+    const nextColor = (color || '').trim() || 'var(--color-brand-accent)';
 
     const fullPayload = { name: nextName, avatar: nextAvatar, color: nextColor };
     if (sortCompletedTasks !== null) {
@@ -872,7 +872,7 @@ export async function getPublicAgendaByShareToken(shareToken) {
             id: normalized?.agenda?.id,
             name: normalized?.agenda?.name,
             avatar: normalized?.agenda?.avatar || '',
-            color: normalized?.agenda?.color || '#3b82f6',
+            color: normalized?.agenda?.color || 'var(--color-brand-accent)',
             sort_completed_tasks: normalized?.agenda?.sort_completed_tasks ?? true,
             related_links_enabled: normalized?.agenda?.related_links_enabled ?? true,
         },

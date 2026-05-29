@@ -61,13 +61,13 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
 
     return (
         <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
-            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-[16px] leading-[22px] text-black lg:text-[14px] lg:leading-[41px] ${task.done ? "opacity-40 line-through" : ""}`}>
+            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-ds-text-default ${task.done ? "opacity-40 line-through" : ""}`}>
                 {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
                 {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
             </h5>
             {isTruncated && (
-                <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded tooltip-surface p-2 text-left text-xs leading-4 text-white opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
+                <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-[50%] rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption text-ds-text-inverse opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/task-title:opacity-100 group-hover/task-title:delay-[700ms]">
                     {taskName}
                 </p>
             )}
@@ -245,7 +245,7 @@ export default function PublicSharePage() {
     const language = owner?.language || "ptBR";
     const dateFormat = owner?.dateFormat || "DD-MM";
     const weekStartsOn = owner?.weekStartsOn || "Monday";
-    const agendaAccent = agenda?.color || "#3b82f6";
+    const agendaAccent = agenda?.color || "var(--color-brand-accent)";
     const relatedLinksEnabled = agenda?.related_links_enabled ?? true;
     const publicTaskTitleMaxLength = isMobile ? 40 : 34;
 
@@ -585,10 +585,10 @@ export default function PublicSharePage() {
 
     function getTaskChipClassName(task) {
         const color = (task?.color || "").toString();
-        if (color.includes("amber-500")) return "bg-amber-500 text-black";
-        if (color.includes("green-500")) return "bg-green-500 text-white";
-        if (color.includes("red-500")) return "bg-rose-500 text-white";
-        return "bg-[rgba(244,244,247,1)] text-black";
+        if (color.includes("amber-500")) return "bg-ds-warning-solid text-ds-text-on-accent";
+        if (color.includes("green-500")) return "bg-ds-success-solid text-ds-text-inverse";
+        if (color.includes("red-500")) return "bg-ds-danger-solid text-ds-text-inverse";
+        return "bg-ds-background-surface-muted text-ds-text-default";
     }
 
     function changeCalendarMonth(delta) {
@@ -680,7 +680,7 @@ export default function PublicSharePage() {
 
     if (loading || !minLoadingDone) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center">
+            <div className="min-h-screen bg-ds-background-surface flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
@@ -688,7 +688,7 @@ export default function PublicSharePage() {
 
     if (!owner) {
         return (
-            <div className="min-h-screen bg-white px-6 py-8 text-xl font-semibold text-black">
+            <div className="min-h-screen bg-ds-background-surface px-6 py-8 ds-type-h4 text-ds-text-default">
                 {t(language, "publicAgendaUnavailable")}
             </div>
         );
@@ -698,17 +698,17 @@ export default function PublicSharePage() {
 
     return (
         <div
-            className="public-share-page min-w-screen min-h-screen bg-white text-black"
+            className="public-share-page min-w-screen min-h-screen bg-ds-background-surface text-ds-text-default"
             style={{
                 '--agenda-accent': agendaAccent,
-                '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'rgba(59, 130, 246, 0.2)',
+                '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'var(--color-brand-accent-subtle)',
             }}
         >
-            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-white px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
+            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-ds-background-surface px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
                 <div className="relative">
                     <button
                         type="button"
-                        className="header-month-trigger text-[22px] font-bold leading-[28px] tracking-[-0.5px] capitalize text-black lg:text-[36px] lg:leading-[42px]"
+                        className="header-month-trigger ds-type-h4 font-bold capitalize text-ds-text-default lg:ds-type-h1"
                         onClick={() => setIsCalendarOpen(prev => !prev)}
                         aria-label={t(language, "changeTaskDate")}
                         aria-expanded={isCalendarOpen}
@@ -783,20 +783,25 @@ export default function PublicSharePage() {
                                                                 </span>
                                                                 <div className="header-month-overview-day-chips">
                                                                     {dayItem.holidayName && (
-                                                                        <span
-                                                                            className="header-month-overview-holiday-chip"
-                                                                            title={dayItem.holidayName}
-                                                                        >
-                                                                            {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                        <span className="relative inline-flex max-w-full group/public-holiday-chip">
+                                                                            <span className="header-month-overview-holiday-chip">
+                                                                                {t(language, "holidayLabel")} - {dayItem.holidayName}
+                                                                            </span>
+                                                                            <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/public-holiday-chip:opacity-100 group-hover/public-holiday-chip:delay-[700ms]">
+                                                                                {dayItem.holidayName}
+                                                                            </p>
                                                                         </span>
                                                                     )}
                                                                     {(calendarTasksByDate[dayItem.key] || []).slice(0, 4).map(task => (
-                                                                        <span
-                                                                            key={task.id}
-                                                                            className={`header-month-overview-task-chip ${getTaskChipClassName(task)} ${task?.done ? "opacity-50 line-through" : ""}`}
-                                                                            title={task.name}
-                                                                        >
-                                                                            {task.name}
+                                                                        <span key={task.id} className="relative inline-flex max-w-full group/public-task-chip">
+                                                                            <span
+                                                                                className={`header-month-overview-task-chip ${getTaskChipClassName(task)} ${task?.done ? "opacity-50 line-through" : ""}`}
+                                                                            >
+                                                                                {task.name}
+                                                                            </span>
+                                                                            <p className="pointer-events-none absolute bottom-[120%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/public-task-chip:opacity-100 group-hover/public-task-chip:delay-[700ms]">
+                                                                                {task.name}
+                                                                            </p>
                                                                         </span>
                                                                     ))}
                                                                     {(calendarTasksByDate[dayItem.key] || []).length > 4 && (
@@ -820,40 +825,45 @@ export default function PublicSharePage() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#f2f2f2] text-sm font-semibold"
-                        title={t(language, "publicAgendaBy")}
-                    >
-                        {isImageAvatar((agenda?.avatar || "").trim()) ? (
-                            <img src={agenda.avatar} alt={agenda?.name || "Agenda"} className="h-full w-full object-cover" />
-                        ) : (
-                            (agenda?.name || owner.name || "U").trim().slice(0, 1).toUpperCase()
-                        )}
-                    </button>
+                    <div className="relative group/public-agenda-avatar">
+                        <button
+                            type="button"
+                            className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-ds-full bg-ds-background-surface-muted ds-type-body-sm font-semibold"
+                            aria-label={t(language, "publicAgendaBy")}
+                        >
+                            {isImageAvatar((agenda?.avatar || "").trim()) ? (
+                                <img src={agenda.avatar} alt={agenda?.name || "Agenda"} className="h-full w-full object-cover" />
+                            ) : (
+                                (agenda?.name || owner.name || "U").trim().slice(0, 1).toUpperCase()
+                            )}
+                        </button>
+                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption text-ds-text-inverse opacity-0 transition ease-linear duration-200 group-hover/public-agenda-avatar:opacity-100">
+                            {t(language, "publicAgendaBy")}
+                        </p>
+                    </div>
                     <div className="relative group/public-search">
                         <button
                             type="button"
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f2] text-black"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-background-surface-muted text-ds-text-default"
                             onClick={openSearchModal}
-                            title={t(language, "search")}
+                            aria-label={t(language, "search")}
                         >
                             <SearchMd className="h-[18px] w-[18px] lg:h-5 lg:w-5" />
                         </button>
-                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
+                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption text-ds-text-inverse opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
                             {t(language, "search")}
                         </p>
                     </div>
                     <button
                         type="button"
-                        className="ml-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
+                        className="ml-4 inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
                         onClick={() => moveWeek(-1)}
                     >
                         <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
                     </button>
                     <button
                         type="button"
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
                         onClick={() => moveWeek(1)}
                     >
                         <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -874,16 +884,16 @@ export default function PublicSharePage() {
                     return (
                         <div className="public-day-block min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
 
                             {holidayName && (
-                                <div className="task-row-border h-[41px] w-full border-b bg-white">
+                                <div className="task-row-border h-[41px] w-full border-b bg-ds-background-surface">
                                     <p className="task-holiday-item">
                                         <span className="task-holiday-badge gap-1">
                                             <Umbrella03 className="h-4 w-4 shrink-0" />
@@ -930,16 +940,16 @@ export default function PublicSharePage() {
                         return (
                             <div className="public-day-block min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-black"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
 
                             {holidayName && (
-                                <div className="task-row-border h-[41px] w-full border-b bg-white">
+                                <div className="task-row-border h-[41px] w-full border-b bg-ds-background-surface">
                                     <p className="task-holiday-item">
                                         <span className="task-holiday-badge gap-1">
                                             <Umbrella03 className="h-4 w-4 shrink-0" />
@@ -985,10 +995,10 @@ export default function PublicSharePage() {
                             return (
                                 <div className="min-w-0 flex flex-col" key={column.id}>
                                     <div className={`flex items-start justify-between border-b-2 py-3 ${index === 0 && isColumnBlankTitle ? "opacity-40" : ""}`}>
-                                        <h2 className={`public-date-label min-w-0 text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${isColumnBlankTitle ? "opacity-30" : "text-black"}`}>
+                                        <h2 className={`public-date-label min-w-0 ${isColumnBlankTitle ? "opacity-30" : "text-ds-text-default"}`}>
                                             {column.title || ""}
                                         </h2>
-                                        <h3 className="public-weekday-label text-black opacity-20">{""}</h3>
+                                        <h3 className="public-weekday-label text-ds-text-default opacity-20">{""}</h3>
                                     </div>
 
                                     {columnTasks.map(task => (
@@ -1021,18 +1031,18 @@ export default function PublicSharePage() {
                 <div
                     className={`fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
-                        backgroundColor: "rgba(5, 5, 5, 0.2)",
+                        backgroundColor: "var(--color-overlay-scrim)",
                         backdropFilter: "blur(2px)",
                         WebkitBackdropFilter: "blur(2px)",
                     }}
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] bg-[rgb(250,250,252)] px-6 py-7 text-gray-700 shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-ds-2xl bg-ds-background-page px-6 py-7 text-ds-text-muted shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="mb-6 flex w-full items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-black">
+                            <div className="flex items-center gap-2 text-ds-text-default">
                                 <Calendar className="h-4 w-4" />
                                 <p>{previewDateText}</p>
                             </div>
@@ -1040,19 +1050,18 @@ export default function PublicSharePage() {
                                 <button
                                     type="button"
                                     onClick={closeTaskPreview}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-black transition-colors duration-150 hover:bg-[rgba(237,237,242,1)]"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-ds-full text-ds-text-default transition-colors duration-150 hover:bg-ds-background-surface-muted"
                                     aria-label="Fechar"
-                                    title="Fechar"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
-                                <p className="absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded tooltip-surface p-1 text-xs text-white opacity-0 transition ease-linear duration-200 group-hover/public-close:opacity-100">
+                                <p className="absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption text-ds-text-inverse opacity-0 transition ease-linear duration-200 group-hover/public-close:opacity-100">
                                     Fechar
                                 </p>
                             </div>
                         </div>
 
-                        <h3 className={`task-menu-title w-full border-b border-[rgba(0,0,0,0.15)] pb-4 pr-10 text-[24px] leading-[1.3] text-black ${selectedTask.done ? "text-black/40" : ""}`}>
+                        <h3 className={`task-menu-title w-full border-b border-ds-border-default pb-4 pr-10 ds-type-h3 text-ds-text-default ${selectedTask.done ? "text-black/40" : ""}`}>
                             {selectedTask.name}
                         </h3>
 
@@ -1065,24 +1074,26 @@ export default function PublicSharePage() {
                         )}
 
                         {hasSelectedRelatedLinks && (
-                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-[rgba(0,0,0,0.15)]" : "mt-3"}`}>
-                                <h4 className="text-sm font-semibold text-black">{t(language, "relatedLinks")}</h4>
+                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-ds-border-default" : "mt-3"}`}>
+                                <h4 className="ds-type-body-sm font-semibold text-ds-text-default">{t(language, "relatedLinks")}</h4>
                                 <ul className="mt-4 max-h-32 space-y-2 overflow-auto pr-1">
                                     {selectedRelatedLinks.map((link, index) => (
-                                        <li key={`${index}-${link.url}-${link.name}`} className="rounded-[14px] bg-[rgba(237,237,242,1)] px-4 py-3">
+                                        <li key={`${index}-${link.url}-${link.name}`} className="group/public-related-link relative rounded-[14px] bg-ds-background-surface-muted px-4 py-3">
                                             <a
                                                 href={normalizeLinkUrl(link.url)}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="flex min-w-0 items-center justify-between gap-2"
-                                                title={normalizeLinkUrl(link.url)}
                                             >
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium text-black">{link.name || normalizeLinkUrl(link.url)}</p>
-                                                    <p className="truncate text-xs text-[#6b7280]">{link.url}</p>
+                                                    <p className="truncate text-sm font-medium text-ds-text-default">{link.name || normalizeLinkUrl(link.url)}</p>
+                                                    <p className="truncate ds-type-caption text-ds-text-muted">{link.url}</p>
                                                 </div>
-                                                <LinkExternal01 className="h-4 w-4 shrink-0 text-[#6b7280]" />
+                                                <LinkExternal01 className="h-4 w-4 shrink-0 text-ds-text-muted" />
                                             </a>
+                                            <p className="pointer-events-none absolute bottom-[110%] left-1/2 z-20 w-max max-w-[16rem] -translate-x-1/2 rounded-ds-sm tooltip-surface p-2 text-left ds-type-caption opacity-0 transition-opacity delay-0 duration-150 ease-linear whitespace-normal break-words group-hover/public-related-link:opacity-100 group-hover/public-related-link:delay-[700ms]">
+                                                {normalizeLinkUrl(link.url)}
+                                            </p>
                                         </li>
                                     ))}
                                 </ul>
@@ -1096,17 +1107,17 @@ export default function PublicSharePage() {
                 <div
                     className={`fixed inset-0 z-[70] flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
-                        backgroundColor: "rgba(5, 5, 5, 0.2)",
+                        backgroundColor: "var(--color-overlay-scrim)",
                         backdropFilter: "blur(2px)",
                         WebkitBackdropFilter: "blur(2px)",
                     }}
                     onClick={closeSearchModal}
                 >
                     <div
-                        className={`search-form relative z-[80] w-[28rem] rounded-xl bg-[rgb(250,250,252)] p-4 text-gray-600 transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`search-form relative z-[80] w-[28rem] rounded-xl bg-ds-background-page p-4 text-ds-text-muted transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
-                        <h3 className="text-xl font-bold tracking-tight text-black">{t(language, "search")}</h3>
+                        <h3 className="ds-type-h4 text-ds-text-default">{t(language, "search")}</h3>
 
                         <div className="relative">
                             <input
@@ -1115,7 +1126,7 @@ export default function PublicSharePage() {
                                 autoFocus
                                 value={searchQuery}
                                 onChange={ev => setSearchQuery(ev.target.value)}
-                                style={{ borderBottomColor: "rgba(0,0,0,0.15)" }}
+                                style={{ borderBottomColor: "var(--color-border-default)" }}
                                 aria-label={t(language, "search")}
                             />
 

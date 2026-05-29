@@ -210,50 +210,66 @@ export default function UpdateUserForm({ recoveryMode = false }) {
         {!isDeleteModalOpen && (
         <Blur type="update-user-form">
             <div
-                className="update-user-form relative mb-6 w-[32rem] max-w-full z-20 bg-[rgb(250,250,252)] rounded-[28px] px-6 py-7 shadow-lg text-black transition-all duration-500 ease-linear"
+                className="update-user-form ds-modal-shell relative z-20 mb-6 w-[32rem] max-w-full px-6 py-7 transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
-                <h3 className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">{t(language, "settingsTitle")}</h3>
+                <h3 className="ds-type-h4 text-ds-text-default">{t(language, "settingsTitle")}</h3>
 
                 {recoveryMode && (
-                    <div className="mt-3 rounded-[18px] border border-blue-300 bg-blue-100 px-4 py-4 text-sm text-blue-800">
+                    <div className="ds-alert ds-alert-success mt-3">
                         {t(language, "recoveryHelper")}
                     </div>
                 )}
 
                 {errorMessage && typeof errorMessage === "string" && (
-                    <h3 className="mt-2 rounded-md px-3 py-2 text-sm bg-red-400 text-black">
+                    <h3 className="ds-alert ds-alert-danger mt-2">
                         {errorMessage}
                     </h3>
                 )}
 
                 <Form method="POST" className="relative mt-6" action="/update-user">
-                    <div className="flex w-full items-center gap-3 rounded-[13px] bg-black px-4 py-4 text-white">
-                        <Moon02 className="h-7 w-7 text-white" />
+                    <div
+                        className="flex w-full items-center gap-3 rounded-lg bg-ds-text-default px-4 py-4 text-ds-text-inverse"
+                        style={{
+                            backgroundColor: "var(--color-text-default)",
+                            color: "var(--color-text-inverse)",
+                            borderRadius: "var(--radius-lg)",
+                        }}
+                    >
+                        <Moon02 className="h-7 w-7 text-ds-text-inverse" style={{ color: "var(--color-text-inverse)" }} />
                         <div className="flex-1">
-                            <p className="text-sm font-bold text-white">{t(language, "darkMode")}</p>
-                            <p className="text-sm leading-4 text-white">{t(language, "darkModeDescription")}</p>
+                            <p className="ds-type-button text-ds-text-inverse">{t(language, "darkMode")}</p>
+                            <p className="ds-type-body-sm text-ds-text-inverse">{t(language, "darkModeDescription")}</p>
                         </div>
 
                         <button
                             type="button"
-                            className={`h-6 w-11 appearance-none rounded-full relative box-border border-2 shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-2 focus-visible:ring-offset-black transition-colors ${
+                            className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 focus-visible:ring-offset-ds-text-default ${
                                 formValues.darkMode
-                                    ? "bg-[rgb(250,250,252)] border-[rgb(250,250,252)]"
-                                    : "bg-black border-[rgb(250,250,252)]"
+                                    ? "border-ds-background-surface bg-ds-background-surface"
+                                    : "border-ds-background-surface bg-ds-text-default"
                             }`}
                             onClick={() => {
                                 const next = !formValues.darkMode;
                                 updateField("darkMode", next);
                                 localStorage.setItem("theme", next ? "dark" : "light");
                             }}
+                            style={{
+                                backgroundColor: formValues.darkMode ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                borderColor: "var(--color-bg-surface)",
+                                borderRadius: "var(--radius-full)",
+                            }}
                         >
                             <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
                                 formValues.darkMode
-                                    ? "translate-x-[20px] bg-black"
-                                    : "translate-x-0 bg-[rgb(250,250,252)]"
-                            }`}>
-                                {formValues.darkMode && <Check className="h-3 w-3 text-[rgb(250,250,252)]" strokeWidth={3} />}
+                                    ? "translate-x-[20px] bg-ds-text-default"
+                                    : "translate-x-0 bg-ds-background-surface"
+                            }`}
+                                style={{
+                                    backgroundColor: formValues.darkMode ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderRadius: "var(--radius-full)",
+                                }}>
+                                {formValues.darkMode && <Check className="h-3 w-3 text-ds-text-inverse" strokeWidth={3} />}
                             </div>
                         </button>
                     </div>
@@ -266,7 +282,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                     <input type="hidden" name="date-format" value={formValues.dateFormat || "DD-MM"} />
                     <input type="hidden" name="week-starts-on" value={formValues.weekStartsOn || "Monday"} />
 
-                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "editProfileSectionTitle")}</h4>
+                    <h4 className="ds-type-label mb-4 mt-8 text-ds-text-default">{t(language, "editProfileSectionTitle")}</h4>
 
                     <input type="hidden" name="avatar" value={formValues.avatar} />
 
@@ -283,28 +299,37 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 <button
                                     type="button"
                                     onClick={() => avatarInputRef.current?.click()}
-                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-2"
+                                    className="relative block h-14 w-14 overflow-hidden rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2"
                                 >
                                     {formValues.avatar ? (
                                         <img src={formValues.avatar} alt={t(language, "profileAvatarAlt")} className="h-full w-full object-cover" />
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-white text-sm font-bold text-black/30">
+                                        <div className="ds-type-button flex h-full w-full items-center justify-center bg-ds-background-surface text-ds-text-subtle">
                                             {(formValues.name || currentUser?.name || "U")[0].toUpperCase()}
                                         </div>
                                     )}
                                 </button>
-                                <div className="pointer-events-none absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-black">
+                                <div
+                                    className="pointer-events-none absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-ds-text-default"
+                                    style={{
+                                        backgroundColor: "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}
+                                >
                                     {avatarLoading ? (
-                                        <svg className="h-[10px] w-[10px] animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <svg className="h-[10px] w-[10px] animate-spin text-ds-text-inverse" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                         </svg>
                                     ) : (
-                                        <Camera01 className="h-[10px] w-[10px] text-white" />
+                                        <Camera01
+                                            className="h-[10px] w-[10px] text-ds-text-inverse"
+                                            style={{ color: "var(--color-text-inverse)" }}
+                                        />
                                     )}
                                 </div>
                             {avatarErrorMessage && (
-                                <p className="mt-3 max-w-[12rem] rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                                <p className="ds-alert ds-alert-danger mt-3 max-w-[12rem]">
                                     {avatarErrorMessage}
                                 </p>
                             )}
@@ -320,7 +345,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 placeholder={t(language, "name")}
                                 value={formValues.name}
                                 onChange={ev => updateField("name", ev.target.value)}
-                                className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                                className="ds-input-line"
                             />
 
                             <label htmlFor="email" className="sr-only">{t(language, "emailField")}</label>
@@ -332,7 +357,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                                 placeholder={t(language, "email")}
                                 value={formValues.email}
                                 onChange={ev => updateField("email", ev.target.value)}
-                                className="w-full mt-3 py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                                className="ds-input-line mt-3"
                             />
                         </div>
                     </div>
@@ -347,7 +372,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             placeholder={t(language, "password")}
                             value={formValues.password}
                             onChange={ev => updateField("password", ev.target.value)}
-                            className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                            className="ds-input-line"
                         />
 
                         <label htmlFor="confirmPassword" className="sr-only">{t(language, "confirmPassword")}</label>
@@ -359,22 +384,22 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             placeholder={t(language, "confirmPassword")}
                             value={formValues.confirmPassword}
                             onChange={ev => updateField("confirmPassword", ev.target.value)}
-                            className="w-full py-2 border-b border-[rgba(0,0,0,0.15)] bg-transparent text-base text-black placeholder:text-black/45 focus:outline-none"
+                            className="ds-input-line"
                         />
                     </div>
 
-                    <h4 className="mb-4 mt-8 text-[16px] font-bold leading-[1.333333] text-black">{t(language, "systemSettingsSectionTitle")}</h4>
+                    <h4 className="ds-type-label mb-4 mt-8 text-ds-text-default">{t(language, "systemSettingsSectionTitle")}</h4>
 
-                    <div className="divide-y divide-[rgba(0,0,0,0.12)] border-b border-[rgba(0,0,0,0.12)]">
+                    <div className="divide-y divide-ds-border-default border-b border-ds-border-default">
                         <div className="flex items-center justify-between gap-4 py-4">
-                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "defaultAgendaLabel")}</span>
+                            <span className="ds-type-body min-w-0 flex-1 text-ds-text-default">{t(language, "defaultAgendaLabel")}</span>
                             <OptionMenuSelect
                                 value={formValues.defaultAgendaId || agendas?.[0]?.id || ""}
                                 onChange={value => updateField("defaultAgendaId", value)}
                                 disabled={agendas.length === 0}
                                 placeholder="-"
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
+                                triggerClassName="ds-type-body rounded-[10px] border-0 bg-transparent px-2 py-1 text-ds-text-default transition-colors hover:bg-ds-background-surface-muted focus:outline-none focus-visible:bg-ds-background-surface-muted focus-visible:ring-2 focus-visible:ring-ds-border-default"
                                 options={agendas.length === 0
                                     ? [{ value: "", label: "-" }]
                                     : agendas.map(agenda => ({
@@ -385,12 +410,12 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         </div>
 
                         <div className="flex items-center justify-between gap-4 py-4">
-                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "language")}</span>
+                            <span className="ds-type-body min-w-0 flex-1 text-ds-text-default">{t(language, "language")}</span>
                             <OptionMenuSelect
                                 value={formValues.language}
                                 onChange={value => updateField("language", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
+                                triggerClassName="ds-type-body rounded-[10px] border-0 bg-transparent px-2 py-1 text-ds-text-default transition-colors hover:bg-ds-background-surface-muted focus:outline-none focus-visible:bg-ds-background-surface-muted focus-visible:ring-2 focus-visible:ring-ds-border-default"
                                 options={[
                                     { value: "ptBR", label: t(language, "portugueseBrazil") },
                                     { value: "enUS", label: t(language, "english") },
@@ -399,12 +424,12 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         </div>
 
                         <div className="flex items-center justify-between gap-4 py-4">
-                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "dateFormat")}</span>
+                            <span className="ds-type-body min-w-0 flex-1 text-ds-text-default">{t(language, "dateFormat")}</span>
                             <OptionMenuSelect
                                 value={formValues.dateFormat}
                                 onChange={value => updateField("dateFormat", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
+                                triggerClassName="ds-type-body rounded-[10px] border-0 bg-transparent px-2 py-1 text-ds-text-default transition-colors hover:bg-ds-background-surface-muted focus:outline-none focus-visible:bg-ds-background-surface-muted focus-visible:ring-2 focus-visible:ring-ds-border-default"
                                 options={[
                                     { value: "DD-MM", label: "DD-MM" },
                                     { value: "MM-DD", label: "MM-DD" },
@@ -413,12 +438,12 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         </div>
 
                         <div className="flex items-center justify-between gap-4 py-4">
-                            <span className="min-w-0 flex-1 text-[15px] font-normal text-black">{t(language, "weekStartsOn")}</span>
+                            <span className="ds-type-body min-w-0 flex-1 text-ds-text-default">{t(language, "weekStartsOn")}</span>
                             <OptionMenuSelect
                                 value={formValues.weekStartsOn}
                                 onChange={value => updateField("weekStartsOn", value)}
                                 wrapperClassName="w-auto shrink-0"
-                                triggerClassName="rounded-[10px] border-0 bg-transparent px-2 py-1 text-[15px] font-normal text-black transition-colors hover:bg-[rgba(233,233,239,1)] focus:outline-none focus-visible:bg-[rgba(233,233,239,1)] focus-visible:ring-2 focus-visible:ring-black/10"
+                                triggerClassName="ds-type-body rounded-[10px] border-0 bg-transparent px-2 py-1 text-ds-text-default transition-colors hover:bg-ds-background-surface-muted focus:outline-none focus-visible:bg-ds-background-surface-muted focus-visible:ring-2 focus-visible:ring-ds-border-default"
                                 options={[
                                     { value: "Monday", label: t(language, "monday") },
                                     { value: "Sunday", label: t(language, "sunday") },
@@ -431,14 +456,14 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                         <button
                             type="submit"
                             disabled={!hasChanges}
-                            className="app-button-hover py-1.5 px-5 border border-black bg-black text-white rounded-full font-bold disabled:opacity-20"
+                            className="app-button-hover ds-button-primary ds-type-body rounded-full border border-transparent px-5 py-1.5 font-bold disabled:opacity-20"
                         >
                             {t(language, "save")}
                         </button>
 
                         <button
                             type="button"
-                            className="app-button-hover my-2 rounded-full px-3 py-2 text-[14px] font-normal text-[#df535f] hover:bg-[#ea00381a] hover:text-[#b80531] hover:opacity-100"
+                            className="app-button-hover ds-danger-trigger-hover ds-type-button my-2 rounded-full px-3 py-2 font-normal text-ds-danger-solid"
                             onClick={openDeleteAccountModal}
                         >
                             <Trash03 className="mr-1 inline h-4 w-4" /> {t(language, "deleteAccount")}
@@ -450,25 +475,25 @@ export default function UpdateUserForm({ recoveryMode = false }) {
         )}
 
         {isDeleteModalOpen && (
-            <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/20 px-4 pt-16 pb-10" onClick={closeDeleteAccountModal}>
+            <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 ds-overlay" onClick={closeDeleteAccountModal}>
                 <div
                     ref={deleteModalRef}
-                    className="relative mb-6 w-[32rem] max-w-full rounded-[28px] bg-[#efe5de] px-6 py-7 shadow-lg text-black"
+                    className="ds-modal-shell relative mb-6 w-[32rem] max-w-full px-6 py-7"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="delete-account-modal-title"
                     aria-describedby="delete-account-modal-description"
                     onClick={ev => ev.stopPropagation()}
                 >
-                    <h4 id="delete-account-modal-title" className="text-[21px] font-bold leading-7 tracking-[-0.5px] text-black">
+                    <h4 id="delete-account-modal-title" className="ds-type-h4 text-ds-text-default">
                         {t(language, "deleteAccountConfirmTitle")}
                     </h4>
-                    <p id="delete-account-modal-description" className="mt-3 text-base leading-7 text-black">
+                    <p id="delete-account-modal-description" className="ds-type-body mt-3 text-ds-text-default">
                         {t(language, "deleteAccountConfirmMessage")}
                     </p>
 
                     {deleteAccountError && (
-                        <p className="mt-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
+                        <p className="ds-alert ds-alert-danger mt-3">
                             {deleteAccountError}
                         </p>
                     )}
@@ -479,7 +504,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={handleDeleteAccount}
-                            className="app-button-hover rounded-full bg-[#df535f] px-6 py-2 text-base font-bold text-white disabled:opacity-20"
+                            className="app-button-hover ds-button-danger ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {isDeletingAccount ? `${t(language, "confirmDeleteAccount")}...` : t(language, "confirmDeleteAccount")}
                         </button>
@@ -488,7 +513,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={closeDeleteAccountModal}
-                            className="app-button-hover rounded-full border border-black px-6 py-2 text-base font-bold text-black disabled:opacity-20"
+                            className="app-button-hover ds-button-secondary ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {t(language, "cancel")}
                         </button>

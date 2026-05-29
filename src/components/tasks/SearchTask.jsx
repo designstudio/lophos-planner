@@ -40,7 +40,7 @@ export default function SearchTask({ data, date, onSelect = () => {} }) {
     return (
         <Link to={`/?task=${toShortId(data.id)}`} className="group w-full border-b border-gray-300" onClick={handleClick}>
             <div className="task flex justify-between items-center h-[41px] px-0 cursor-pointer">
-                <h5 className={`task-title min-w-0 flex-1 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "white text-black dark:text-white dark:bg-black"} ` + (data.done && "opacity-40 line-through ") || ''}
+                <h5 className={`task-title min-w-0 flex-1 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "ds-background-surface text-ds-text-default"} ` + (data.done && "opacity-40 line-through ") || ''}
                 >{ data.description && <StickerSquare className="h-4 w-4 shrink-0" /> } <span className="truncate">{data.name.slice(0, MAX_TASK_NAME_LENGTH) +
                     (data.name.length > MAX_TASK_NAME_LENGTH ? "..." : "")}</span></h5>
                 <p className="text-gray-400">
