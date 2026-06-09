@@ -680,7 +680,7 @@ export default function PublicSharePage() {
 
     if (loading || !minLoadingDone) {
         return (
-            <div className="min-h-screen bg-ds-background-surface flex items-center justify-center">
+            <div className="min-h-screen bg-ds-background-page flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
@@ -688,7 +688,7 @@ export default function PublicSharePage() {
 
     if (!owner) {
         return (
-            <div className="min-h-screen bg-ds-background-surface px-6 py-8 ds-type-h4 text-ds-text-default">
+            <div className="min-h-screen bg-ds-background-page px-6 py-8 ds-type-h4 text-ds-text-default">
                 {t(language, "publicAgendaUnavailable")}
             </div>
         );
@@ -698,17 +698,17 @@ export default function PublicSharePage() {
 
     return (
         <div
-            className="public-share-page min-w-screen min-h-screen bg-ds-background-surface text-ds-text-default"
+            className="public-share-page min-w-screen min-h-screen bg-ds-background-page text-ds-text-default"
             style={{
                 '--agenda-accent': agendaAccent,
                 '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'var(--color-brand-accent-subtle)',
             }}
         >
-            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-ds-background-surface px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
+            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-ds-background-page px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
                 <div className="relative">
                     <button
                         type="button"
-                        className="header-month-trigger ds-type-h4 font-bold capitalize text-ds-text-default lg:ds-type-h1"
+                        className="header-month-trigger ds-type-h1 capitalize text-ds-text-default"
                         onClick={() => setIsCalendarOpen(prev => !prev)}
                         aria-label={t(language, "changeTaskDate")}
                         aria-expanded={isCalendarOpen}
@@ -824,11 +824,11 @@ export default function PublicSharePage() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="relative group/public-agenda-avatar">
+                <div className="flex h-10 items-center gap-2">
+                    <div className="relative flex h-10 items-center group/public-agenda-avatar">
                         <button
                             type="button"
-                            className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-ds-full bg-ds-background-surface-muted ds-type-body-sm font-semibold"
+                            className="app-button-hover header-menu-btn relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-ds-full bg-ds-background-surface-muted ds-type-body-sm font-semibold"
                             aria-label={t(language, "publicAgendaBy")}
                         >
                             {isImageAvatar((agenda?.avatar || "").trim()) ? (
@@ -841,14 +841,15 @@ export default function PublicSharePage() {
                             {t(language, "publicAgendaBy")}
                         </p>
                     </div>
-                    <div className="relative group/public-search">
+                    <div className="relative flex h-10 items-center group/public-search">
                         <button
                             type="button"
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-background-surface-muted text-ds-text-default"
+                            className="app-button-hover header-menu-btn inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-background-surface-muted text-ds-text-default"
+                            style={{ backgroundColor: "var(--color-bg-surface-muted)" }}
                             onClick={openSearchModal}
                             aria-label={t(language, "search")}
                         >
-                            <SearchMd className="h-[18px] w-[18px] lg:h-5 lg:w-5" />
+                            <SearchMd className="h-5 w-5" />
                         </button>
                         <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption text-ds-text-inverse opacity-0 transition ease-linear duration-200 group-hover/public-search:opacity-100">
                             {t(language, "search")}
@@ -856,14 +857,16 @@ export default function PublicSharePage() {
                     </div>
                     <button
                         type="button"
-                        className="ml-4 inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
+                        className="app-button-hover header-menu-btn ml-4 inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
+                        style={{ backgroundColor: "var(--color-text-default)", color: "var(--color-text-inverse)" }}
                         onClick={() => moveWeek(-1)}
                     >
                         <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
                     </button>
                     <button
                         type="button"
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
+                        className="app-button-hover header-menu-btn inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse"
+                        style={{ backgroundColor: "var(--color-text-default)", color: "var(--color-text-inverse)" }}
                         onClick={() => moveWeek(1)}
                     >
                         <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -1038,7 +1041,7 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-ds-2xl bg-ds-background-page px-6 py-7 text-ds-text-muted shadow-lg transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden px-6 py-7 text-ds-text-muted transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="mb-6 flex w-full items-center justify-between text-sm">
@@ -1050,7 +1053,7 @@ export default function PublicSharePage() {
                                 <button
                                     type="button"
                                     onClick={closeTaskPreview}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-ds-full text-ds-text-default transition-colors duration-150 hover:bg-ds-background-surface-muted"
+                                    className="app-button-hover inline-flex h-8 w-8 items-center justify-center rounded-ds-full text-ds-text-default transition-colors duration-150 hover:bg-ds-background-surface-muted"
                                     aria-label="Fechar"
                                 >
                                     <X className="h-5 w-5" />
@@ -1078,7 +1081,7 @@ export default function PublicSharePage() {
                                 <h4 className="ds-type-body-sm font-semibold text-ds-text-default">{t(language, "relatedLinks")}</h4>
                                 <ul className="mt-4 max-h-32 space-y-2 overflow-auto pr-1">
                                     {selectedRelatedLinks.map((link, index) => (
-                                        <li key={`${index}-${link.url}-${link.name}`} className="group/public-related-link relative rounded-[14px] bg-ds-background-surface-muted px-4 py-3">
+                                        <li key={`${index}-${link.url}-${link.name}`} className="group/public-related-link relative rounded-ds-lg bg-ds-background-surface-muted px-4 py-3">
                                             <a
                                                 href={normalizeLinkUrl(link.url)}
                                                 target="_blank"
@@ -1114,25 +1117,24 @@ export default function PublicSharePage() {
                     onClick={closeSearchModal}
                 >
                     <div
-                        className={`search-form relative z-[80] w-[28rem] rounded-xl bg-ds-background-page p-4 text-ds-text-muted transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`search-form ds-modal-shell relative z-[80] w-[28rem] max-w-full p-4 text-ds-text-muted transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <h3 className="ds-type-h4 text-ds-text-default">{t(language, "search")}</h3>
 
                         <div className="relative">
                             <input
-                                className="my-6 w-full border-b py-1 focus:outline-none bg-transparent"
+                                className="ds-input-line my-6 w-full py-1 pr-10"
                                 type="text"
                                 autoFocus
                                 value={searchQuery}
                                 onChange={ev => setSearchQuery(ev.target.value)}
-                                style={{ borderBottomColor: "var(--color-border-default)" }}
                                 aria-label={t(language, "search")}
                             />
 
                             <button
                                 type="button"
-                                className={`absolute right-2 top-10 -translate-y-[50%] ${searchQuery ? "" : "hidden"}`}
+                                className={`app-button-hover absolute right-2 top-10 -translate-y-[50%] rounded-ds-full p-1 text-ds-text-subtle transition-opacity duration-150 hover:opacity-70 ${searchQuery ? "" : "hidden"}`}
                                 onClick={() => setSearchQuery("")}
                             >
                                 <XCircle className="h-5 w-5" />
@@ -1144,18 +1146,18 @@ export default function PublicSharePage() {
                                 <button
                                     key={task.id}
                                     type="button"
-                                    className="group w-full border-b border-gray-300 text-left"
+                                    className="group w-full border-b border-ds-border-default text-left"
                                     onClick={() => openTaskFromSearch(task)}
                                 >
                                     <div className="task flex h-[41px] items-center justify-between px-0">
                                         {renderPublicTaskTitle(task, relatedLinksEnabled ? normalizeRelatedLinks(task).length : 0, publicTaskTitleMaxLength)}
-                                        <p className="ml-4 shrink-0 text-gray-400">{formatDayMonth(new Date(task.date), language, dateFormat)}</p>
+                                        <p className="ds-type-caption ml-4 shrink-0 text-ds-text-subtle">{formatDayMonth(new Date(task.date), language, dateFormat)}</p>
                                     </div>
                                 </button>
                             ))}
 
                             {!!searchQuery.trim() && filteredSearchTasks.length === 0 && (
-                                <p className="py-2 text-sm text-gray-400">
+                                <p className="ds-type-body-sm py-2 text-ds-text-subtle">
                                     {language === "ptBR" ? "Nenhuma tarefa encontrada." : "No tasks found."}
                                 </p>
                             )}
