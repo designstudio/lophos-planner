@@ -543,7 +543,10 @@ export default function TaskMenu() {
                         )}
                     </div>
 
-                    <div className="task-menu-toolbar">
+                    <div className="task-menu-toolbar task-menu-metadata-row">
+                        <span className="task-menu-field-label">
+                            {t(language, "taskType")}
+                        </span>
                         <div ref={taskTypeMenuRef} className="relative">
                             <button
                                 type="button"

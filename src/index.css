@@ -315,6 +315,20 @@ body[data-scroll-locked="true"],
         transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
     }
 
+    .task-menu-metadata-row {
+        gap: 1.5rem;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .task-menu-field-label {
+        flex: 0 0 auto;
+        color: var(--color-text-muted);
+        font-size: var(--type-body-sm-font-size);
+        line-height: var(--type-body-sm-line-height);
+        font-weight: 400;
+    }
+
     .task-menu-toolbar.is-sticky {
         @apply sticky z-20 inline-flex items-center gap-1 rounded-full px-1 py-1;
         border: 1px solid var(--color-border-default);
@@ -830,11 +844,14 @@ body[data-scroll-locked="true"],
 
     .task-menu-type-trigger {
         @apply inline-flex w-auto max-w-[8rem] items-center justify-between gap-1.5 px-2.5 py-1.5 text-left;
-        border-radius: var(--radius-lg);
+        border: 0;
+        border-radius: var(--radius-full);
+        box-shadow: none;
         background-color: var(--color-bg-surface-muted);
         color: var(--color-text-default);
         font-size: var(--type-body-sm-font-size);
         line-height: var(--type-body-sm-line-height);
+        font-weight: 500;
         transition: background-color 0.15s ease, opacity 0.15s ease;
     }
 
