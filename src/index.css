@@ -296,6 +296,9 @@ body[data-scroll-locked="true"],
 
     .task-menu-panel {
         --color-bg-primary: var(--color-bg-page);
+        border: 0 !important;
+        outline: none !important;
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--color-river-bed-950) 10%, transparent) !important;
     }
 
     .task-menu-toolbar-sentinel {
@@ -1010,6 +1013,662 @@ body[data-scroll-locked="true"],
         color: var(--color-text-default);
     }
 
+    .task-menu-editor[data-note-format="blocknote"] {
+        position: relative;
+    }
+
+    .task-menu-editor[data-note-read-only="true"] {
+        min-height: 0;
+    }
+
+    .task-menu-editor .bn-mantine,
+    .task-menu-editor .bn-root,
+    .task-menu-editor .bn-editor,
+    .task-menu-editor .ProseMirror {
+        --bn-font-family: inherit;
+        --bn-colors-editor-background: transparent;
+        --bn-colors-editor-text: inherit;
+        --bn-colors-menu-background: var(--color-bg-surface);
+        --bn-colors-menu-text: var(--color-text-default);
+        --bn-colors-tooltip-background: var(--color-bg-surface-muted);
+        --bn-colors-tooltip-text: var(--color-text-default);
+        --bn-colors-hovered-background: transparent;
+        --bn-colors-hovered-text: inherit;
+        --bn-colors-selected-background: transparent;
+        --bn-colors-selected-text: inherit;
+        --bn-colors-border: transparent;
+        --bn-colors-side-menu: var(--color-text-muted);
+        --bn-border: 0 solid transparent;
+        --bn-border-radius: 0px;
+        --bn-border-radius-small: 0px;
+        --bn-border-radius-medium: 0px;
+        --bn-border-radius-large: 0px;
+        --bn-shadow-light: none;
+        --bn-shadow-medium: none;
+    }
+
+    .task-menu-editor .bn-container,
+    .task-menu-editor .bn-mantine,
+    .task-menu-editor .bn-root,
+    .task-menu-editor .bn-editor {
+        margin: 0;
+        border: 0 !important;
+        border-radius: 0;
+        background: transparent !important;
+        box-shadow: none !important;
+        font-family: inherit !important;
+        font-size: inherit !important;
+    }
+
+    .task-menu-editor .bn-editor {
+        min-height: 132px;
+        padding: 0 !important;
+        color: var(--color-text-default);
+        font-family: inherit !important;
+        font-size: var(--type-body-font-size) !important;
+        line-height: var(--type-body-line-height);
+        cursor: text;
+    }
+
+    .task-menu-editor[data-note-read-only="true"] .bn-editor {
+        min-height: 0;
+    }
+
+    .task-menu-editor .bn-block-outer,
+    .task-menu-editor .bn-block,
+    .task-menu-editor .bn-editor .ProseMirror,
+    .task-menu-editor .bn-inline-content {
+        margin: 0;
+        font-family: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        color: inherit !important;
+    }
+
+    .task-menu-editor .bn-editor .ProseMirror,
+    .task-menu-editor .bn-editor .ProseMirror *,
+    .task-menu-editor .bn-inline-content,
+    .task-menu-editor .bn-inline-content * {
+        cursor: text;
+    }
+
+    .task-menu-editor .bn-editor a,
+    .task-menu-editor .bn-editor a *,
+    .task-menu-editor .bn-inline-content a,
+    .task-menu-editor .bn-inline-content a *,
+    .task-menu-editor .task-mention,
+    .task-menu-editor .task-mention * {
+        cursor: pointer !important;
+    }
+
+    .task-menu-editor .bn-editor a[href^="#task:"],
+    .task-menu-editor .bn-inline-content a[href^="#task:"] {
+        display: inline-block;
+        max-width: min(200px, 100%);
+        border-radius: 9999px;
+        background: var(--color-bg-surface-muted);
+        color: var(--color-brand-primary);
+        padding: 0.1rem 0.5rem;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+    }
+
+    .task-menu-editor .bn-editor a[href^="#task:"]:hover,
+    .task-menu-editor .bn-inline-content a[href^="#task:"]:hover {
+        background: color-mix(in srgb, var(--color-bg-surface-muted) 82%, var(--color-text-strong));
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer {
+        margin-bottom: 0.875rem;
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:last-child {
+        margin-bottom: 0;
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="bulletListItem"]),
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="numberedListItem"]),
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="checkListItem"]) {
+        margin-bottom: 0.45rem;
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="heading"]) {
+        margin-bottom: 1rem;
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"]),
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > [data-file-block]) {
+        margin-bottom: 1.25rem;
+    }
+
+    .task-menu-editor .bn-block-content {
+        min-height: 0;
+        font-family: inherit !important;
+        color: inherit !important;
+        transition: none !important;
+    }
+
+    .task-menu-editor .bn-inline-content,
+    .task-menu-editor .bn-inline-content > * {
+        font-family: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        color: inherit !important;
+    }
+
+    .task-menu-editor .bn-block-content:has(.ProseMirror-trailingBreak:only-child):after {
+        color: var(--color-text-muted);
+        font-family: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        transition: none !important;
+    }
+
+    .task-menu-editor .bn-block-content[data-is-empty-and-focused]:has(.ProseMirror-trailingBreak:only-child):after {
+        font-size: var(--type-body-font-size) !important;
+        line-height: var(--type-body-line-height) !important;
+        letter-spacing: var(--type-body-letter-spacing) !important;
+        font-weight: var(--type-body-font-weight) !important;
+    }
+
+    .task-menu-editor .bn-editor .ProseMirror {
+        background: transparent !important;
+    }
+
+    .task-menu-editor .bn-editor [data-content-type="checkListItem"] input[type="checkbox"] {
+        appearance: auto;
+        accent-color: var(--color-brand-primary);
+        cursor: pointer;
+        width: 12px;
+        height: 24px;
+        margin-left: 4px;
+        margin-right: 8px;
+        margin-block: 0;
+        flex: 0 0 auto;
+    }
+
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="checkListItem"] > div:has(> input) {
+        display: flex;
+        align-items: center;
+        height: 24px;
+        flex: 0 0 auto;
+    }
+
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="checkListItem"][data-checked="true"] .bn-inline-content {
+        text-decoration: line-through;
+    }
+
+    .task-menu-editor .bn-editor img {
+        display: block;
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .task-menu-editor .bn-editor [data-file-block] .bn-file-block-content-wrapper {
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .task-menu-editor .bn-editor [data-file-block] .bn-file-caption {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: 0.1875rem;
+        font-size: var(--type-caption-font-size) !important;
+        line-height: var(--type-caption-line-height) !important;
+        font-weight: var(--type-caption-font-weight) !important;
+        letter-spacing: var(--type-caption-letter-spacing) !important;
+        color: var(--color-text-subtle) !important;
+        text-align: center;
+    }
+
+    .task-menu-editor .bn-editor table {
+        max-width: 100%;
+    }
+
+    .task-menu-editor .bn-editor [data-content-type="table"] .tableWrapper {
+        --bn-table-widget-size: 22px;
+        --bn-table-handle-size: 9px;
+        width: max-content;
+        max-width: 100%;
+        overflow: visible;
+        padding: var(--bn-table-handle-size) var(--bn-table-widget-size) var(--bn-table-widget-size) var(--bn-table-handle-size);
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle,
+    .task-menu-editor .bn-mantine .bn-extend-button,
+    .task-menu-editor .bn-mantine .bn-table-cell-handle {
+        background: var(--color-bg-surface) !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 8px !important;
+        box-shadow: var(--shadow-md) !important;
+        color: var(--color-text-subtle) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle,
+    .task-menu-editor .bn-mantine .bn-table-cell-handle {
+        min-width: 18px;
+        min-height: 18px;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle svg,
+    .task-menu-editor .bn-mantine .bn-table-cell-handle svg,
+    .task-menu-editor .bn-mantine .bn-extend-button svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle:hover,
+    .task-menu-editor .bn-mantine .bn-table-handle-dragging,
+    .task-menu-editor .bn-mantine .bn-extend-button:hover,
+    .task-menu-editor .bn-mantine .bn-extend-button-editing,
+    .task-menu-editor .bn-mantine .bn-table-cell-handle:hover {
+        background: var(--color-bg-surface-muted) !important;
+        color: var(--color-text-default) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-extend-button {
+        border: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        color: var(--color-text-subtle) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-columns {
+        margin-left: 6px;
+        width: 18px;
+    }
+
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-rows {
+        margin-top: 6px;
+        height: 18px;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle-menu {
+        overflow: visible;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle-menu,
+    .task-menu-editor .bn-mantine .bn-table-handle-menu.mantine-Menu-dropdown,
+    .task-menu-editor .bn-mantine .bn-table-handle-menu.bn-menu-dropdown {
+        background: var(--color-bg-surface) !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 12px !important;
+        box-shadow:
+            0 12px 28px color-mix(in srgb, var(--color-river-bed-950) 14%, transparent),
+            0 2px 8px color-mix(in srgb, var(--color-river-bed-950) 8%, transparent) !important;
+        padding: 0.35rem !important;
+        overflow: visible !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle-menu .mantine-Menu-item {
+        border-radius: 10px !important;
+        font-family: inherit !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+        color: var(--color-text-default) !important;
+        padding: 0.55rem 0.7rem !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-table-handle-menu .mantine-Menu-item:hover {
+        background: var(--color-bg-surface-muted) !important;
+    }
+
+    .task-menu-editor .bn-editor [data-content-type="toggleListItem"] summary {
+        cursor: pointer;
+    }
+
+    .task-menu-editor .mantine-Popover-dropdown,
+    .task-menu-editor .mantine-Menu-dropdown {
+        z-index: 70;
+    }
+
+    .task-menu-editor .bn-mantine .bn-tooltip,
+    .task-menu-editor .bn-mantine .mantine-Tooltip-tooltip {
+        background: var(--color-text-default) !important;
+        color: var(--color-text-inverse) !important;
+        border: 0 !important;
+        border-radius: var(--radius-sm) !important;
+        box-shadow: var(--shadow-md) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        white-space: nowrap !important;
+        max-width: max-content !important;
+        width: auto !important;
+        height: auto !important;
+        padding: 0.06rem 0.14rem !important;
+        min-height: 0 !important;
+        font-family: inherit !important;
+        font-size: var(--type-caption-font-size) !important;
+        line-height: var(--type-caption-line-height) !important;
+        letter-spacing: var(--type-caption-letter-spacing) !important;
+        font-weight: var(--type-caption-font-weight) !important;
+    }
+
+    .task-menu-editor .bn-mantine .mantine-Tooltip-tooltip p,
+    .task-menu-editor .bn-mantine .bn-tooltip p {
+        margin: 0 !important;
+        color: inherit !important;
+        font: inherit !important;
+    }
+
+    .task-menu-editor .bn-mantine .mantine-Tooltip-tooltip p + p,
+    .task-menu-editor .bn-mantine .bn-tooltip p + p {
+        display: none !important;
+    }
+
+    .task-menu-editor .bn-toolbar,
+    .task-menu-editor .bn-toolbar * {
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+    }
+
+    .task-menu-editor .bn-toolbar {
+        z-index: 75;
+        display: inline-flex !important;
+        align-items: center;
+        flex-wrap: nowrap !important;
+        gap: 0.125rem;
+        width: max-content !important;
+        max-width: min(calc(100vw - 2rem), 100%);
+        padding: 0.125rem !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 999px !important;
+        background: var(--color-bg-surface) !important;
+        box-shadow: var(--shadow-md) !important;
+    }
+
+    .task-menu-editor .bn-formatting-toolbar {
+        z-index: 75;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-root,
+    .task-menu-editor .bn-toolbar .mantine-ActionIcon-root {
+        min-height: 30px;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: transparent !important;
+        color: var(--color-text-default) !important;
+        box-shadow: none !important;
+        font-family: inherit !important;
+        line-height: 1 !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-root:hover,
+    .task-menu-editor .bn-toolbar .mantine-ActionIcon-root:hover {
+        background: var(--color-bg-surface-muted) !important;
+        color: var(--color-text-strong) !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-root[data-selected],
+    .task-menu-editor .bn-toolbar .mantine-ActionIcon-root[data-selected] {
+        background: var(--color-text-default) !important;
+        color: var(--color-text-inverse) !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-root[data-disabled],
+    .task-menu-editor .bn-toolbar .mantine-ActionIcon-root[data-disabled] {
+        background: transparent !important;
+        color: var(--color-text-subtle) !important;
+        opacity: 0.45;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-label,
+    .task-menu-editor .bn-toolbar .mantine-ActionIcon-root svg,
+    .task-menu-editor .bn-toolbar .mantine-Button-root svg {
+        white-space: nowrap;
+        color: inherit !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-label {
+        font-size: var(--type-body-sm-font-size);
+        line-height: var(--type-body-sm-line-height);
+        font-weight: 400;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Button-section {
+        color: inherit !important;
+    }
+
+    .task-menu-editor .bn-toolbar .bn-select,
+    .task-menu-editor .bn-toolbar .mantine-Menu-dropdown,
+    .task-menu-editor .bn-toolbar .bn-menu-dropdown {
+        background: var(--color-bg-surface) !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--shadow-md) !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Menu-item {
+        font-family: inherit !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+        color: var(--color-text-default) !important;
+    }
+
+    .task-menu-editor .bn-toolbar .mantine-Menu-item:hover {
+        background: var(--color-bg-surface-muted) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-link-toolbar {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.125rem;
+        padding: 0.25rem !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 999px !important;
+        background: var(--color-bg-surface) !important;
+        box-shadow:
+            0 10px 22px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent),
+            0 2px 6px color-mix(in srgb, var(--color-river-bed-950) 8%, transparent) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-link-toolbar .mantine-Button-root,
+    .task-menu-editor .bn-mantine .bn-link-toolbar .mantine-ActionIcon-root {
+        min-height: 2rem !important;
+        height: 2rem !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover,
+    .task-menu-editor .bn-mantine .bn-popover-content.bn-form-popover,
+    .task-menu-editor .bn-mantine .mantine-Popover-dropdown.bn-form-popover {
+        min-width: 18rem;
+        margin-top: 0.375rem;
+        padding: 0.5rem !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 12px !important;
+        background: var(--color-bg-surface) !important;
+        box-shadow:
+            0 12px 28px color-mix(in srgb, var(--color-river-bed-950) 14%, transparent),
+            0 2px 8px color-mix(in srgb, var(--color-river-bed-950) 8%, transparent) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-root {
+        width: 100%;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-wrapper {
+        padding: 0;
+        border-radius: 10px;
+        background: transparent;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-section {
+        color: var(--color-text-subtle) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-input {
+        min-height: 2.25rem;
+        padding-left: 2rem !important;
+        padding-right: 0.75rem !important;
+        border: 0 !important;
+        border-radius: 10px !important;
+        background: transparent !important;
+        color: var(--color-text-default) !important;
+        box-shadow: none !important;
+        font-family: inherit !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-input::placeholder {
+        color: var(--color-text-subtle);
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-root:first-child .mantine-TextInput-input {
+        font-size: var(--type-body-font-size) !important;
+        line-height: var(--type-body-line-height) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-root:hover .mantine-TextInput-input,
+    .task-menu-editor .bn-mantine .bn-form-popover .mantine-TextInput-input:focus {
+        background: var(--color-bg-surface-muted) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel-popover {
+        display: block;
+        min-width: 19rem;
+        max-width: 21rem;
+        margin-top: 0.375rem;
+        padding: 0 !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 12px !important;
+        background: color-mix(in srgb, var(--color-bg-surface-subtle) 72%, var(--color-bg-surface)) !important;
+        box-shadow:
+            0 12px 28px color-mix(in srgb, var(--color-river-bed-950) 14%, transparent),
+            0 2px 8px color-mix(in srgb, var(--color-river-bed-950) 8%, transparent) !important;
+        overflow: hidden;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel {
+        width: 100%;
+        background: transparent !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-root,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-panel {
+        background: transparent !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-list {
+        gap: 1rem;
+        padding: 0.75rem 0.875rem 0 !important;
+        border: 0 !important;
+        background: color-mix(in srgb, var(--color-bg-surface-muted) 58%, var(--color-bg-surface));
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-list::before {
+        display: none;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-tab {
+        padding: 0.2rem 0 0.7rem !important;
+        border: 0 !important;
+        border-bottom: 2px solid transparent !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        color: var(--color-text-subtle) !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+        font-weight: 500 !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-tab:hover {
+        color: var(--color-text-default) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-tab[data-active],
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-tab[data-active]:hover {
+        border-bottom-color: var(--agenda-accent) !important;
+        color: var(--color-text-strong) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Tabs-panel {
+        padding: 0.875rem !important;
+        background: color-mix(in srgb, var(--color-bg-surface) 86%, var(--color-bg-surface-subtle)) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-root,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-root {
+        width: 100%;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-wrapper,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-wrapper {
+        padding: 0;
+        border-radius: 10px;
+        background: var(--color-bg-surface-muted);
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-input,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-input {
+        min-height: 2.5rem;
+        border: 0 !important;
+        border-radius: 10px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--color-text-default) !important;
+        font-family: inherit !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+        padding-left: 0.875rem !important;
+        padding-right: 0.875rem !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-input::placeholder,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-input::placeholder {
+        color: var(--color-text-subtle) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-wrapper:hover .mantine-FileInput-input,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-wrapper:hover .mantine-TextInput-input,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-input:focus,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-input:focus {
+        background: color-mix(in srgb, var(--color-bg-surface-muted) 74%, var(--color-bg-surface)) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-section,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-section {
+        color: var(--color-text-subtle) !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .mantine-FileInput-section[data-position="left"],
+    .task-menu-editor .bn-mantine .bn-panel .mantine-TextInput-section[data-position="left"] {
+        left: 0.75rem;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .bn-button,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Button-root {
+        width: 100%;
+        min-height: 2.5rem;
+        border: 0 !important;
+        border-radius: 999px !important;
+        background: var(--color-text-default) !important;
+        color: var(--color-text-inverse) !important;
+        box-shadow: var(--shadow-md) !important;
+        font-size: var(--type-button-font-size) !important;
+        line-height: var(--type-button-line-height) !important;
+        letter-spacing: var(--type-button-letter-spacing) !important;
+        font-weight: var(--type-button-font-weight) !important;
+        padding: 0 1rem !important;
+        transition: opacity 0.15s ease !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-panel .bn-button:hover,
+    .task-menu-editor .bn-mantine .bn-panel .mantine-Button-root:hover {
+        opacity: 0.9 !important;
+    }
+
     .task-menu-editor,
     .task-menu-editor * {
         line-height: var(--type-body-line-height);
@@ -1027,26 +1686,42 @@ body[data-scroll-locked="true"],
         color: var(--color-text-muted);
     }
 
-    .task-menu-editor p,
-    .task-menu-editor ul,
-    .task-menu-editor ol,
-    .task-menu-editor h1,
-    .task-menu-editor h2,
-    .task-menu-editor h3 {
+    .task-menu-editor[data-note-format="legacy-markdown"] p,
+    .task-menu-editor[data-note-format="legacy-markdown"] ul,
+    .task-menu-editor[data-note-format="legacy-markdown"] ol,
+    .task-menu-editor[data-note-format="legacy-markdown"] h1,
+    .task-menu-editor[data-note-format="legacy-markdown"] h2,
+    .task-menu-editor[data-note-format="legacy-markdown"] h3 {
         margin-top: 0;
         margin-bottom: 1.438rem;
     }
 
-    .task-menu-editor h1,
-    .task-menu-editor h2,
-    .task-menu-editor h3 {
+    .task-menu-editor[data-note-format="legacy-markdown"] h1,
+    .task-menu-editor[data-note-format="legacy-markdown"] h2,
+    .task-menu-editor[data-note-format="legacy-markdown"] h3 {
         font-size: var(--type-body-font-size);
         line-height: var(--type-body-line-height);
         font-weight: 700;
     }
 
-    .task-menu-editor ul,
-    .task-menu-editor ol {
+    .task-menu-editor .bn-editor h1,
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"] h1,
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"] .bn-inline-content {
+        font-size: var(--type-h4-font-size) !important;
+        line-height: var(--type-h4-line-height) !important;
+        letter-spacing: var(--type-h4-letter-spacing) !important;
+        font-weight: var(--type-h4-font-weight) !important;
+    }
+
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"]:has(.ProseMirror-trailingBreak:only-child):not([data-is-empty-and-focused])::after {
+        font-size: var(--type-h4-font-size) !important;
+        line-height: var(--type-h4-line-height) !important;
+        letter-spacing: var(--type-h4-letter-spacing) !important;
+        font-weight: var(--type-h4-font-weight) !important;
+    }
+
+    .task-menu-editor[data-note-format="legacy-markdown"] ul,
+    .task-menu-editor[data-note-format="legacy-markdown"] ol {
         padding-left: 1.2rem;
         list-style-position: outside;
     }
@@ -1091,18 +1766,24 @@ body[data-scroll-locked="true"],
         border-collapse: separate;
         border-spacing: 0;
         table-layout: fixed;
-        border: 1px solid color-mix(in srgb, var(--color-text-strong) 16%, transparent);
+        border: 0;
         border-radius: 14px;
         overflow: hidden;
         background: color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
+        box-shadow:
+            inset 1px 0 0 color-mix(in srgb, var(--color-text-strong) 8%, transparent),
+            inset 0 1px 0 color-mix(in srgb, var(--color-text-strong) 8%, transparent);
     }
 
     .task-menu-editor thead {
         background: color-mix(in srgb, var(--color-bg-surface-muted) 92%, transparent);
     }
 
+    .task-menu-editor .bn-editor [data-content-type="table"] th,
+    .task-menu-editor .bn-editor [data-content-type="table"] td,
     .task-menu-editor th,
     .task-menu-editor td {
+        border: 0;
         border-right: 1px solid color-mix(in srgb, var(--color-text-strong) 8%, transparent);
         border-bottom: 1px solid color-mix(in srgb, var(--color-text-strong) 8%, transparent);
         padding: 0.65rem 0.75rem;
@@ -1110,14 +1791,6 @@ body[data-scroll-locked="true"],
         vertical-align: top;
         overflow-wrap: anywhere;
         min-width: 11rem;
-    }
-
-    .task-menu-editor tr > *:last-child {
-        border-right: none;
-    }
-
-    .task-menu-editor tbody tr:last-child td {
-        border-bottom: none;
     }
 
     .task-menu-editor thead tr:first-child th:first-child {
@@ -1159,8 +1832,9 @@ body[data-scroll-locked="true"],
         vertical-align: bottom;
     }
 
+    .task-menu-editor .alert,
     .task-menu-editor .task-callout {
-        margin: 1rem 0;
+        margin: 0;
         display: flex;
         align-items: flex-start;
         gap: 0.75rem;
@@ -1169,6 +1843,7 @@ body[data-scroll-locked="true"],
         padding: 0.9rem 1rem;
     }
 
+    .task-menu-editor .alert-icon-wrapper,
     .task-menu-editor .task-callout-icon-button {
         display: inline-flex;
         align-items: center;
@@ -1176,6 +1851,19 @@ body[data-scroll-locked="true"],
         flex: 0 0 auto;
         margin-top: 0.05rem;
         cursor: pointer;
+    }
+
+    .task-menu-editor .alert-icon-wrapper {
+        margin-left: 0;
+        margin-right: 0;
+        width: 1.125rem;
+        height: 1.125rem;
+        user-select: none;
+    }
+
+    .task-menu-editor .alert-icon {
+        width: 100%;
+        height: 100%;
     }
 
     .task-menu-editor .task-callout-icon {
@@ -1190,40 +1878,103 @@ body[data-scroll-locked="true"],
         height: 100%;
     }
 
+    .task-menu-editor .alert .inline-content,
     .task-menu-editor .task-callout-body {
         min-width: 0;
         flex: 1 1 auto;
     }
 
+    .task-menu-editor .alert .inline-content > *:first-child,
     .task-menu-editor .task-callout-body > *:first-child {
         margin-top: 0;
     }
 
+    .task-menu-editor .alert .inline-content > *:last-child,
     .task-menu-editor .task-callout-body > *:last-child {
         margin-bottom: 0;
     }
 
-    .task-menu-editor .task-callout.task-callout-note {
-        background: color-mix(in srgb, var(--color-bg-surface-muted) 72%, var(--color-bg-surface));
-    }
-
+    .task-menu-editor .alert[data-alert-type="info"],
     .task-menu-editor .task-callout.task-callout-info {
-        background: color-mix(in srgb, var(--color-brand-accent-subtle) 52%, var(--color-bg-surface));
-        color: var(--color-brand-primary-active);
+        background: color-mix(in srgb, var(--color-river-bed-100) 88%, var(--color-bg-surface));
+        color: var(--color-river-bed-800);
     }
 
+    .task-menu-editor .alert[data-alert-type="success"],
     .task-menu-editor .task-callout.task-callout-tip {
         background: color-mix(in srgb, var(--color-success-surface) 78%, var(--color-bg-surface));
     }
 
+    .task-menu-editor .alert[data-alert-type="warning"],
     .task-menu-editor .task-callout.task-callout-warning,
     .task-menu-editor .task-callout.task-callout-caution {
         background: color-mix(in srgb, var(--color-warning-surface) 78%, var(--color-bg-surface));
         color: var(--color-warning-text);
     }
 
+    .task-menu-editor .alert[data-alert-type="error"],
     .task-menu-editor .task-callout.task-callout-important {
         background: color-mix(in srgb, var(--color-danger-surface) 78%, var(--color-bg-surface));
+        color: var(--color-danger-text);
+    }
+
+    .task-menu-editor .task-callout.task-callout-note {
+        background: color-mix(in srgb, var(--color-bg-surface-muted) 72%, var(--color-bg-surface));
+    }
+
+    .task-menu-editor .alert-icon[data-alert-icon-type="warning"] {
+        color: var(--color-warning-text);
+    }
+
+    .task-menu-editor .alert-icon[data-alert-icon-type="error"] {
+        color: var(--color-danger-text);
+    }
+
+    .task-menu-editor .alert-icon[data-alert-icon-type="info"] {
+        color: var(--color-river-bed-700);
+    }
+
+    .task-menu-editor .alert-icon[data-alert-icon-type="success"] {
+        color: var(--color-success-text);
+    }
+
+    .task-menu-editor .task-alert-menu,
+    .task-menu-editor .task-alert-menu.mantine-Menu-dropdown,
+    .task-menu-editor .task-alert-menu.bn-menu-dropdown {
+        background: var(--color-bg-surface) !important;
+        border: 1px solid var(--color-border-default) !important;
+        border-radius: 12px !important;
+        box-shadow:
+            0 12px 28px color-mix(in srgb, var(--color-river-bed-950) 14%, transparent),
+            0 2px 8px color-mix(in srgb, var(--color-river-bed-950) 8%, transparent) !important;
+        padding: 0.35rem !important;
+    }
+
+    .task-menu-editor .task-alert-menu .mantine-Menu-label {
+        font-size: var(--type-caption-font-size) !important;
+        line-height: var(--type-caption-line-height) !important;
+        font-weight: 700 !important;
+        letter-spacing: var(--type-caption-letter-spacing) !important;
+        color: var(--color-text-subtle) !important;
+        padding: 0.2rem 0.4rem 0.35rem !important;
+    }
+
+    .task-menu-editor .task-alert-menu .mantine-Divider-root {
+        border-color: color-mix(in srgb, var(--color-text-strong) 8%, transparent) !important;
+        margin: 0 0 0.35rem !important;
+    }
+
+    .task-menu-editor .task-alert-menu .mantine-Menu-item {
+        border-radius: 10px !important;
+        font-family: inherit !important;
+        font-size: var(--type-body-sm-font-size) !important;
+        line-height: var(--type-body-sm-line-height) !important;
+        color: var(--color-text-default) !important;
+        padding: 0.55rem 0.7rem !important;
+    }
+
+    .task-menu-editor .task-alert-menu .mantine-Menu-item:hover {
+        background: var(--color-bg-surface-muted) !important;
     }
 
     .task-callout-type-menu {
@@ -1383,12 +2134,12 @@ body[data-scroll-locked="true"],
         border-top: 1px solid color-mix(in srgb, var(--color-text-strong) 8%, transparent);
     }
 
-    .task-menu-editor li {
+    .task-menu-editor[data-note-format="legacy-markdown"] li {
         margin-bottom: 0.45rem;
         display: list-item;
     }
 
-    .task-menu-editor li > p {
+    .task-menu-editor[data-note-format="legacy-markdown"] li > p {
         margin-bottom: 0;
     }
 
@@ -1397,11 +2148,11 @@ body[data-scroll-locked="true"],
         word-break: break-word;
     }
 
-    .task-menu-editor ul {
+    .task-menu-editor[data-note-format="legacy-markdown"] ul {
         list-style-type: disc;
     }
 
-    .task-menu-editor ol {
+    .task-menu-editor[data-note-format="legacy-markdown"] ol {
         list-style-type: decimal;
     }
 
@@ -1447,7 +2198,7 @@ body[data-scroll-locked="true"],
     }
 
     .task-inline-menu-slash {
-        width: min(13rem, calc(100vw - 4rem));
+        width: min(15rem, calc(100vw - 4rem));
     }
 
     .task-inline-menu-mention {
@@ -1455,14 +2206,21 @@ body[data-scroll-locked="true"],
     }
 
     .task-inline-menu-section {
-        padding: 0.7rem 0.75rem 0.55rem;
+        padding: 0 0.75rem;
+        margin: 0;
+    }
+
+    .task-inline-menu > .task-inline-menu-section:first-child {
+        padding-top: 0.35rem;
     }
 
     .task-inline-menu-title {
+        display: block;
         font-size: var(--type-caption-font-size);
         font-weight: 700;
         line-height: var(--type-caption-line-height);
         color: var(--color-text-subtle);
+        margin: 0;
     }
 
     .task-inline-menu-option {
@@ -1475,6 +2233,7 @@ body[data-scroll-locked="true"],
         text-align: left;
         color: var(--color-text-strong);
         transition: background-color 0.15s ease;
+        min-height: 0;
     }
 
     .task-inline-menu-option + .task-inline-menu-option {
@@ -1505,10 +2264,58 @@ body[data-scroll-locked="true"],
     }
 
     .task-inline-menu-option-label {
+        display: block;
         font-size: var(--type-body-sm-font-size);
         font-weight: 400;
         line-height: var(--type-body-sm-line-height);
         color: var(--color-text-strong);
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .task-inline-menu-slash .task-inline-menu-option {
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+
+    .task-inline-menu-section + .task-inline-menu-option {
+        margin-top: 0.2rem;
+    }
+
+    .task-inline-menu-option + .task-inline-menu-section {
+        margin-top: 0.8rem;
+        padding-top: 0.35rem;
+    }
+
+    .task-inline-menu-slash .task-inline-menu-option-content {
+        min-width: 0;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.12rem;
+    }
+
+    .task-inline-menu-option-meta {
+        font-size: var(--type-caption-font-size);
+        line-height: var(--type-caption-line-height);
+        color: var(--color-text-muted);
+        text-align: left;
+    }
+
+    .task-inline-menu-option-badge {
+        flex: 0 0 auto;
+        margin-left: auto;
+        align-self: center;
+        border-radius: 999px;
+        background: var(--color-bg-surface-muted);
+        color: var(--color-text-strong);
+        padding: 0.15rem 0.45rem;
+        font-size: var(--type-caption-font-size);
+        line-height: var(--type-caption-line-height);
+        font-weight: 700;
+        white-space: nowrap;
     }
 
     .task-inline-menu-empty {

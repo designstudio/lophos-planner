@@ -67,6 +67,10 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
         data?.done,
         data?.color,
         data?.description,
+        data?.note_format,
+        data?.note_blocks,
+        data?.note_plain_text,
+        data?.note_migrated_at,
         data?.date,
         relatedLinks,
     ]);
@@ -99,6 +103,10 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
                 && prev?.task_type === taskMenuPayload.task_type
                 && prev?.color === taskMenuPayload.color
                 && prev?.description === taskMenuPayload.description
+                && prev?.note_format === taskMenuPayload.note_format
+                && JSON.stringify(prev?.note_blocks || null) === JSON.stringify(taskMenuPayload.note_blocks || null)
+                && prev?.note_plain_text === taskMenuPayload.note_plain_text
+                && prev?.note_migrated_at === taskMenuPayload.note_migrated_at
                 && String(prev?.date) === String(taskMenuPayload.date);
 
             if (sameTask && sameLinks) {

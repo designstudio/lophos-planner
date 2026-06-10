@@ -108,19 +108,42 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
 
             const taskId = formData.get("task-id");
             const nextDescription = (formData.get("task-description") || "").toString();
-            const initialDescription = (formData.get("task-initial-description") || "").toString();
             const isDescriptionDirty = formData.get("task-description-dirty") === "true";
+            const noteFormat = (formData.get("task-note-format") || "").toString();
+            const noteBlocksRaw = (formData.get("task-note-blocks") || "").toString();
+            const notePlainText = (formData.get("task-note-plain-text") || "").toString();
+            const noteMigratedAt = (formData.get("task-note-migrated-at") || "").toString();
+            let noteBlocks = null;
+
+            if (noteBlocksRaw.trim()) {
+                try {
+                    noteBlocks = JSON.parse(noteBlocksRaw);
+                } catch {
+                    noteBlocks = null;
+                }
+            }
+
             const updates = {
                 name: formData.get("task-name"),
                 date: formData.get("task-date"),
                 done: formData.get("task-type") === "meeting" ? false : formData.has("task-done"),
                 color: formData.get("task-color"),
                 task_type: formData.get("task-type") || "task",
-                description: !isDescriptionDirty && !nextDescription.trim() && initialDescription.trim()
-                    ? initialDescription
-                    : nextDescription,
+                description: nextDescription,
                 related_links: relatedLinks,
             };
+
+            if (noteFormat === "blocknote") {
+                updates.note_format = "blocknote";
+                updates.note_blocks = noteBlocks;
+                updates.note_plain_text = notePlainText;
+                updates.note_migrated_at = noteMigratedAt || null;
+            } else {
+                updates.note_format = "markdown";
+                updates.note_blocks = null;
+                updates.note_plain_text = "";
+                updates.note_migrated_at = null;
+            }
 
             window.dispatchEvent(new CustomEvent("task-updated-local", {
                 detail: { taskId, updates },

@@ -103,6 +103,10 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
         ...task,
         color: task.color || "ds-background-surface text-ds-text-default",
         description: task.description || "",
+        note_format: task.note_format || "markdown",
+        note_blocks: task.note_blocks || null,
+        note_plain_text: task.note_plain_text || "",
+        note_migrated_at: task.note_migrated_at || null,
         relatedLinks,
         is_board_task: true,
     }), [task, relatedLinks]);
@@ -114,7 +118,11 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
                 && prev?.done === taskMenuPayload.done
                 && prev?.task_type === taskMenuPayload.task_type
                 && prev?.color === taskMenuPayload.color
-                && prev?.description === taskMenuPayload.description;
+                && prev?.description === taskMenuPayload.description
+                && prev?.note_format === taskMenuPayload.note_format
+                && JSON.stringify(prev?.note_blocks || null) === JSON.stringify(taskMenuPayload.note_blocks || null)
+                && prev?.note_plain_text === taskMenuPayload.note_plain_text
+                && prev?.note_migrated_at === taskMenuPayload.note_migrated_at;
 
             if (sameTask) return prev;
             return taskMenuPayload;

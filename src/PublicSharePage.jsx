@@ -9,7 +9,8 @@ import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
-import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
+import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
+import TaskNoteEditor from "./components/tasks/TaskNoteEditor.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -50,10 +51,6 @@ function normalizeSearchText(text) {
         .trim();
 }
 
-function renderPublicDescription(markdown) {
-    return renderTaskMarkdown(markdown || "");
-}
-
 function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
     const taskName = task.name || "";
     const isTruncated = taskName.length > maxLength;
@@ -62,7 +59,7 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
     return (
         <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
             <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-ds-text-default ${task.done ? "opacity-40 line-through" : ""}`}>
-                {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
+                {hasTaskNoteContent(task) && <StickerSquare className="h-4 w-4 shrink-0" />}
                 {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
             </h5>
@@ -633,17 +630,6 @@ export default function PublicSharePage() {
         setSearchQuery("");
     }
 
-    function handleTaskMentionClick(ev) {
-        const mentionLink = ev.target.closest?.("a[data-task-id]");
-        if (!mentionLink) return;
-
-        ev.preventDefault();
-        ev.stopPropagation();
-
-        const referencedTaskId = mentionLink.getAttribute("data-task-id");
-        openReferencedTask(referencedTaskId);
-    }
-
     const filteredSearchTasks = React.useMemo(() => {
         const query = normalizeSearchText(searchQuery);
         if (!query) return [];
@@ -653,9 +639,10 @@ export default function PublicSharePage() {
         return tasks
             .filter(task => {
                 const relatedLinks = relatedLinksEnabled ? normalizeRelatedLinks(task) : [];
+                const note = normalizeTaskNote(task);
                 const haystack = normalizeSearchText([
                     task.name,
-                    task.description,
+                    note.plainText || note.markdown,
                     ...relatedLinks.map(link => link.name),
                     ...relatedLinks.map(link => link.url),
                 ].join(" "));
@@ -666,7 +653,7 @@ export default function PublicSharePage() {
     }, [searchQuery, tasks, relatedLinksEnabled]);
 
     const activeTaskDate = selectedTask?.date ? new Date(selectedTask.date) : null;
-    const hasSelectedDescription = !!selectedTask?.description?.trim();
+    const hasSelectedDescription = hasTaskNoteContent(selectedTask);
     const selectedRelatedLinks = selectedTask && relatedLinksEnabled ? normalizeRelatedLinks(selectedTask) : [];
     const hasSelectedRelatedLinks = selectedRelatedLinks.length > 0;
     const previewDateText = activeTaskDate
@@ -1069,10 +1056,12 @@ export default function PublicSharePage() {
                         </h3>
 
                         {hasSelectedDescription && (
-                            <div
+                            <TaskNoteEditor
                                 className="task-menu-editor mt-5"
-                                onClick={handleTaskMentionClick}
-                                dangerouslySetInnerHTML={{ __html: renderPublicDescription(selectedTask.description || "") }}
+                                task={selectedTask}
+                                language={language}
+                                readOnly
+                                onTaskMentionClick={openReferencedTask}
                             />
                         )}
 

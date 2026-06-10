@@ -78,7 +78,7 @@ function replaceMarkdownCallouts(markdown) {
     return output.join("\n");
 }
 
-function wrapRenderedTables(html) {
+export function wrapTaskNoteTablesHtml(html) {
     if (!html) return "";
 
     const container = document.createElement("div");
@@ -104,6 +104,9 @@ export function sanitizeTaskHtml(html) {
             "class",
             "data-task-id",
             "contenteditable",
+            "type",
+            "checked",
+            "disabled",
             "target",
             "rel",
             "viewBox",
@@ -132,7 +135,7 @@ export function renderTaskMarkdown(markdown) {
         /<a href="#task:([^"]+)">/g,
         '<a href="#task:$1" data-task-id="$1" class="task-mention" contenteditable="false">'
     );
-    const htmlWithWrappedTables = wrapRenderedTables(htmlWithMentions);
+    const htmlWithWrappedTables = wrapTaskNoteTablesHtml(htmlWithMentions);
 
     return sanitizeTaskHtml(htmlWithWrappedTables);
 }
@@ -168,15 +171,46 @@ export function createTaskTurndownService() {
         },
     });
 
+    turndownService.addRule("taskListItem", {
+        filter(node) {
+            if (node.nodeName !== "LI") return false;
+
+            return Array.from(node.childNodes).some(child =>
+                child.nodeName === "INPUT" && child.type === "checkbox"
+            );
+        },
+        replacement(_content, node) {
+            const checkbox = Array.from(node.childNodes).find(child =>
+                child.nodeName === "INPUT" && child.type === "checkbox"
+            );
+            const checked = Boolean(checkbox?.checked);
+            const clone = node.cloneNode(true);
+
+            Array.from(clone.childNodes).forEach(child => {
+                if (child.nodeName === "INPUT" && child.type === "checkbox") {
+                    child.remove();
+                }
+            });
+
+            const bodyMarkdown = turndownService
+                .turndown(clone.innerHTML || "")
+                .trim()
+                .replace(/^\s*[-*+]\s+/, "");
+
+            return `\n- [${checked ? "x" : " "}] ${bodyMarkdown}\n`;
+        },
+    });
+
     turndownService.addRule("taskCallout", {
         filter(node) {
-            return node.nodeName === "DIV" && node.classList?.contains("task-callout");
+            return node.nodeName === "DIV" && (node.classList?.contains("task-callout") || node.classList?.contains("alert"));
         },
         replacement(_content, node) {
             const className = node.className || "";
             const typeMatch = className.match(/task-callout-([a-z]+)/);
-            const calloutType = (typeMatch?.[1] || "note").toUpperCase();
-            const bodyEl = node.querySelector(".task-callout-body");
+            const alertType = node.getAttribute?.("data-alert-type");
+            const calloutType = (typeMatch?.[1] || alertType || "note").toUpperCase();
+            const bodyEl = node.querySelector(".task-callout-body") || node.querySelector(".inline-content");
             const bodyMarkdown = turndownService.turndown(bodyEl?.innerHTML || "").trim();
             const prefixedBody = bodyMarkdown ? `\n${prefixMarkdownBlock(bodyMarkdown)}` : "";
             return `\n\n> [!${calloutType}]${prefixedBody}\n\n`;
@@ -193,4 +227,10 @@ export function createTaskTurndownService() {
     });
 
     return turndownService;
+}
+
+export function htmlToTaskMarkdown(html) {
+    const turndownService = createTaskTurndownService();
+    const sanitizedHtml = sanitizeTaskHtml(wrapTaskNoteTablesHtml(html || ""));
+    return autoLinkMarkdownUrls(turndownService.turndown(sanitizedHtml).trim());
 }

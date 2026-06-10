@@ -15,11 +15,25 @@ export function normalizeTaskRecord(task) {
     if (!task) return task;
 
     const taskType = task.task_type || "task";
+    let noteBlocks = task.note_blocks ?? null;
+
+    if (typeof noteBlocks === "string") {
+        try {
+            noteBlocks = JSON.parse(noteBlocks);
+        } catch {
+            noteBlocks = null;
+        }
+    }
+
     return {
         ...task,
         task_type: taskType,
         done: taskType === "meeting" ? false : !!task.done,
         date: parseDateOnly(task.date),
+        note_blocks: Array.isArray(noteBlocks) ? noteBlocks : null,
+        note_format: task.note_format || "markdown",
+        note_plain_text: task.note_plain_text || "",
+        note_migrated_at: task.note_migrated_at || null,
     };
 }
 
@@ -166,7 +180,25 @@ export async function updateTask(taskId, data) {
         .update(data)
         .eq('id', taskId);
 
-    if (error) throw error;
+    if (!error) return;
+
+    const missingTaskNoteColumns = /column\s+"?(note_format|note_blocks|note_plain_text|note_migrated_at)"?\s+of relation\s+"?tasks"? does not exist|Could not find the '(note_format|note_blocks|note_plain_text|note_migrated_at)' column/i.test(error.message || "");
+    if (!missingTaskNoteColumns) throw error;
+
+    const {
+        note_format: _ignoredNoteFormat,
+        note_blocks: _ignoredNoteBlocks,
+        note_plain_text: _ignoredNotePlainText,
+        note_migrated_at: _ignoredNoteMigratedAt,
+        ...legacyPayload
+    } = data;
+
+    const retry = await supabase
+        .from('tasks')
+        .update(legacyPayload)
+        .eq('id', taskId);
+
+    if (retry.error) throw retry.error;
 }
 
 export async function deleteTask(taskId) {

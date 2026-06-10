@@ -76,6 +76,18 @@ alter table public.tasks
 alter table public.tasks
     add column if not exists task_type text not null default 'task';
 
+alter table public.tasks
+    add column if not exists note_format text not null default 'markdown';
+
+alter table public.tasks
+    add column if not exists note_blocks jsonb;
+
+alter table public.tasks
+    add column if not exists note_plain_text text;
+
+alter table public.tasks
+    add column if not exists note_migrated_at timestamptz;
+
 DO $$
 BEGIN
     IF NOT EXISTS (

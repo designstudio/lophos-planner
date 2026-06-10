@@ -14,6 +14,10 @@ export default function TaskMenuProvider({ children }) {
         task_type: "task",
         color: "",
         description: "",
+        note_format: "markdown",
+        note_blocks: null,
+        note_plain_text: "",
+        note_migrated_at: null,
         relatedLinks: [],
         date: new Date(),
     });

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import HomePage from './HomePage';
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
 import './styles/tokens.css';
 import './index.css';
 import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
