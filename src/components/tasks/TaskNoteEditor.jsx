@@ -338,6 +338,7 @@ const BLOCKED_SLASH_MENU_KEYS = new Set([
     "video",
     "audio",
     "file",
+    "emoji",
 ]);
 
 function getActiveFormatsFromEditor(editor) {
@@ -798,6 +799,7 @@ const TaskNoteEditor = React.forwardRef(function TaskNoteEditor({
                 linkToolbar={false}
                 sideMenu={false}
                 slashMenu={false}
+                emojiPicker={false}
                 tableHandles={!readOnly}
             >
                 {!readOnly ? <FormattingToolbarController formattingToolbar={renderFormattingToolbar} /> : null}
