@@ -4,6 +4,7 @@ import { ALLOWED_COLORS } from "./TaskMenuColorPicker.jsx";
 import { StickerSquare } from "@untitledui/icons";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { formatDayMonth, getAppLanguage } from "../../scripts/i18n.js";
+import { hasTaskNoteContent } from "../../scripts/taskNotes.js";
 
 export default function SearchTask({ data, date, onSelect = () => {} }) {
     const MAX_TASK_NAME_LENGTH = 34;
@@ -41,7 +42,7 @@ export default function SearchTask({ data, date, onSelect = () => {} }) {
         <Link to={`/?task=${toShortId(data.id)}`} className="group w-full border-b border-gray-300" onClick={handleClick}>
             <div className="task flex justify-between items-center h-[41px] px-0 cursor-pointer">
                 <h5 className={`task-title min-w-0 flex-1 flex items-center gap-1 px-0 py-0 text-[14px] font-normal leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "ds-background-surface text-ds-text-default"} ` + (data.done && "opacity-40 line-through ") || ''}
-                >{ data.description && <StickerSquare className="h-4 w-4 shrink-0" /> } <span className="truncate">{data.name.slice(0, MAX_TASK_NAME_LENGTH) +
+                >{ hasTaskNoteContent(data) && <StickerSquare className="h-4 w-4 shrink-0" /> } <span className="truncate">{data.name.slice(0, MAX_TASK_NAME_LENGTH) +
                     (data.name.length > MAX_TASK_NAME_LENGTH ? "..." : "")}</span></h5>
                 <p className="text-gray-400">
                     {formatDayMonth(date, language, dateFormat)}

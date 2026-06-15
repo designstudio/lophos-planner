@@ -23,6 +23,7 @@ import { supabase } from "../../scripts/supabase.js";
 import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
+import { hasTaskNoteContent } from "../../scripts/taskNotes.js";
 
 function sortBoardTasks(list) {
     return [...list].sort((taskA, taskB) => {
@@ -204,7 +205,7 @@ function BoardTaskItem({
                     onClick={openTaskMenu}
                 >
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] ${isTaskDone ? "opacity-40 line-through" : ""}`}>
-                        {task.description && <StickerSquare className="h-4 w-4 shrink-0" />}
+                        {hasTaskNoteContent(task) && <StickerSquare className="h-4 w-4 shrink-0" />}
                         {relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
                     </h5>

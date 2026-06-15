@@ -9,6 +9,7 @@ import {ALLOWED_COLORS} from "./TaskMenuColorPicker.jsx";
 import { StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
+import { hasTaskNoteContent } from "../../scripts/taskNotes.js";
 
 function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
@@ -190,7 +191,7 @@ export default function Task({
                     onClick={openTaskMenu}
                 >
                     <h5 className={`task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] lg:text-[14px] lg:leading-[41px] bg-${ALLOWED_COLORS.has(data.color) ? data.color : "ds-background-surface text-ds-text-default"} ` + (isTaskDone && "opacity-40 line-through ") || ''}>
-                        { data.description && <StickerSquare className="h-4 w-4 shrink-0" /> }
+                        { hasTaskNoteContent(data) && <StickerSquare className="h-4 w-4 shrink-0" /> }
                         { relatedLinksEnabled && relatedLinks.length > 0 && <Attachment02 className="h-4 w-4 shrink-0" /> }
                         <span className="block min-w-0 truncate">{visibleTaskName}</span>
                     </h5>
