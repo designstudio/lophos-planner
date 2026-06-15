@@ -4,16 +4,10 @@ import { closeForm } from "../../scripts/utils.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { Camera01, MagicWand01, Check } from "@untitledui/icons";
+import { AGENDA_COLORS, DEFAULT_AGENDA_COLOR } from "./agendaColorOptions.js";
+import AgendaColorHexInput from "../ui/AgendaColorHexInput.jsx";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
-const DEFAULT_AGENDA_COLOR = "var(--color-brand-accent)";
-const AGENDA_COLORS = [
-    { nameKey: "primary", value: "var(--color-brand-primary)" },
-    { nameKey: "accent", value: "var(--color-brand-accent)" },
-    { nameKey: "success", value: "var(--color-success-solid)" },
-    { nameKey: "warning", value: "var(--color-warning-solid)" },
-    { nameKey: "danger", value: "var(--color-danger-solid)" },
-];
 
 export default function CreateAgendaForm() {
     const { currentUser, createAgenda } = useAuth();
@@ -177,21 +171,19 @@ export default function CreateAgendaForm() {
                                     key={item.value}
                                     type="button"
                                     onClick={() => setColor(item.value)}
+                                    aria-label={t(language, item.nameKey)}
                                     className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${color === item.value ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
-                                    style={{ backgroundColor: item.value }}
+                                    style={{
+                                        backgroundColor: item.value,
+                                        ...(color === item.value ? { "--tw-ring-color": item.value } : {}),
+                                    }}
                                 />
                             ))}
                             <div className="flex flex-1 items-center gap-3">
-                                <span
-                                    className={`h-7 w-7 flex-shrink-0 rounded-full ${!AGENDA_COLORS.some(c => c.value === color) ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
-                                    style={{ backgroundColor: color }}
-                                />
-                                <input
-                                    type="text"
+                                <AgendaColorHexInput
                                     value={color}
-                                    onChange={ev => setColor(ev.target.value)}
-                                    placeholder={DEFAULT_AGENDA_COLOR}
-                                    className="ds-type-body-sm min-w-0 flex-1 bg-transparent text-ds-text-default placeholder:text-ds-text-subtle focus:outline-none"
+                                    onChange={setColor}
+                                    ariaLabel={t(language, "agendaColor")}
                                 />
                             </div>
                         </div>

@@ -61,6 +61,12 @@
         --color-atlantis-900: #2c4e19;
         --color-atlantis-950: #142b08;
 
+        --color-blue-500: #0285ff;
+        --color-yellow-500: #ffc300;
+        --color-pink-500: #ff66ad;
+        --color-orange-500: #fb6a22;
+        --color-purple-500: #924ff7;
+
         --color-brand-primary: var(--color-river-bed-600);
         --color-brand-primary-hover: var(--color-river-bed-700);
         --color-brand-primary-active: var(--color-river-bed-800);
@@ -104,6 +110,14 @@
         --color-danger-text: var(--color-shiraz-800);
         --color-danger-solid: var(--color-shiraz-500);
         --color-danger-solid-hover: var(--color-shiraz-600);
+
+        --color-swatch-agenda-default: var(--color-brand-accent);
+        --color-swatch-agenda-blue: var(--color-blue-500);
+        --color-swatch-agenda-yellow: var(--color-yellow-500);
+        --color-swatch-agenda-pink: var(--color-pink-500);
+        --color-swatch-agenda-orange: var(--color-orange-500);
+        --color-swatch-agenda-purple: var(--color-purple-500);
+
         --color-overlay-scrim: rgb(3 7 18 / 0.2);
         --color-overlay-scrim-strong: rgb(3 7 18 / 0.4);
 
@@ -323,11 +337,13 @@
 .ds-button-danger {
     background-color: var(--color-danger-solid);
     color: var(--color-text-inverse);
+    border: 1px solid transparent;
     border-radius: var(--radius-full);
 }
 
 .ds-button-danger:hover {
     background-color: var(--color-danger-solid-hover);
+    color: var(--color-text-inverse);
 }
 
 .ds-surface-muted {

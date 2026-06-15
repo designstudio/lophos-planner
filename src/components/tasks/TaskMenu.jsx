@@ -21,6 +21,7 @@ import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { normalizeTaskNote } from "../../scripts/taskNotes.js";
 import TaskNoteEditor from "./TaskNoteEditor.jsx";
+import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
 
 function MeetingIcon(props) {
     return (
@@ -169,6 +170,7 @@ export default function TaskMenu() {
     const [isTaskTypeMenuOpen, setIsTaskTypeMenuOpen] = React.useState(false);
     const { isMounted: isTaskTypeMenuMounted, isVisible: isTaskTypeMenuVisible } = useAnimatedPresence(isTaskTypeMenuOpen);
     const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
+    const { isMounted: isDatePickerMounted, isVisible: isDatePickerVisible } = useAnimatedPresence(isDatePickerOpen);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(selectedDate || new Date()));
     const [relatedLinks, setRelatedLinks] = React.useState(initialRelatedLinks);
     const [newRelatedLinkName, setNewRelatedLinkName] = React.useState("");
@@ -472,8 +474,8 @@ export default function TaskMenu() {
                                 <Calendar className="h-4 w-4" />
                                 <p>{formatTaskMenuDate(selectedTaskDate, locale, language)}</p>
                             </button>
-                            {isDatePickerOpen && (
-                                <div className="task-menu-calendar option-menu-surface">
+                            {isDatePickerMounted && (
+                                <div className="task-menu-calendar animated-option-menu option-menu-surface" data-state={isDatePickerVisible ? "open" : "closed"}>
                                     <div className="task-menu-calendar-header">
                                         <button
                                             type="button"
@@ -553,7 +555,11 @@ export default function TaskMenu() {
                                 }}
                                 aria-label={t(language, isTaskDone ? "markAsPending" : "markAsDone")}
                             >
-                                <CheckCircle className={`h-[22px] w-[22px] ${isTaskDone ? "opacity-40" : "opacity-75"}`} />
+                                {isTaskDone ? (
+                                    <CompletedTaskCheckIcon className="h-[22px] w-[22px] opacity-40" />
+                                ) : (
+                                    <CheckCircle className="h-[22px] w-[22px] opacity-75" />
+                                )}
                             </button>
                         )}
                     </div>

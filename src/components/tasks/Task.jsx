@@ -8,6 +8,7 @@ import { matchesShortId, toShortId, openForm } from "../../scripts/utils.js";
 import {ALLOWED_COLORS} from "./TaskMenuColorPicker.jsx";
 import { StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
+import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
 
 function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
@@ -206,7 +207,11 @@ export default function Task({
                         onClick={handleToggleDone}
                         aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
-                        <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
+                        {isTaskDone ? (
+                            <CompletedTaskCheckIcon className="h-5 w-5 opacity-50" />
+                        ) : (
+                            <CheckCircle className="h-5 w-5" />
+                        )}
                     </button>
                 )}
                 {taskType === "meeting" && (

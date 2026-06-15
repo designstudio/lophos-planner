@@ -229,11 +229,11 @@ export default function UpdateUserForm({ recoveryMode = false }) {
 
                 <Form method="POST" className="relative mt-6" action="/update-user">
                     <div
-                        className="flex w-full items-center gap-3 rounded-lg bg-ds-text-default px-4 py-4 text-ds-text-inverse"
+                        className="flex w-full items-center gap-3 rounded-ds-2xl bg-ds-text-default px-4 py-4 text-ds-text-inverse"
                         style={{
                             backgroundColor: "var(--color-text-default)",
                             color: "var(--color-text-inverse)",
-                            borderRadius: "var(--radius-lg)",
+                            borderRadius: "var(--radius-2xl)",
                         }}
                     >
                         <Moon02 className="h-7 w-7 text-ds-text-inverse" style={{ color: "var(--color-text-inverse)" }} />
@@ -504,7 +504,7 @@ export default function UpdateUserForm({ recoveryMode = false }) {
                             type="button"
                             disabled={isDeletingAccount}
                             onClick={handleDeleteAccount}
-                            className="app-button-hover ds-button-danger ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            className="app-button-hover ds-button-danger bg-ds-danger-solid text-ds-text-inverse ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {isDeletingAccount ? `${t(language, "confirmDeleteAccount")}...` : t(language, "confirmDeleteAccount")}
                         </button>

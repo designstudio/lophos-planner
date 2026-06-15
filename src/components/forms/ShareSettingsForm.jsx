@@ -5,16 +5,10 @@ import { getAgendaMembers, getShareSettings, setShareEnabled } from "../../scrip
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { Camera01, MagicWand01, Check, Trash03, Link01, ImageUserPlus, Plus, Umbrella03 } from "@untitledui/icons";
 import { closeForm, openForm, subscribeToModalState } from "../../scripts/utils.js";
+import { AGENDA_COLORS, DEFAULT_AGENDA_COLOR } from "./agendaColorOptions.js";
+import AgendaColorHexInput from "../ui/AgendaColorHexInput.jsx";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
-const DEFAULT_AGENDA_COLOR = "var(--color-brand-accent)";
-const AGENDA_COLORS = [
-    { nameKey: "primary", value: "var(--color-brand-primary)" },
-    { nameKey: "accent", value: "var(--color-brand-accent)" },
-    { nameKey: "success", value: "var(--color-success-solid)" },
-    { nameKey: "warning", value: "var(--color-warning-solid)" },
-    { nameKey: "danger", value: "var(--color-danger-solid)" },
-];
 
 export default function ShareSettingsForm() {
     const { currentUser, agendas, renameAgenda, deleteAgenda } = useAuth();
@@ -376,11 +370,11 @@ export default function ShareSettingsForm() {
                 <h3 className="ds-type-h4 text-ds-text-default">{t(language, "agendaSettingsTitle")}</h3>
 
                 <div
-                    className="mt-6 rounded-lg bg-ds-text-default p-4 text-ds-text-inverse"
+                    className="mt-6 rounded-ds-2xl bg-ds-text-default p-4 text-ds-text-inverse"
                     style={{
                         backgroundColor: "var(--color-text-default)",
                         color: "var(--color-text-inverse)",
-                        borderRadius: "var(--radius-lg)",
+                        borderRadius: "var(--radius-2xl)",
                     }}
                 >
                     <div className="flex items-center justify-between gap-3">
@@ -419,10 +413,10 @@ export default function ShareSettingsForm() {
 
                     {shareEnabled && (
                         <div
-                            className="mt-4 flex items-center gap-2 rounded-md bg-ds-background-surface p-2"
+                            className="mt-4 flex items-center gap-2 rounded-full bg-ds-background-surface p-2"
                             style={{
                                 backgroundColor: "var(--color-bg-page)",
-                                borderRadius: "var(--radius-md)",
+                                borderRadius: "var(--radius-full)",
                             }}
                         >
                             <label htmlFor="public-share-url" className="sr-only">{t(language, "shareTitle")}</label>
@@ -532,22 +526,19 @@ export default function ShareSettingsForm() {
                                     key={item.value}
                                     type="button"
                                     onClick={() => setAgendaColor(item.value)}
+                                    aria-label={t(language, item.nameKey)}
                                     className={`h-7 w-7 flex-shrink-0 rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${agendaColor === item.value ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
-                                    style={{ backgroundColor: item.value }}
+                                    style={{
+                                        backgroundColor: item.value,
+                                        ...(agendaColor === item.value ? { "--tw-ring-color": item.value } : {}),
+                                    }}
                                 />
                             ))}
                             <div className="flex flex-1 items-center gap-3">
-                                <span
-                                    className={`h-7 w-7 flex-shrink-0 rounded-full ${!AGENDA_COLORS.some(c => c.value === agendaColor) ? "ring-2 ring-ds-border-strong ring-offset-2" : ""}`}
-                                    style={{ backgroundColor: agendaColor }}
-                                />
-                                <input
-                                    type="text"
+                                <AgendaColorHexInput
                                     value={agendaColor}
-                                    onChange={ev => setAgendaColor(ev.target.value)}
-                                    placeholder={DEFAULT_AGENDA_COLOR}
-                                    className="ds-type-body-sm min-w-0 flex-1 bg-transparent text-ds-text-default placeholder:text-ds-text-subtle focus:outline-none"
-                                    aria-label={t(language, "agendaColor")}
+                                    onChange={setAgendaColor}
+                                    ariaLabel={t(language, "agendaColor")}
                                 />
                             </div>
                         </div>
@@ -799,7 +790,7 @@ export default function ShareSettingsForm() {
                             type="button"
                             disabled={isDeletingAgenda}
                             onClick={handleDeleteAgenda}
-                            className="app-button-hover ds-button-danger ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            className="app-button-hover ds-button-danger bg-ds-danger-solid text-ds-text-inverse ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
                         >
                             {t(language, "confirmDeleteAgenda")}
                         </button>

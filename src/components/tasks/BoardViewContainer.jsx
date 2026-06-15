@@ -22,6 +22,7 @@ import { formDate, getDefaultBoardColumns, matchesShortId, openForm, parseDateOn
 import { supabase } from "../../scripts/supabase.js";
 import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
+import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
 
 function sortBoardTasks(list) {
     return [...list].sort((taskA, taskB) => {
@@ -223,7 +224,11 @@ function BoardTaskItem({
                         }}
                         aria-label={isTaskDone ? "Marcar tarefa como pendente" : "Marcar tarefa como concluída"}
                     >
-                        <CheckCircle className={`h-5 w-5 ${isTaskDone ? "opacity-50" : ""}`} />
+                        {isTaskDone ? (
+                            <CompletedTaskCheckIcon className="h-5 w-5 opacity-50" />
+                        ) : (
+                            <CheckCircle className="h-5 w-5" />
+                        )}
                     </button>
                 )}
                 {taskType === "meeting" && (
@@ -527,10 +532,17 @@ export default function BoardViewContainer({
     const [tasks, setTasks] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [minLoadingDone, setMinLoadingDone] = React.useState(false);
+    const [pendingDeleteColumn, setPendingDeleteColumn] = React.useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [isDeletingColumn, setIsDeletingColumn] = React.useState(false);
+    const [deleteColumnError, setDeleteColumnError] = React.useState("");
     const columnsRef = React.useRef([]);
     const tasksRef = React.useRef([]);
     const columnsFetchTimeoutRef = React.useRef(null);
     const tasksFetchTimeoutRef = React.useRef(null);
+    const deleteModalRef = React.useRef(null);
+    const deleteConfirmButtonRef = React.useRef(null);
+    const deleteCancelButtonRef = React.useRef(null);
     useEffect(() => {
         columnsRef.current = columns;
     }, [columns]);
@@ -543,6 +555,55 @@ export default function BoardViewContainer({
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        if (!isDeleteModalOpen || !deleteModalRef.current) return;
+
+        const modalEl = deleteModalRef.current;
+        modalEl.style.transition = "none";
+        modalEl.style.transform = "translateY(24px)";
+        modalEl.style.opacity = "0";
+
+        requestAnimationFrame(() => {
+            modalEl.style.transition = "transform 160ms ease, opacity 160ms ease";
+            modalEl.style.transform = "translateY(0)";
+            modalEl.style.opacity = "1";
+            deleteCancelButtonRef.current?.focus?.();
+        });
+    }, [isDeleteModalOpen]);
+
+    useEffect(() => {
+        function handleKeyDown(ev) {
+            if (!isDeleteModalOpen) return;
+
+            if (ev.key === "Escape") {
+                if (isDeletingColumn) return;
+                ev.preventDefault();
+                closeDeleteColumnModal();
+                return;
+            }
+
+            if (ev.key !== "Tab") return;
+
+            const focusableElements = [
+                deleteConfirmButtonRef.current,
+                deleteCancelButtonRef.current,
+            ].filter(Boolean);
+
+            if (focusableElements.length === 0) return;
+
+            const currentIndex = focusableElements.indexOf(document.activeElement);
+            const nextIndex = ev.shiftKey
+                ? (currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1)
+                : (currentIndex === -1 || currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1);
+
+            ev.preventDefault();
+            focusableElements[nextIndex]?.focus?.();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDeleteModalOpen, isDeletingColumn]);
 
     useEffect(() => {
         function handleTaskDeleted(ev) {
@@ -856,36 +917,28 @@ export default function BoardViewContainer({
         }
     }
 
+    function openDeleteColumnModal(columnId) {
+        const column = columnsRef.current.find(item => String(item.id) === String(columnId));
+        if (!column || columnsRef.current.length <= 1) return;
+
+        setPendingDeleteColumn(column);
+        setDeleteColumnError("");
+        setIsDeleteModalOpen(true);
+    }
+
+    function closeDeleteColumnModal() {
+        if (isDeletingColumn) return;
+        setIsDeleteModalOpen(false);
+        setPendingDeleteColumn(null);
+        setDeleteColumnError("");
+    }
+
     async function deleteColumn(columnId) {
         const current = [...columnsRef.current];
         if (current.length <= 1) return;
 
         const index = current.findIndex(column => String(column.id) === String(columnId));
         if (index < 0) return;
-
-        const fallbackTarget = current[index - 1] || current[index + 1] || null;
-        if (!fallbackTarget) return;
-
-        const sourceTasks = sortBoardTasks(
-            tasksRef.current.filter(task => String(task.board_column_id) === String(columnId))
-        );
-        const targetTasks = sortBoardTasks(
-            tasksRef.current.filter(task => String(task.board_column_id) === String(fallbackTarget.id))
-        );
-
-        const mergedTasks = [...targetTasks, ...sourceTasks.map(task => ({
-            ...task,
-            board_column_id: fallbackTarget.id,
-        }))].map((task, nextIndex) => ({
-            ...task,
-            board_column_id: fallbackTarget.id,
-            board_order: nextIndex,
-        }));
-
-        const remainingTasks = tasksRef.current.filter(task => {
-            const taskColumnId = String(task.board_column_id || "");
-            return taskColumnId !== String(columnId) && taskColumnId !== String(fallbackTarget.id);
-        });
 
         const nextColumns = current
             .filter(column => String(column.id) !== String(columnId))
@@ -894,18 +947,28 @@ export default function BoardViewContainer({
                 sort_order: nextIndex,
             }));
 
+        const remainingTasks = tasksRef.current.filter(
+            task => String(task.board_column_id || "") !== String(columnId)
+        );
+
         applyColumns(nextColumns);
-        applyTasks([...remainingTasks, ...mergedTasks]);
+        applyTasks(remainingTasks);
 
         try {
-            await Promise.all(
-                mergedTasks.map(task =>
-                    updateTask(task.id, {
-                        board_column_id: task.board_column_id,
-                        board_order: task.board_order,
-                    })
-                )
-            );
+            let deleteTasksQuery = supabase
+                .from("tasks")
+                .delete()
+                .eq("agenda_id", agendaId)
+                .eq("is_board_task", true)
+                .eq("board_column_id", columnId);
+
+            if (currentUser?.uid) {
+                deleteTasksQuery = deleteTasksQuery.eq("uid", currentUser.uid);
+            }
+
+            const { error: deleteTasksError } = await deleteTasksQuery;
+            if (deleteTasksError) throw deleteTasksError;
+
             await deleteBoardColumn(columnId);
             await Promise.all(
                 nextColumns.map((column, nextIndex) =>
@@ -915,6 +978,24 @@ export default function BoardViewContainer({
         } catch {
             await reloadColumns(false);
             await reloadTasks();
+            throw new Error(t(language, "boardColumnDeleteError"));
+        }
+    }
+
+    async function handleConfirmDeleteColumn() {
+        if (!pendingDeleteColumn?.id) return;
+
+        setIsDeletingColumn(true);
+        setDeleteColumnError("");
+
+        try {
+            await deleteColumn(pendingDeleteColumn.id);
+            setIsDeleteModalOpen(false);
+            setPendingDeleteColumn(null);
+        } catch (error) {
+            setDeleteColumnError(error?.message || t(language, "boardColumnDeleteError"));
+        } finally {
+            setIsDeletingColumn(false);
         }
     }
 
@@ -1160,7 +1241,7 @@ export default function BoardViewContainer({
                             onRenameColumn={renameColumn}
                             onMoveLeft={() => reorderColumn(column.id, -1)}
                             onMoveRight={() => reorderColumn(column.id, 1)}
-                            onDeleteColumn={deleteColumn}
+                            onDeleteColumn={openDeleteColumnModal}
                             onAddColumn={addColumnAfter}
                             onCreateTask={createTaskInColumn}
                             onAssignTask={assignTaskToColumn}
@@ -1171,6 +1252,54 @@ export default function BoardViewContainer({
                     ))}
                 </div>
             </div>
+
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 ds-overlay" onClick={closeDeleteColumnModal}>
+                    <div
+                        ref={deleteModalRef}
+                        className="ds-modal-shell relative mb-6 w-[32rem] max-w-full px-6 py-7"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-board-column-modal-title"
+                        aria-describedby="delete-board-column-modal-description"
+                        onClick={ev => ev.stopPropagation()}
+                    >
+                        <h4 id="delete-board-column-modal-title" className="ds-type-h4 text-ds-text-default">
+                            {t(language, "boardColumnDeleteConfirmTitle")}
+                        </h4>
+                        <p id="delete-board-column-modal-description" className="ds-type-body mt-3 text-ds-text-default">
+                            {t(language, "boardColumnDeleteConfirmMessage")}
+                        </p>
+
+                        {deleteColumnError && (
+                            <p className="ds-alert ds-alert-danger mt-3">
+                                {deleteColumnError}
+                            </p>
+                        )}
+
+                        <div className="mt-5 flex items-center gap-3">
+                            <button
+                                ref={deleteConfirmButtonRef}
+                                type="button"
+                                disabled={isDeletingColumn}
+                                onClick={handleConfirmDeleteColumn}
+                                className="app-button-hover ds-button-danger bg-ds-danger-solid text-ds-text-inverse ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            >
+                                {t(language, "confirmDeleteBoardColumn")}
+                            </button>
+                            <button
+                                ref={deleteCancelButtonRef}
+                                type="button"
+                                disabled={isDeletingColumn}
+                                onClick={closeDeleteColumnModal}
+                                className="app-button-hover ds-button-secondary ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            >
+                                {t(language, "cancel")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
