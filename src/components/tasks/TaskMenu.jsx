@@ -15,6 +15,7 @@ import {
 } from "@untitledui/icons";
 import { deleteTask, tryCatchDecorator } from "../../scripts/api.js";
 import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
+import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
@@ -166,6 +167,7 @@ export default function TaskMenu() {
     const noteMigratedAtFieldRef = React.useRef(null);
 
     const [isTaskTypeMenuOpen, setIsTaskTypeMenuOpen] = React.useState(false);
+    const { isMounted: isTaskTypeMenuMounted, isVisible: isTaskTypeMenuVisible } = useAnimatedPresence(isTaskTypeMenuOpen);
     const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(selectedDate || new Date()));
     const [relatedLinks, setRelatedLinks] = React.useState(initialRelatedLinks);
@@ -248,6 +250,19 @@ export default function TaskMenu() {
     React.useEffect(() => {
         syncNoteDraftFields(noteDraft);
     }, [noteDraft, syncNoteDraftFields]);
+
+    React.useEffect(() => {
+        function handleFlushRequest(event) {
+            if (event.detail?.type !== "task-menu") return;
+            const nextDraft = noteEditorRef.current?.flushPendingState?.();
+            if (nextDraft) {
+                event.detail.noteDraft = nextDraft;
+            }
+        }
+
+        window.addEventListener("task-note-flush-request", handleFlushRequest);
+        return () => window.removeEventListener("task-note-flush-request", handleFlushRequest);
+    }, []);
 
     React.useEffect(() => {
         if (!openedTaskId) return;
@@ -560,8 +575,8 @@ export default function TaskMenu() {
                                 </span>
                                 <ChevronDown className="h-4 w-4 shrink-0" />
                             </button>
-                            {isTaskTypeMenuOpen && (
-                                <div className="task-menu-type-menu option-menu-surface">
+                            {isTaskTypeMenuMounted && (
+                                <div className="task-menu-type-menu animated-option-menu option-menu-surface" data-state={isTaskTypeMenuVisible ? "open" : "closed"}>
                                     <button
                                         type="button"
                                         className={`task-menu-type-option ${selectedTaskType === "task" ? "is-active" : ""}`}

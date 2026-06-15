@@ -93,6 +93,11 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
 
         const form = rootEl?.querySelector(".task-menu-form");
         if (form) {
+            const noteFlushDetail = { type, noteDraft: null };
+            window.dispatchEvent(new CustomEvent("task-note-flush-request", {
+                detail: noteFlushDetail,
+            }));
+
             const formData = new FormData(form);
             const rawRelatedLinks = formData.get("task-related-links");
             let relatedLinks = [];
@@ -107,12 +112,24 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
             }
 
             const taskId = formData.get("task-id");
-            const nextDescription = (formData.get("task-description") || "").toString();
-            const isDescriptionDirty = formData.get("task-description-dirty") === "true";
-            const noteFormat = (formData.get("task-note-format") || "").toString();
-            const noteBlocksRaw = (formData.get("task-note-blocks") || "").toString();
-            const notePlainText = (formData.get("task-note-plain-text") || "").toString();
-            const noteMigratedAt = (formData.get("task-note-migrated-at") || "").toString();
+            const flushedNoteDraft = noteFlushDetail.noteDraft && typeof noteFlushDetail.noteDraft === "object"
+                ? noteFlushDetail.noteDraft
+                : null;
+            const nextDescription = flushedNoteDraft
+                ? (flushedNoteDraft.description || "").toString()
+                : (formData.get("task-description") || "").toString();
+            const noteFormat = flushedNoteDraft
+                ? (flushedNoteDraft.note_format || "").toString()
+                : (formData.get("task-note-format") || "").toString();
+            const noteBlocksRaw = flushedNoteDraft
+                ? JSON.stringify(flushedNoteDraft.note_blocks || null)
+                : (formData.get("task-note-blocks") || "").toString();
+            const notePlainText = flushedNoteDraft
+                ? (flushedNoteDraft.note_plain_text || "").toString()
+                : (formData.get("task-note-plain-text") || "").toString();
+            const noteMigratedAt = flushedNoteDraft
+                ? (flushedNoteDraft.note_migrated_at || "").toString()
+                : (formData.get("task-note-migrated-at") || "").toString();
             let noteBlocks = null;
 
             if (noteBlocksRaw.trim()) {

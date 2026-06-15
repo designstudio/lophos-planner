@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Lottie from 'lottie-react';
+import { arrayMove } from "@dnd-kit/sortable";
 import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
 import { supabase } from "../../scripts/supabase.js";
@@ -9,7 +10,11 @@ import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } fro
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
 
-const TaskListContainer = () => {
+const TaskListContainer = ({
+    dndEnabled = false,
+    activeTaskId: externalActiveTaskId = null,
+    onRegisterDndApi,
+}) => {
     const [weekShift, setWeekShift] = useState(() => getStoredWeekShift());
     const [curDate, setCurDate] = useState(new Date());
     const [tasks, setTasks] = useState([]);
@@ -24,6 +29,8 @@ const TaskListContainer = () => {
     const language = getAppLanguage(currentUser?.language);
     const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
     const shouldSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
+    const holidaysEnabled = currentAgenda?.holidays_enabled ?? true;
+    const relatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
 
     function sortTasksForDisplay(list, sortCompletedTasks = true) {
         return [...list].sort((taskA, taskB) => {
@@ -172,6 +179,26 @@ const TaskListContainer = () => {
         );
     }
 
+    function getRenderedTaskContainers(taskId, sourceTasks = tasksRef.current) {
+        const normalizedTaskId = String(taskId);
+        const containers = [];
+
+        dates.forEach((date, index) => {
+            const dateKey = formDate(date);
+            const hasTask = sourceTasks.some(task => (
+                String(task.id) === normalizedTaskId
+                && formDate(task.date) === dateKey
+                && task.is_board_task !== true
+            ));
+
+            if (hasTask) {
+                containers.push(`week:${index}`);
+            }
+        });
+
+        return containers;
+    }
+
     function dispatchTaskUpdatedLocal(taskId, updates) {
         window.dispatchEvent(new CustomEvent("task-updated-local", {
             detail: {
@@ -182,7 +209,7 @@ const TaskListContainer = () => {
     }
 
     function moveTaskToColumn(taskId, toListInd) {
-        return async () => {
+        return async (targetIndex = null) => {
             const destinationDate = dates[toListInd];
             if (!destinationDate) return;
 
@@ -199,19 +226,23 @@ const TaskListContainer = () => {
                 tasksRef.current.filter(task => formDate(task.date) === destinationKey && String(task.id) !== String(taskId)),
                 shouldSortCompletedTasks
             );
+            const safeInsertIndex = Number.isInteger(targetIndex)
+                ? Math.max(0, Math.min(targetIndex, destinationTasks.length))
+                : destinationTasks.length;
 
             if (isBoardTask) {
-                const movedTask = {
-                    ...taskToMove,
-                    date: parseDateOnly(destinationDate),
-                    order: destinationTasks.length,
-                    is_board_task: false,
-                    board_column_id: null,
-                    board_order: null,
-                };
+                const movedTask = normalizeTaskForWeekDrop(taskToMove, destinationDate, safeInsertIndex);
+                const reorderedDestinationTasks = [...destinationTasks];
+                reorderedDestinationTasks.splice(safeInsertIndex, 0, movedTask);
+                const normalizedDestinationTasks = reorderedDestinationTasks.map((task, index) => (
+                    normalizeTaskForWeekDrop(task, destinationDate, index)
+                ));
+                const remainingTasks = tasksRef.current.filter(task => (
+                    String(task.id) !== String(taskId) && formDate(task.date) !== destinationKey
+                ));
 
                 const nextTasks = sortTasksForDisplay(
-                    [...tasksRef.current.filter(task => String(task.id) !== String(taskId)), movedTask],
+                    [...remainingTasks, ...normalizedDestinationTasks],
                     shouldSortCompletedTasks
                 );
 
@@ -220,19 +251,31 @@ const TaskListContainer = () => {
 
                 const updates = {
                     date: formDate(destinationDate),
-                    order: destinationTasks.length,
+                    order: safeInsertIndex,
                     is_board_task: false,
                     board_column_id: null,
                     board_order: null,
                 };
 
                 try {
-                    await updateTask(taskId, updates);
                     dispatchTaskUpdatedLocal(taskId, updates);
+                    await updateTask(taskId, updates);
+                    const destinationTasksToPersist = normalizedDestinationTasks.filter(task => String(task.id) !== String(taskId));
+                    if (destinationTasksToPersist.length > 0) {
+                        await persistTaskPositions(destinationTasksToPersist);
+                    }
                 } catch {
                     await reloadTasks();
                 }
-                return;
+                return {
+                    operation: "move board → week",
+                    payload: {
+                        taskId: String(taskId),
+                        targetContainerId: `week:${toListInd}`,
+                        targetIndex: safeInsertIndex,
+                        persistedTask: movedTask,
+                    },
+                };
             }
 
             const sourceTasks = sortTasksForDisplay(
@@ -244,21 +287,26 @@ const TaskListContainer = () => {
                 order: index,
             }));
 
-            const movedTask = {
-                ...taskToMove,
-                date: parseDateOnly(destinationDate),
-                order: destinationTasks.length,
-            };
+            const movedTask = normalizeTaskForWeekDrop(taskToMove, destinationDate, safeInsertIndex);
+            const reorderedDestinationTasks = [...destinationTasks];
+            reorderedDestinationTasks.splice(safeInsertIndex, 0, movedTask);
+            const normalizedDestinationTasks = reorderedDestinationTasks.map((task, index) => (
+                normalizeTaskForWeekDrop(task, destinationDate, index)
+            ));
 
-            const reorderedDestinationTasks = [...destinationTasks, movedTask].map((task, index) => ({
-                ...task,
-                date: parseDateOnly(destinationDate),
-                order: index,
-            }));
-
-            const affectedTasks = [...sourceTasks, ...reorderedDestinationTasks];
+            const affectedTasks = [...sourceTasks, ...normalizedDestinationTasks];
             applyTaskUpdates(affectedTasks);
             await persistTaskPositions(affectedTasks);
+            return {
+                operation: "move week → week",
+                payload: {
+                    taskId: String(taskId),
+                    sourceContainerId: `week:${dateKeyToIndex.get(sourceKey) ?? -1}`,
+                    targetContainerId: `week:${toListInd}`,
+                    targetIndex: safeInsertIndex,
+                    persistedTasks: affectedTasks,
+                },
+            };
         };
     }
 
@@ -404,6 +452,11 @@ const TaskListContainer = () => {
         let isCancelled = false;
 
         async function loadWeekHolidays() {
+            if (!holidaysEnabled) {
+                setHolidayNamesByDate({});
+                return;
+            }
+
             const holidays = await getHolidaysByYears({ years, countryCode });
             if (isCancelled) return;
 
@@ -420,7 +473,7 @@ const TaskListContainer = () => {
         return () => {
             isCancelled = true;
         };
-    }, [curDate, dayOfWeek, language]);
+    }, [curDate, dayOfWeek, holidaysEnabled, language]);
 
     const dates = [];
     const tasksData = {};
@@ -434,6 +487,155 @@ const TaskListContainer = () => {
         changeMaxTasks(tasksData[formDate(newDate)].length + 1);
     }
 
+    const dateKeyToIndex = new Map(dates.map((date, index) => [formDate(date), index]));
+    function getColumnTasks(listIndex, sourceTasks = tasksRef.current) {
+        const columnDate = dates[listIndex];
+        if (!columnDate) return [];
+
+        const columnKey = formDate(columnDate);
+        return sortTasksForDisplay(
+            sourceTasks.filter(task => formDate(task.date) === columnKey),
+            shouldSortCompletedTasks
+        );
+    }
+
+    function resolveColumnIndexFromTaskId(taskId, sourceTasks = tasksRef.current) {
+        const task = sourceTasks.find(entry => String(entry.id) === String(taskId));
+        if (!task) return -1;
+        return dateKeyToIndex.get(formDate(task.date)) ?? -1;
+    }
+
+    function normalizeTaskForWeekDrop(task, targetDate, order) {
+        return {
+            ...task,
+            date: parseDateOnly(targetDate),
+            order,
+            is_board_task: false,
+            board_column_id: null,
+            board_order: null,
+        };
+    }
+
+    function getSafeWeekInsertIndex(tasksInColumn, targetIndex) {
+        if (!Number.isInteger(targetIndex)) return tasksInColumn.length;
+        return Math.max(0, Math.min(targetIndex, tasksInColumn.length));
+    }
+
+    async function commitWeekDrop({ activeId, activeData, target }) {
+        const targetColumnIndex = Number(target?.containerIndex);
+        if (!Number.isInteger(targetColumnIndex) || targetColumnIndex < 0 || targetColumnIndex >= dates.length) {
+            return null;
+        }
+
+        const sourceZone = activeData?.zone;
+        const safeTargetIndex = getSafeWeekInsertIndex(
+            getColumnTasks(targetColumnIndex).filter(task => String(task.id) !== String(activeId)),
+            target?.index
+        );
+
+        if (sourceZone === "board") {
+            return moveTaskToColumn(activeId, targetColumnIndex)(safeTargetIndex);
+        }
+
+        const sourceColumnIndex = Number(activeData?.containerIndex);
+        if (!Number.isInteger(sourceColumnIndex) || sourceColumnIndex < 0) {
+            return null;
+        }
+
+        const sourceTasks = getColumnTasks(sourceColumnIndex);
+        const sourceDate = dates[sourceColumnIndex];
+        const targetDate = dates[targetColumnIndex];
+        if (!sourceDate || !targetDate) return null;
+
+        if (sourceColumnIndex === targetColumnIndex) {
+            const oldIndex = sourceTasks.findIndex(task => String(task.id) === String(activeId));
+            if (oldIndex < 0) return null;
+
+            const fallbackTargetIndex = sourceTasks.length - 1;
+            const safeIndex = getSafeWeekInsertIndex(sourceTasks.filter(task => String(task.id) !== String(activeId)), target?.index);
+            const newIndex = target?.overType === "task"
+                ? sourceTasks.findIndex(task => String(task.id) === String(target?.taskId))
+                : fallbackTargetIndex;
+
+            const finalIndex = newIndex < 0 ? safeIndex : newIndex;
+            if (oldIndex === finalIndex) {
+                return {
+                    operation: "no-op",
+                    payload: {
+                        taskId: String(activeId),
+                        sourceContainerId: `week:${sourceColumnIndex}`,
+                        targetContainerId: `week:${targetColumnIndex}`,
+                        targetIndex: finalIndex,
+                    },
+                };
+            }
+
+            const reorderedTasks = arrayMove(sourceTasks, oldIndex, finalIndex).map((task, index) => (
+                normalizeTaskForWeekDrop(task, sourceDate, index)
+            ));
+
+            applyTaskUpdates(reorderedTasks);
+            await persistTaskPositions(reorderedTasks);
+
+            return {
+                operation: "reorder same container",
+                payload: {
+                    taskId: String(activeId),
+                    sourceContainerId: `week:${sourceColumnIndex}`,
+                    targetContainerId: `week:${targetColumnIndex}`,
+                    sourceIndex: oldIndex,
+                    targetIndex: finalIndex,
+                    persistedTasks: reorderedTasks,
+                },
+            };
+        }
+
+        const sourceWithoutActive = sourceTasks
+            .filter(task => String(task.id) !== String(activeId))
+            .map((task, index) => normalizeTaskForWeekDrop(task, sourceDate, index));
+        const targetTasks = getColumnTasks(targetColumnIndex)
+            .filter(task => String(task.id) !== String(activeId));
+        const taskToMove = tasksRef.current.find(task => String(task.id) === String(activeId))
+            || (activeData?.task ? normalizeTaskRecord(activeData.task) : null);
+        if (!taskToMove) return null;
+
+        const movedTask = normalizeTaskForWeekDrop(taskToMove, targetDate, safeTargetIndex);
+        const nextTargetTasks = [...targetTasks];
+        nextTargetTasks.splice(safeTargetIndex, 0, movedTask);
+        const normalizedTargetTasks = nextTargetTasks.map((task, index) => (
+            normalizeTaskForWeekDrop(task, targetDate, index)
+        ));
+        const affectedTasks = [...sourceWithoutActive, ...normalizedTargetTasks];
+
+        applyTaskUpdates(affectedTasks);
+        await persistTaskPositions(affectedTasks);
+
+        return {
+            operation: "move week → week",
+            payload: {
+                taskId: String(activeId),
+                sourceContainerId: `week:${sourceColumnIndex}`,
+                targetContainerId: `week:${targetColumnIndex}`,
+                sourceIndex: Number(activeData?.index),
+                targetIndex: safeTargetIndex,
+                persistedTasks: affectedTasks,
+            },
+        };
+    }
+
+    useEffect(() => {
+        if (!onRegisterDndApi) return;
+
+        onRegisterDndApi({
+            commitDrop: args => commitWeekDrop(args),
+            getRenderedTaskContainers: taskId => getRenderedTaskContainers(taskId),
+        });
+
+        return () => {
+            onRegisterDndApi(null);
+        };
+    }, [onRegisterDndApi, shouldSortCompletedTasks, externalActiveTaskId, weekShift, currentUser?.currentAgendaId, tasks.length]);
+
     if (loading || !minLoadingDone) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black">
@@ -443,43 +645,45 @@ const TaskListContainer = () => {
     }
 
     return (
-        <div className="w-full padding-x flex flex-col gap-6 py-4 lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10 dark:bg-black dark:text-white">
-            {dates.slice(0, 5).map((date, index) => (
-                <TaskList
-                    date={date}
-                    key={index}
-                    ind={index}
-                    active={formDate(new Date()) === formDate(date)}
-                    last={false}
-                    updateColumnTasks={updateColumnTasks}
-                    persistColumns={persistColumns}
-                    moveTaskToColumn={moveTaskToColumn}
-                    maxTasks={maxTasks}
-                    changeMaxTasks={changeMaxTasks}
-                    tasksData={tasksData[formDate(date)]}
-                    holidayName={holidayNamesByDate[formDate(date)] || ""}
-                />
-            ))}
-
-            <div className="flex min-w-0 flex-col gap-[30px]">
-                {dates.slice(5).map((date, index) => (
+        <>
+            <div className="w-full padding-x flex flex-col gap-6 py-4 lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10 dark:bg-black dark:text-white">
+                {dates.slice(0, 5).map((date, index) => (
                     <TaskList
                         date={date}
                         key={index}
-                        ind={index + 5}
+                        ind={index}
                         active={formDate(new Date()) === formDate(date)}
-                        last={true}
-                        updateColumnTasks={updateColumnTasks}
-                        persistColumns={persistColumns}
+                        last={false}
                         moveTaskToColumn={moveTaskToColumn}
                         maxTasks={maxTasks}
                         changeMaxTasks={changeMaxTasks}
                         tasksData={tasksData[formDate(date)]}
                         holidayName={holidayNamesByDate[formDate(date)] || ""}
+                        activeTaskId={externalActiveTaskId}
+                        dndEnabled={dndEnabled}
                     />
                 ))}
+
+                <div className="flex min-w-0 flex-col gap-[30px]">
+                    {dates.slice(5).map((date, index) => (
+                        <TaskList
+                            date={date}
+                            key={index}
+                            ind={index + 5}
+                            active={formDate(new Date()) === formDate(date)}
+                            last={true}
+                            moveTaskToColumn={moveTaskToColumn}
+                            maxTasks={maxTasks}
+                            changeMaxTasks={changeMaxTasks}
+                            tasksData={tasksData[formDate(date)]}
+                            holidayName={holidayNamesByDate[formDate(date)] || ""}
+                            activeTaskId={externalActiveTaskId}
+                            dndEnabled={dndEnabled}
+                        />
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

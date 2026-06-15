@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { ChevronDown } from "@untitledui/icons";
+import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 
 function isSameValue(left, right) {
     return String(left) === String(right);
@@ -25,6 +26,7 @@ export default function OptionMenuSelect({
     const menuRef = React.useRef(null);
     const optionRefs = React.useRef([]);
     const [isOpen, setIsOpen] = React.useState(false);
+    const { isMounted, isVisible } = useAnimatedPresence(isOpen);
     const [menuStyle, setMenuStyle] = React.useState(null);
     const [highlightedIndex, setHighlightedIndex] = React.useState(() => {
         const selectedIndex = options.findIndex(option => isSameValue(option.value, value));
@@ -238,10 +240,11 @@ export default function OptionMenuSelect({
                 <ChevronDown className="h-4 w-4 shrink-0 text-ds-text-default" />
             </button>
 
-            {isOpen && typeof document !== "undefined" && ReactDOM.createPortal(
+            {isMounted && typeof document !== "undefined" && ReactDOM.createPortal(
                 <div
                     ref={menuRef}
-                    className={`z-[80] option-menu-surface p-1 ${menuStyle ? "opacity-100" : "opacity-0"} ${menuClassName}`}
+                    className={`animated-option-menu z-[80] option-menu-surface p-1 ${menuStyle ? "opacity-100" : "opacity-0"} ${menuClassName}`}
+                    data-state={isVisible ? "open" : "closed"}
                     style={menuStyle || undefined}
                     role="listbox"
                 >

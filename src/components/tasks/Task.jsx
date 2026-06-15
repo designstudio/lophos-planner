@@ -13,7 +13,20 @@ function formDate(date) {
     return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
-export default function Task({taskListInd, ind, data, date, tasksCol, relatedLinksEnabled = true}) {
+export default function Task({
+    taskListInd,
+    ind,
+    data,
+    date,
+    tasksCol,
+    relatedLinksEnabled = true,
+    dragHandleProps = {},
+    setNodeRef,
+    style,
+    disableNativeDrag = false,
+    isDragging = false,
+    isOverlay = false,
+}) {
     const isMobile = useIsMobileViewport();
     const canDrag = !isMobile;
     const MAX_TASK_NAME_LENGTH = isMobile ? 40 : 34;
@@ -119,7 +132,7 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
 
     function openTaskMenu(ev) {
         ev.stopPropagation();
-        if (isDraggingRef.current) return;
+        if (isDraggingRef.current || isDragging) return;
 
         if (openedTask && matchesShortId(data.id, openedTask)) {
             syncTaskMenuData();
@@ -144,19 +157,31 @@ export default function Task({taskListInd, ind, data, date, tasksCol, relatedLin
     }, [openedTask, data?.id, syncTaskMenuData]);
 
 
+    const nativeDragProps = disableNativeDrag ? {} : {
+        draggable: canDrag,
+        onDragStart: ev => {
+            if (!canDrag) return;
+            isDraggingRef.current = true;
+            ev.dataTransfer.setData("text/plain", String(data.id));
+            ev.dataTransfer.effectAllowed = "move";
+        },
+        onDragEnd: () => {
+            setTimeout(() => {
+                isDraggingRef.current = false;
+            }, 0);
+        },
+    };
+
     return (
-        <div className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700" data-ind={ind} data-task-id={data.id} draggable={canDrag}
-             onDragStart={ev => {
-                 if (!canDrag) return;
-                 isDraggingRef.current = true;
-                 ev.dataTransfer.setData("text/plain", String(data.id));
-                 ev.dataTransfer.effectAllowed = "move";
-             }}
-             onDragEnd={() => {
-                 setTimeout(() => {
-                     isDraggingRef.current = false;
-                 }, 0);
-             }}>
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group agenda-accent-hover-border task-row-border task-item-row planner-task-shell w-full border-b transition-colors duration-150 dark:border-gray-700 ${isDragging ? "planner-task-shell--dragging" : ""} ${isOverlay ? "planner-task-shell--overlay" : ""}`}
+            data-ind={ind}
+            data-task-id={data.id}
+            {...dragHandleProps}
+            {...nativeDragProps}
+        >
             <div className={`task flex justify-between items-center h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`}>
                 <button
                     type="button"

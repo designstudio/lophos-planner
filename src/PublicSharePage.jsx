@@ -244,6 +244,7 @@ export default function PublicSharePage() {
     const weekStartsOn = owner?.weekStartsOn || "Monday";
     const agendaAccent = agenda?.color || "var(--color-brand-accent)";
     const relatedLinksEnabled = agenda?.related_links_enabled ?? true;
+    const holidaysEnabled = agenda?.holidays_enabled ?? true;
     const publicTaskTitleMaxLength = isMobile ? 40 : 34;
 
     const now = new Date();
@@ -274,6 +275,11 @@ export default function PublicSharePage() {
         if (month === 11) years.push(year + 1);
 
         async function loadHolidays() {
+            if (!holidaysEnabled) {
+                setHolidayNamesByDate({});
+                return;
+            }
+
             const countryCode = getCountryCodeForLanguage(language);
             const holidays = await getHolidaysByYears({ years, countryCode });
             if (isCancelled) return;
@@ -290,7 +296,7 @@ export default function PublicSharePage() {
         return () => {
             isCancelled = true;
         };
-    }, [calendarMonth, language]);
+    }, [calendarMonth, holidaysEnabled, language]);
 
     const dates = [];
     const tasksData = {};
@@ -667,7 +673,7 @@ export default function PublicSharePage() {
 
     if (loading || !minLoadingDone) {
         return (
-            <div className="min-h-screen bg-ds-background-page flex items-center justify-center">
+            <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
@@ -675,7 +681,7 @@ export default function PublicSharePage() {
 
     if (!owner) {
         return (
-            <div className="min-h-screen bg-ds-background-page px-6 py-8 ds-type-h4 text-ds-text-default">
+            <div className="min-h-screen bg-white dark:bg-black px-6 py-8 ds-type-h4 text-ds-text-default">
                 {t(language, "publicAgendaUnavailable")}
             </div>
         );
@@ -685,13 +691,13 @@ export default function PublicSharePage() {
 
     return (
         <div
-            className="public-share-page min-w-screen min-h-screen bg-ds-background-page text-ds-text-default"
+            className="public-share-page min-w-screen min-h-screen bg-white dark:bg-black text-ds-text-default"
             style={{
                 '--agenda-accent': agendaAccent,
                 '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'var(--color-brand-accent-subtle)',
             }}
         >
-            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-ds-background-page px-6 py-4 max-lg:py-6 lg:px-6 lg:py-5">
+            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-white dark:bg-black px-6 py-4 pb-3 max-lg:py-6 max-lg:pb-3 lg:px-6 lg:py-5 lg:pb-3">
                 <div className="relative">
                     <button
                         type="button"
@@ -882,7 +888,7 @@ export default function PublicSharePage() {
                                 </h3>
                             </div>
 
-                            {holidayName && (
+                            {holidaysEnabled && holidayName && (
                                 <div className="task-row-border h-[41px] w-full border-b bg-ds-background-surface">
                                     <p className="task-holiday-item">
                                         <span className="task-holiday-badge gap-1">
@@ -938,7 +944,7 @@ export default function PublicSharePage() {
                                 </h3>
                             </div>
 
-                            {holidayName && (
+                            {holidaysEnabled && holidayName && (
                                 <div className="task-row-border h-[41px] w-full border-b bg-ds-background-surface">
                                     <p className="task-holiday-item">
                                         <span className="task-holiday-badge gap-1">

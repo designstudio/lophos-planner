@@ -3,7 +3,7 @@ import Blur from "../Blur.jsx";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAgendaMembers, getShareSettings, setShareEnabled } from "../../scripts/api.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
-import { Camera01, MagicWand01, Check, Trash03, Link01, ImageUserPlus, Plus } from "@untitledui/icons";
+import { Camera01, MagicWand01, Check, Trash03, Link01, ImageUserPlus, Plus, Umbrella03 } from "@untitledui/icons";
 import { closeForm, openForm, subscribeToModalState } from "../../scripts/utils.js";
 
 const MAX_AVATAR_SIZE_BYTES = 100 * 1024;
@@ -32,6 +32,7 @@ export default function ShareSettingsForm() {
     const [agendaColor, setAgendaColor] = React.useState(DEFAULT_AGENDA_COLOR);
     const [sortCompletedTasks, setSortCompletedTasks] = React.useState(true);
     const [relatedLinksEnabled, setRelatedLinksEnabled] = React.useState(true);
+    const [holidaysEnabled, setHolidaysEnabled] = React.useState(true);
     const [agendaMembers, setAgendaMembers] = React.useState([]);
     const [membersLoading, setMembersLoading] = React.useState(false);
     const [isRenamingAgenda, setIsRenamingAgenda] = React.useState(false);
@@ -76,6 +77,7 @@ export default function ShareSettingsForm() {
         setAgendaColor(currentAgenda?.color || DEFAULT_AGENDA_COLOR);
         setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
         setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
+        setHolidaysEnabled(currentAgenda?.holidays_enabled ?? true);
     }, [
         currentAgenda?.id,
         currentAgenda?.name,
@@ -83,6 +85,7 @@ export default function ShareSettingsForm() {
         currentAgenda?.color,
         currentAgenda?.sort_completed_tasks,
         currentAgenda?.related_links_enabled,
+        currentAgenda?.holidays_enabled,
     ]);
 
     React.useEffect(() => {
@@ -123,6 +126,7 @@ export default function ShareSettingsForm() {
             setAgendaColor(currentAgenda?.color || DEFAULT_AGENDA_COLOR);
             setSortCompletedTasks(currentAgenda?.sort_completed_tasks ?? true);
             setRelatedLinksEnabled(currentAgenda?.related_links_enabled ?? true);
+            setHolidaysEnabled(currentAgenda?.holidays_enabled ?? true);
             setLocalShareEnabled(initialShareEnabled);
             setErrorMessage("");
         });
@@ -133,6 +137,7 @@ export default function ShareSettingsForm() {
         currentAgenda?.color,
         currentAgenda?.sort_completed_tasks,
         currentAgenda?.related_links_enabled,
+        currentAgenda?.holidays_enabled,
         initialShareEnabled,
     ]);
 
@@ -234,15 +239,17 @@ export default function ShareSettingsForm() {
         const prevColor = (currentAgenda?.color || DEFAULT_AGENDA_COLOR).trim();
         const prevSortCompletedTasks = currentAgenda?.sort_completed_tasks ?? true;
         const prevRelatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
+        const prevHolidaysEnabled = currentAgenda?.holidays_enabled ?? true;
 
         return (
             agendaName.trim() !== prevName ||
             agendaAvatar.trim() !== prevAvatar ||
             (agendaColor.trim() || DEFAULT_AGENDA_COLOR) !== prevColor ||
             sortCompletedTasks !== prevSortCompletedTasks ||
-            relatedLinksEnabled !== prevRelatedLinksEnabled
+            relatedLinksEnabled !== prevRelatedLinksEnabled ||
+            holidaysEnabled !== prevHolidaysEnabled
         );
-    }, [agendaName, agendaAvatar, agendaColor, sortCompletedTasks, relatedLinksEnabled, currentAgenda]);
+    }, [agendaName, agendaAvatar, agendaColor, sortCompletedTasks, relatedLinksEnabled, holidaysEnabled, currentAgenda]);
 
     const hasShareChanges = shareEnabled !== initialShareEnabled;
     const hasPendingChanges = hasAgendaChanges || hasShareChanges;
@@ -276,7 +283,7 @@ export default function ShareSettingsForm() {
         }
 
         if (hasAgendaChanges) {
-            const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks, relatedLinksEnabled);
+            const result = await renameAgenda(currentAgenda.id, nextName, nextAvatar, nextColor, sortCompletedTasks, relatedLinksEnabled, holidaysEnabled);
             if (result?.type === "error") {
                 setErrorMessage(result.errorMessage || t(language, "agendaRenameError"));
                 setIsRenamingAgenda(false);
@@ -684,6 +691,42 @@ export default function ShareSettingsForm() {
                                         borderRadius: "var(--radius-full)",
                                     }}>
                                     {relatedLinksEnabled && (
+                                        <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Umbrella03 className="h-4 w-4 text-ds-text-default" />
+                                <span className="ds-type-body text-ds-text-default">{t(language, "holidaysFeatureLabel")}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setHolidaysEnabled(!holidaysEnabled)}
+                                className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${
+                                    holidaysEnabled
+                                        ? "border-ds-text-default bg-ds-text-default"
+                                        : "border-ds-text-default bg-ds-background-surface"
+                                }`}
+                                aria-pressed={holidaysEnabled}
+                                aria-label={t(language, "holidaysFeatureLabel")}
+                                style={{
+                                    backgroundColor: holidaysEnabled ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderColor: "var(--color-text-default)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
+                            >
+                                <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
+                                    holidaysEnabled
+                                        ? "translate-x-[20px] bg-ds-background-surface"
+                                        : "translate-x-0 bg-ds-text-default"
+                                }`}
+                                    style={{
+                                        backgroundColor: holidaysEnabled ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}>
+                                    {holidaysEnabled && (
                                         <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
                                     )}
                                 </div>

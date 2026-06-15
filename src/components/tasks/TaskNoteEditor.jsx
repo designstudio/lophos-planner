@@ -400,6 +400,148 @@ const TaskNoteEditor = React.forwardRef(function TaskNoteEditor({
         onActiveFormatsChange?.(getActiveFormatsFromEditor(editor));
     }, [editor, onActiveFormatsChange]);
 
+    const getFreshEditorBlocks = React.useCallback(() => {
+        const blocks = cloneTaskNoteBlocks(editor.document);
+        const tableElements = Array.from(rootRef.current?.querySelectorAll(".bn-editor .tableWrapper table") || []);
+        let tableIndex = 0;
+
+        const applyWidths = blockList => {
+            blockList.forEach(block => {
+                if (block?.type === "table" && block?.content?.type === "tableContent") {
+                    const tableElement = tableElements[tableIndex];
+                    tableIndex += 1;
+
+                    if (tableElement) {
+                        const colElements = Array.from(tableElement.querySelectorAll("colgroup col"));
+                        const firstRowCells = Array.from(tableElement.querySelectorAll("tr:first-child > th, tr:first-child > td"));
+                        const widths = (colElements.length > 0 ? colElements : firstRowCells)
+                            .map(cell => Math.round(cell.getBoundingClientRect().width))
+                            .filter(width => Number.isFinite(width) && width > 0);
+
+                        if (widths.length > 0) {
+                            block.content.columnWidths = widths;
+                        }
+                    }
+                }
+
+                if (Array.isArray(block?.children) && block.children.length > 0) {
+                    applyWidths(block.children);
+                }
+            });
+        };
+
+        applyWidths(blocks);
+        return blocks;
+    }, [editor]);
+
+    const persistCurrentEditorState = React.useCallback(async ({ force = false } = {}) => {
+        if (readOnly) return;
+        if (isApplyingExternalStateRef.current) return;
+
+        const currentBlocks = getFreshEditorBlocks();
+        const previousBlocks = latestNoteSnapshotRef.current?.blocks ?? null;
+        const blocksChanged = JSON.stringify(currentBlocks) !== JSON.stringify(previousBlocks);
+
+        if (!force && !blocksChanged) {
+            return;
+        }
+
+        const optimisticMigratedAt = note.migratedAt || new Date().toISOString();
+
+        latestNoteSnapshotRef.current = {
+            taskId: task?.id ?? null,
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            markdown: latestNoteSnapshotRef.current?.markdown || note.markdown,
+            blocks: currentBlocks,
+            plainText: latestNoteSnapshotRef.current?.plainText || note.plainText,
+            migratedAt: optimisticMigratedAt,
+        };
+
+        onNoteChange?.({
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            description: latestNoteSnapshotRef.current.markdown,
+            note_format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            note_blocks: currentBlocks,
+            note_plain_text: latestNoteSnapshotRef.current.plainText || "",
+            note_migrated_at: optimisticMigratedAt,
+        });
+
+        const payload = await exportBlockNoteToTaskNotePayload(editor, {
+            migratedAt: note.migratedAt,
+            blocks: currentBlocks,
+        });
+
+        latestNoteSnapshotRef.current = {
+            taskId: task?.id ?? null,
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            markdown: payload.description,
+            blocks: payload.note_blocks,
+            plainText: payload.note_plain_text,
+            migratedAt: payload.note_migrated_at,
+        };
+
+        onNoteChange?.({
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            ...payload,
+        });
+        emitActiveFormats();
+    }, [
+        editor,
+        emitActiveFormats,
+        getFreshEditorBlocks,
+        note.markdown,
+        note.migratedAt,
+        note.plainText,
+        onNoteChange,
+        readOnly,
+        task?.id,
+    ]);
+
+    const flushPendingState = React.useCallback(() => {
+        if (readOnly) return;
+        if (isApplyingExternalStateRef.current) return;
+
+        const currentBlocks = getFreshEditorBlocks();
+        const optimisticMigratedAt = note.migratedAt || latestNoteSnapshotRef.current?.migratedAt || new Date().toISOString();
+        const description = latestNoteSnapshotRef.current?.markdown || note.markdown || "";
+        const plainText = latestNoteSnapshotRef.current?.plainText || note.plainText || "";
+
+        latestNoteSnapshotRef.current = {
+            taskId: task?.id ?? null,
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            markdown: description,
+            blocks: currentBlocks,
+            plainText,
+            migratedAt: optimisticMigratedAt,
+        };
+
+        const nextDraft = {
+            isDirty: true,
+            format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            description,
+            note_format: TASK_NOTE_FORMAT_BLOCKNOTE,
+            note_blocks: currentBlocks,
+            note_plain_text: plainText,
+            note_migrated_at: optimisticMigratedAt,
+        };
+
+        onNoteChange?.(nextDraft);
+        return nextDraft;
+    }, [
+        getFreshEditorBlocks,
+        note.markdown,
+        note.migratedAt,
+        note.plainText,
+        onNoteChange,
+        readOnly,
+        task?.id,
+    ]);
+
     const getSlashMenuItems = React.useCallback(async query => {
         const items = getDefaultReactSlashMenuItems(editor).filter(item => !BLOCKED_SLASH_MENU_KEYS.has(item.key));
         items.splice(3, 0, {
@@ -557,6 +699,7 @@ const TaskNoteEditor = React.forwardRef(function TaskNoteEditor({
         focus() {
             editor.focus();
         },
+        flushPendingState,
         toggleHeading() {
             toggleCurrentBlockType("heading", {
                 type: "heading",
@@ -584,7 +727,7 @@ const TaskNoteEditor = React.forwardRef(function TaskNoteEditor({
         toggleNumberedList() {
             toggleCurrentBlockType("numberedListItem", { type: "numberedListItem" });
         },
-    }), [editor, emitActiveFormats, toggleCurrentBlockType]);
+    }), [editor, emitActiveFormats, flushPendingState, toggleCurrentBlockType]);
 
     React.useEffect(() => {
         let isCancelled = false;
@@ -710,53 +853,31 @@ const TaskNoteEditor = React.forwardRef(function TaskNoteEditor({
     ]);
 
     async function handleEditorChange() {
-        if (readOnly) return;
-        if (isApplyingExternalStateRef.current) return;
-
-        const currentBlocks = cloneTaskNoteBlocks(editor.document);
-        const optimisticMigratedAt = note.migratedAt || new Date().toISOString();
-
-        latestNoteSnapshotRef.current = {
-            taskId: task?.id ?? null,
-            isDirty: true,
-            format: TASK_NOTE_FORMAT_BLOCKNOTE,
-            markdown: latestNoteSnapshotRef.current?.markdown || note.markdown,
-            blocks: currentBlocks,
-            plainText: latestNoteSnapshotRef.current?.plainText || note.plainText,
-            migratedAt: optimisticMigratedAt,
-        };
-
-        onNoteChange?.({
-            isDirty: true,
-            format: TASK_NOTE_FORMAT_BLOCKNOTE,
-            description: latestNoteSnapshotRef.current.markdown,
-            note_format: TASK_NOTE_FORMAT_BLOCKNOTE,
-            note_blocks: currentBlocks,
-            note_plain_text: latestNoteSnapshotRef.current.plainText || "",
-            note_migrated_at: optimisticMigratedAt,
-        });
-
-        const payload = await exportBlockNoteToTaskNotePayload(editor, {
-            migratedAt: note.migratedAt,
-        });
-
-        latestNoteSnapshotRef.current = {
-            taskId: task?.id ?? null,
-            isDirty: true,
-            format: TASK_NOTE_FORMAT_BLOCKNOTE,
-            markdown: payload.description,
-            blocks: payload.note_blocks,
-            plainText: payload.note_plain_text,
-            migratedAt: payload.note_migrated_at,
-        };
-
-        onNoteChange?.({
-            isDirty: true,
-            format: TASK_NOTE_FORMAT_BLOCKNOTE,
-            ...payload,
-        });
-        emitActiveFormats();
+        await persistCurrentEditorState();
     }
+
+    React.useEffect(() => {
+        if (readOnly) return undefined;
+
+        let rafId = 0;
+
+        const handlePointerUp = () => {
+            rafId = requestAnimationFrame(() => {
+                rafId = requestAnimationFrame(() => {
+                    persistCurrentEditorState({ force: true });
+                });
+            });
+        };
+
+        window.addEventListener("pointerup", handlePointerUp, true);
+
+        return () => {
+            window.removeEventListener("pointerup", handlePointerUp, true);
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+        };
+    }, [editor, persistCurrentEditorState, readOnly]);
 
     if (viewState.loading) {
         return (

@@ -32,6 +32,7 @@ function getUserInitials(user) {
 }
 
 const Header = ({ onOpenAbout = () => {} }) => {
+    const { currentUser, agendas } = useAuth();
 
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [activeMenu, setActiveMenu] = React.useState(null);
@@ -50,6 +51,8 @@ const Header = ({ onOpenAbout = () => {} }) => {
         nextDate.setDate(nextDate.getDate() + (weekShift * 7));
         return nextDate;
     }, [weekShift]);
+    const currentAgenda = agendas.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
+    const holidaysEnabled = currentAgenda?.holidays_enabled ?? true;
 
     function openLoginForm() {
         openForm("login-form");
@@ -87,7 +90,6 @@ const Header = ({ onOpenAbout = () => {} }) => {
         setWeekShift(prevShift => setStoredWeekShift(prevShift + 1));
     }
 
-    const {currentUser} = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const locale = getLocale(language);
     const weekStartIndex = currentUser?.weekStartsOn === "Sunday" ? 0 : 1;
@@ -245,6 +247,11 @@ const Header = ({ onOpenAbout = () => {} }) => {
         if (month === 11) years.push(year + 1);
 
         async function loadHolidays() {
+            if (!holidaysEnabled) {
+                setHolidayNamesByDate({});
+                return;
+            }
+
             const countryCode = getCountryCodeForLanguage(language);
             const holidays = await getHolidaysByYears({ years, countryCode });
             if (isCancelled) return;
@@ -261,7 +268,7 @@ const Header = ({ onOpenAbout = () => {} }) => {
         return () => {
             isCancelled = true;
         };
-    }, [calendarMonth.getFullYear(), calendarMonth.getMonth(), language]);
+    }, [calendarMonth.getFullYear(), calendarMonth.getMonth(), holidaysEnabled, language]);
 
     const weekdayLabels = React.useMemo(() => {
         const baseSunday = new Date(2024, 0, 7);

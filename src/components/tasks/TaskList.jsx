@@ -2,14 +2,84 @@ import React from 'react'
 import Task from './Task.jsx';
 import {useAuth} from "../../contexts/AuthContext.jsx";
 import {createTask, tryCatchDecorator} from "../../scripts/api.js";
-import {ReactSortable} from "react-sortablejs";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {Form} from "react-router-dom";
 import {formDate, toInputDateValue} from "../../scripts/utils.js";
 import { formatDayMonth, getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { Umbrella03 } from "@untitledui/icons";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 
-const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTasks, persistColumns, moveTaskToColumn, holidayName = ""}) => {
+function toTranslate3d(transform) {
+    if (!transform) return undefined;
+
+    const x = transform.x ?? 0;
+    const y = transform.y ?? 0;
+    const scaleX = transform.scaleX ?? 1;
+    const scaleY = transform.scaleY ?? 1;
+
+    return `translate3d(${x}px, ${y}px, 0) scaleX(${scaleX}) scaleY(${scaleY})`;
+}
+
+function SortableTaskItem({ task, ind, date, taskListInd, relatedLinksEnabled }) {
+    const containerId = `week:${taskListInd}`;
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: String(task.id),
+        data: {
+            zone: "week",
+            type: "task",
+            taskId: String(task.id),
+            containerId,
+            columnIndex: taskListInd,
+            containerIndex: taskListInd,
+            dateKey: formDate(date),
+            index: ind,
+            task,
+        },
+    });
+
+    const style = {
+        transform: toTranslate3d(transform),
+        transition,
+    };
+
+    return (
+        <Task
+            key={task.id}
+            data={task}
+            taskListInd={taskListInd}
+            date={date}
+            tasksCol={0}
+            ind={ind}
+            relatedLinksEnabled={relatedLinksEnabled}
+            setNodeRef={setNodeRef}
+            style={style}
+            dragHandleProps={{ ...attributes, ...listeners }}
+            disableNativeDrag
+            isDragging={isDragging}
+        />
+    );
+}
+
+const TaskList = ({
+    date,
+    active,
+    last,
+    maxTasks,
+    tasksData,
+    ind,
+    moveTaskToColumn,
+    holidayName = "",
+    activeTaskId = null,
+    dndEnabled = false,
+}) => {
 
     const {currentUser, agendas} = useAuth();
     const isMobile = useIsMobileViewport();
@@ -17,7 +87,21 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
     const dateFormat = currentUser?.dateFormat || "DD-MM";
     const currentAgenda = agendas?.find(agenda => String(agenda.id) === String(currentUser?.currentAgendaId));
     const relatedLinksEnabled = currentAgenda?.related_links_enabled ?? true;
-    const [isDragOver, setIsDragOver] = React.useState(false);
+    const columnDropId = `planner-column-${ind}`;
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: columnDropId,
+        data: {
+            zone: "week",
+            type: "column",
+            containerId: `week:${ind}`,
+            columnIndex: ind,
+            containerIndex: ind,
+            dateKey: formDate(date),
+            itemCount: tasksData.length,
+        },
+        disabled: !dndEnabled,
+    });
+    const isDragOver = dndEnabled ? isOver && activeTaskId !== null && tasksData.length === 0 : false;
 
     const getDate = date => formatDayMonth(date, language, dateFormat);
 
@@ -33,28 +117,6 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
         const thisTaskList = document.querySelector(`.task-list[data-date="${date.getDate()}"]`);
         const firstInput = thisTaskList.querySelector('.add-task #add-task-name');
         firstInput.focus();
-    }
-
-    function handleDragOver(ev) {
-        const taskId = ev.dataTransfer?.getData("text/plain");
-        if (!taskId) return;
-        ev.preventDefault();
-        setIsDragOver(true);
-    }
-
-    function handleDragLeave(ev) {
-        if (!ev.currentTarget.contains(ev.relatedTarget)) {
-            setIsDragOver(false);
-        }
-    }
-
-    async function handleDrop(ev) {
-        const taskId = ev.dataTransfer?.getData("text/plain");
-        setIsDragOver(false);
-        if (!taskId) return;
-
-        ev.preventDefault();
-        await moveTaskToColumn(taskId, ind)();
     }
 
     async function handleFocusOut(ev) {
@@ -121,6 +183,20 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
 
     const tasksComponents = [], emptyComponents = [];
     for (let i = 0; i < tasksData.length; ++i) {
+        if (dndEnabled) {
+            tasksComponents.push(
+                <SortableTaskItem
+                    key={tasksData[i].id}
+                    task={tasksData[i]}
+                    taskListInd={ind}
+                    date={date}
+                    ind={i}
+                    relatedLinksEnabled={relatedLinksEnabled}
+                />
+            );
+            continue;
+        }
+
         tasksComponents.push(<Task key={tasksData[i].id} data={tasksData[i]}
                                    taskListInd={ind} date={date}
                                    tasksCol={tasksData.length}
@@ -146,11 +222,8 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
     }
 
     return (
-        <div className={`task-list flex flex-1 flex-col ${isDragOver ? "agenda-accent-soft-bg" : ""}`} data-date={date.getDate()} data-list-index={ind} data-date-key={formDate(date)}
-             onDragOver={handleDragOver}
-             onDragEnter={handleDragOver}
-             onDragLeave={handleDragLeave}
-             onDrop={handleDrop}
+        <div ref={setDroppableRef}
+             className={`task-list flex flex-1 flex-col ${isDragOver ? "planner-task-list--drop-active" : ""}`} data-date={date.getDate()} data-list-index={ind} data-date-key={formDate(date)}
              onKeyDown={handleKeyDown}>
             <div
                 className={`flex justify-between items-center py-3 border-b-2
@@ -184,20 +257,15 @@ const TaskList = ({date, active, last, maxTasks, tasksData, ind, updateColumnTas
 
             {isMobile ? (
                 <>{tasksComponents}</>
-            ) : (
-                <ReactSortable list={tasksData} setList={nextList => updateColumnTasks(ind, nextList)}
-                               group={{ name: "tasks", pull: true, put: true }}
-                               onEnd={ev => {
-                                   const fromListInd = Number(ev.from.closest(".task-list")?.dataset.listIndex);
-                                   const toListInd = Number(ev.to.closest(".task-list")?.dataset.listIndex);
-                                   persistColumns([fromListInd, toListInd])();
-                               }}
-                               ghostClass="sortable-ghost"
-                               chosenClass="sortable-chosen"
-                               dragClass="sortable-drag"
+            ) : dndEnabled ? (
+                <SortableContext
+                    items={tasksData.map(task => String(task.id))}
+                    strategy={verticalListSortingStrategy}
                 >
                     {tasksComponents}
-                </ReactSortable>
+                </SortableContext>
+            ) : (
+                <>{tasksComponents}</>
             )}
             <Form method="POST" className="add-task"> { /* For adding new tasks */}
                 <input type="text"

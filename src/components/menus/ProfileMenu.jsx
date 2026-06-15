@@ -1,9 +1,12 @@
+import React from "react";
 import {useAuth} from "../../contexts/AuthContext.jsx";
 import {closeForm, openForm} from "../../scripts/utils.js";
 import { Settings01, LogOut01 } from "@untitledui/icons";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
+import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 
 export default function ProfileMenu({ isOpen = false, style = {}, onClose = () => {} }) {
+    const { isMounted, isVisible } = useAnimatedPresence(isOpen);
 
     const { currentUser, logout, agendas, switchAgenda } = useAuth();
     const language = getAppLanguage(currentUser?.language);
@@ -46,8 +49,13 @@ export default function ProfileMenu({ isOpen = false, style = {}, onClose = () =
         onClose();
     }
 
+    if (!isMounted) {
+        return null;
+    }
+
     return (
-        <div className={`profile-menu ${isOpen ? "active" : ""} option-menu-surface rounded-ds-xl text-ds-text-default w-64 p-4 -translate-x-[50%] text-center`}
+        <div className={`profile-menu ${isMounted ? "active" : ""} animated-option-menu option-menu-surface rounded-ds-xl text-ds-text-default w-64 p-4 -translate-x-[50%] text-center`}
+             data-state={isVisible ? "open" : "closed"}
              style={{ ...style, borderRadius: "var(--radius-xl)" }}
              onClick={ev => ev.stopPropagation()}>
             <div className="text-left pb-3">

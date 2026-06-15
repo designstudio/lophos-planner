@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
-import { DotsHorizontal, Plus, ChevronRight, ChevronLeft, Trash03, StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { DotsVertical, Plus, ChevronRight, ChevronLeft, Trash03, StickerSquare, CheckCircle, Attachment02 } from "@untitledui/icons";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
@@ -18,6 +20,7 @@ import {
 } from "../../scripts/api.js";
 import { formDate, getDefaultBoardColumns, matchesShortId, openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { supabase } from "../../scripts/supabase.js";
+import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import useIsMobileViewport from "../../hooks/useIsMobileViewport.js";
 
 function sortBoardTasks(list) {
@@ -85,7 +88,29 @@ function generateBoardColumnId() {
     return `board-column-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 }
 
-function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
+function toTranslate3d(transform) {
+    if (!transform) return undefined;
+
+    const x = transform.x ?? 0;
+    const y = transform.y ?? 0;
+    const scaleX = transform.scaleX ?? 1;
+    const scaleY = transform.scaleY ?? 1;
+
+    return `translate3d(${x}px, ${y}px, 0) scaleX(${scaleX}) scaleY(${scaleY})`;
+}
+
+function BoardTaskItem({
+    task,
+    index,
+    onToggleDone,
+    onDragStart,
+    dragHandleProps = {},
+    setNodeRef,
+    style,
+    disableNativeDrag = false,
+    isDragging = false,
+    isOverlay = false,
+}) {
     const isDraggingRef = React.useRef(false);
     const { setTaskData } = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -131,7 +156,7 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
 
     function openTaskMenu(ev) {
         ev.stopPropagation();
-        if (isDraggingRef.current) return;
+        if (isDraggingRef.current || isDragging) return;
 
         if (openedTask && matchesShortId(task.id, openedTask)) {
             syncTaskMenuData();
@@ -151,20 +176,25 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
 
     return (
         <div
-            className="group agenda-accent-hover-border task-row-border task-item-row w-full border-b transition-colors duration-150 dark:border-gray-700"
+            ref={setNodeRef}
+            style={style}
+            className={`group agenda-accent-hover-border task-row-border task-item-row planner-task-shell w-full border-b transition-colors duration-150 dark:border-gray-700 ${isDragging ? "planner-task-shell--dragging" : ""} ${isOverlay ? "planner-task-shell--overlay" : ""}`}
             data-ind={index}
             data-task-id={task.id}
-            draggable={canDrag}
-            onDragStart={ev => {
-                if (!canDrag) return;
-                isDraggingRef.current = true;
-                onDragStart?.(ev, task.id);
-            }}
-            onDragEnd={() => {
-                setTimeout(() => {
-                    isDraggingRef.current = false;
-                }, 0);
-            }}
+            {...dragHandleProps}
+            {...(disableNativeDrag ? {} : {
+                draggable: canDrag,
+                onDragStart: ev => {
+                    if (!canDrag) return;
+                    isDraggingRef.current = true;
+                    onDragStart?.(ev, task.id);
+                },
+                onDragEnd: () => {
+                    setTimeout(() => {
+                        isDraggingRef.current = false;
+                    }, 0);
+                },
+            })}
         >
             <div className={`task flex items-center justify-between h-[41px] px-0 ${canDrag ? "cursor-grab" : "cursor-default"}`}>
                 <button
@@ -207,6 +237,45 @@ function BoardTaskItem({ task, index, onToggleDone, onDragStart }) {
     );
 }
 
+function SortableBoardTaskItem({ task, index, columnId, onToggleDone }) {
+    const containerId = `board:${columnId}`;
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: String(task.id),
+        data: {
+            zone: "board",
+            type: "task",
+            taskId: String(task.id),
+            containerId,
+            columnId: String(columnId),
+            index,
+            task,
+        },
+    });
+
+    return (
+        <BoardTaskItem
+            task={task}
+            index={index}
+            onToggleDone={onToggleDone}
+            setNodeRef={setNodeRef}
+            style={{
+                transform: toTranslate3d(transform),
+                transition,
+            }}
+            dragHandleProps={{ ...attributes, ...listeners }}
+            disableNativeDrag
+            isDragging={isDragging}
+        />
+    );
+}
+
 function BoardColumn({
     column,
     index,
@@ -223,12 +292,26 @@ function BoardColumn({
     onCreateTask,
     onAssignTask,
     onToggleTaskDone,
+    dndEnabled = false,
+    activeTaskId = null,
 }) {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-    const [isDropActive, setIsDropActive] = React.useState(false);
+    const { isMounted: isMenuMounted, isVisible: isMenuVisible } = useAnimatedPresence(isMenuOpen);
     const [draftTitle, setDraftTitle] = React.useState(typeof column.title === "string" ? column.title : "");
     const menuRef = React.useRef(null);
     const inputRef = React.useRef(null);
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+        id: `board-column-${column.id}`,
+        data: {
+            zone: "board",
+            type: "column",
+            containerId: `board:${column.id}`,
+            columnId: String(column.id),
+            itemCount: tasks.length,
+        },
+        disabled: !dndEnabled,
+    });
+    const isDropActive = dndEnabled ? isOver && activeTaskId !== null && tasks.length === 0 : false;
 
     useEffect(() => {
         function handlePointerDown(ev) {
@@ -274,36 +357,9 @@ function BoardColumn({
         }
     }
 
-    function handleDragOver(ev) {
-        const taskId = ev.dataTransfer?.getData("text/plain");
-        if (!taskId) return;
-        ev.preventDefault();
-        setIsDropActive(true);
-    }
-
-    function handleDragLeave(ev) {
-        if (!ev.currentTarget.contains(ev.relatedTarget)) {
-            setIsDropActive(false);
-        }
-    }
-
-    async function handleDrop(ev) {
-        const taskId = ev.dataTransfer?.getData("text/plain");
-        setIsDropActive(false);
-        if (!taskId) return;
-
-        ev.preventDefault();
-        await onAssignTask(taskId, column.id);
-    }
-
     return (
-        <div
-            className={`task-list flex w-full min-w-0 flex-col rounded-[20px] bg-transparent ${isDropActive ? "agenda-accent-soft-bg" : ""}`}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-        >
+        <div ref={setDroppableRef}
+            className={`task-list flex w-full min-w-0 flex-col rounded-[20px] bg-transparent ${isDropActive ? "planner-task-list--drop-active" : ""}`}>
             <div className="relative" ref={menuRef}>
                 <div className="group flex items-start justify-between gap-3 py-3 border-b-2 border-black/30 dark:border-white/30">
                     <input
@@ -329,16 +385,22 @@ function BoardColumn({
                         className="min-w-0 flex-1 bg-transparent text-[18px] font-bold leading-[28px] tracking-[-0.5px] text-black/30 outline-none dark:text-white/30 lg:text-[21px]"
                         aria-label="Título da coluna"
                     />
-                    <button
-                        type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ds-text-default opacity-0 transition-opacity duration-150 hover:bg-ds-background-surface-muted group-hover:opacity-100"
-                        onClick={() => setIsMenuOpen(prev => !prev)}
-                    >
-                        <DotsHorizontal className="h-5 w-5" />
-                    </button>
+                    <div className="relative group/board-column-actions">
+                        <button
+                            type="button"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ds-text-default opacity-0 transition-opacity duration-150 hover:bg-ds-background-surface-muted group-hover:opacity-100"
+                            onClick={() => setIsMenuOpen(prev => !prev)}
+                            aria-label={t(language, "boardColumnActions")}
+                        >
+                            <DotsVertical className="h-5 w-5" />
+                        </button>
+                        <p className="pointer-events-none absolute left-1/2 top-[120%] -translate-x-[50%] whitespace-nowrap opacity-0 transition ease-linear duration-200 text-ds-text-inverse tooltip-surface ds-type-caption p-1 z-50 group-hover/board-column-actions:opacity-100">
+                            {t(language, "boardColumnActions")}
+                        </p>
+                    </div>
 
-                    {isMenuOpen && (
-                        <div className="board-column-menu option-menu-surface">
+                    {isMenuMounted && (
+                        <div className="board-column-menu animated-option-menu option-menu-surface" data-state={isMenuVisible ? "open" : "closed"}>
                             {canMoveLeft && (
                                 <button
                                     type="button"
@@ -395,18 +457,35 @@ function BoardColumn({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col">
-                {tasks.map((task, taskIndex) => (
-                    <BoardTaskItem
-                        key={task.id}
-                        task={task}
-                        index={taskIndex}
-                        onToggleDone={onToggleTaskDone}
-                        onDragStart={(ev, taskId) => {
-                            ev.dataTransfer.setData("text/plain", String(taskId));
-                            ev.dataTransfer.effectAllowed = "move";
-                        }}
-                    />
-                ))}
+                {dndEnabled ? (
+                    <SortableContext
+                        items={tasks.map(task => String(task.id))}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        {tasks.map((task, taskIndex) => (
+                            <SortableBoardTaskItem
+                                key={task.id}
+                                task={task}
+                                index={taskIndex}
+                                columnId={column.id}
+                                onToggleDone={onToggleTaskDone}
+                            />
+                        ))}
+                    </SortableContext>
+                ) : (
+                    tasks.map((task, taskIndex) => (
+                        <BoardTaskItem
+                            key={task.id}
+                            task={task}
+                            index={taskIndex}
+                            onToggleDone={onToggleTaskDone}
+                            onDragStart={(ev, taskId) => {
+                                ev.dataTransfer.setData("text/plain", String(taskId));
+                                ev.dataTransfer.effectAllowed = "move";
+                            }}
+                        />
+                    ))
+                )}
 
                 <form className="add-task" onSubmit={ev => ev.preventDefault()}>
                     <input
@@ -435,7 +514,11 @@ function BoardColumn({
     );
 }
 
-export default function BoardViewContainer() {
+export default function BoardViewContainer({
+    dndEnabled = false,
+    activeTaskId = null,
+    onRegisterDndApi,
+}) {
     const { currentUser } = useAuth();
     const language = getAppLanguage(currentUser?.language);
     const agendaId = currentUser?.currentAgendaId || null;
@@ -448,7 +531,6 @@ export default function BoardViewContainer() {
     const tasksRef = React.useRef([]);
     const columnsFetchTimeoutRef = React.useRef(null);
     const tasksFetchTimeoutRef = React.useRef(null);
-
     useEffect(() => {
         columnsRef.current = columns;
     }, [columns]);
@@ -868,87 +950,6 @@ export default function BoardViewContainer() {
         applyTasks([...tasksRef.current.filter(task => String(task.id) !== String(createdTask.id)), createdTask]);
     }
 
-    async function assignTaskToColumn(taskId, columnId) {
-        if (!taskId || !columnId) return;
-
-        const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId))
-            || await getTaskById(taskId).catch(() => null);
-        if (!taskToMove) return;
-
-        const taskIsBoardTask = taskToMove.is_board_task !== false;
-        if (taskIsBoardTask && String(taskToMove.board_column_id) === String(columnId)) return;
-
-        const sourceColumnId = String(taskToMove.board_column_id || "");
-        const sourceTasks = taskIsBoardTask
-            ? sortBoardTasks(
-                tasksRef.current.filter(task => String(task.board_column_id) === sourceColumnId && String(task.id) !== String(taskId))
-            ).map((task, nextIndex) => ({
-                ...task,
-                board_column_id: sourceColumnId,
-                board_order: nextIndex,
-            }))
-            : [];
-
-        const destinationTasks = sortBoardTasks(
-            tasksRef.current.filter(task => String(task.board_column_id) === String(columnId))
-        );
-
-        const movedTask = {
-            ...taskToMove,
-            board_column_id: columnId,
-            board_order: destinationTasks.length,
-            is_board_task: true,
-            date: parseDateOnly(taskToMove.date || new Date()),
-        };
-
-        const reorderedDestinationTasks = [...destinationTasks, movedTask].map((task, nextIndex) => ({
-            ...task,
-            board_column_id: columnId,
-            board_order: nextIndex,
-            is_board_task: true,
-        }));
-
-        const remainingTasks = taskIsBoardTask ? tasksRef.current.filter(task => {
-            const taskColumnId = String(task.board_column_id || "");
-            return taskColumnId !== sourceColumnId && taskColumnId !== String(columnId);
-        }) : tasksRef.current.slice();
-
-        const nextTasks = sortBoardTasks([
-            ...remainingTasks,
-            ...sourceTasks,
-            ...reorderedDestinationTasks,
-        ]);
-
-        applyTasks(nextTasks);
-
-        try {
-            await updateTask(taskId, {
-                is_board_task: true,
-                board_column_id: columnId,
-                board_order: destinationTasks.length,
-            });
-
-            dispatchTaskUpdatedLocal(taskId, {
-                is_board_task: true,
-                board_column_id: columnId,
-                board_order: destinationTasks.length,
-            });
-
-            if (taskIsBoardTask) {
-                await Promise.all(
-                    [...sourceTasks, ...reorderedDestinationTasks].map(task =>
-                        updateTask(task.id, {
-                            board_column_id: task.board_column_id,
-                            board_order: task.board_order,
-                        })
-                    )
-                );
-            }
-        } catch {
-            await reloadTasks();
-        }
-    }
-
     async function toggleTaskDone(taskId) {
         const task = tasksRef.current.find(item => String(item.id) === String(taskId));
         if (task?.task_type === "meeting") return;
@@ -969,34 +970,207 @@ export default function BoardViewContainer() {
         return sortBoardTasks(tasksRef.current.filter(task => String(task.board_column_id) === String(columnId)));
     }
 
+    function getRenderedTaskContainers(taskId, sourceTasks = tasksRef.current) {
+        const normalizedTaskId = String(taskId);
+        return columnsRef.current
+            .filter(column => sourceTasks.some(task => (
+                String(task.id) === normalizedTaskId
+                && String(task.board_column_id) === String(column.id)
+                && task.is_board_task !== false
+            )))
+            .map(column => `board:${String(column.id)}`);
+    }
+
+    async function persistBoardTaskOrdering(columnIds) {
+        const uniqueColumnIds = [...new Set(columnIds.filter(Boolean).map(columnId => String(columnId)))];
+        if (uniqueColumnIds.length === 0) return;
+
+        const affectedTasks = uniqueColumnIds.flatMap(columnId =>
+            getColumnTasks(columnId).map((task, index) => ({
+                ...task,
+                is_board_task: true,
+                board_column_id: columnId,
+                board_order: index,
+            }))
+        );
+
+        const unaffectedTasks = tasksRef.current.filter(task => (
+            !uniqueColumnIds.includes(String(task.board_column_id || ""))
+        ));
+
+        applyTasks([...unaffectedTasks, ...affectedTasks]);
+
+        await Promise.all(
+            affectedTasks.map(task =>
+                updateTask(task.id, {
+                    is_board_task: true,
+                    board_column_id: task.board_column_id,
+                    board_order: task.board_order,
+                })
+            )
+        );
+
+        return affectedTasks;
+    }
+
+    function normalizeBoardDropTask(task, columnId, boardOrder) {
+        return {
+            ...task,
+            is_board_task: true,
+            board_column_id: columnId,
+            board_order: boardOrder,
+        };
+    }
+
+    function getSafeBoardInsertIndex(tasksInColumn, targetIndex) {
+        if (!Number.isInteger(targetIndex)) return tasksInColumn.length;
+        return Math.max(0, Math.min(targetIndex, tasksInColumn.length));
+    }
+
+    async function assignTaskToColumn(taskId, columnId, targetIndex = null) {
+        if (!taskId || !columnId) return null;
+
+        const taskToMove = tasksRef.current.find(task => String(task.id) === String(taskId))
+            || await getTaskById(taskId).catch(() => null);
+        if (!taskToMove) return null;
+
+        const taskIsBoardTask = taskToMove.is_board_task !== false;
+        const sourceColumnId = String(taskToMove.board_column_id || "");
+        const destinationColumnId = String(columnId);
+        const destinationBaseTasks = sortBoardTasks(
+            tasksRef.current.filter(task => (
+                String(task.board_column_id) === destinationColumnId && String(task.id) !== String(taskId)
+            ))
+        );
+        const destinationTasks = taskIsBoardTask && sourceColumnId === destinationColumnId
+            ? sortBoardTasks(
+                tasksRef.current.filter(task => (
+                    String(task.board_column_id) === destinationColumnId && String(task.id) !== String(taskId)
+                ))
+            )
+            : destinationBaseTasks;
+        const safeInsertIndex = getSafeBoardInsertIndex(destinationTasks, targetIndex);
+        const movedTask = normalizeBoardDropTask(taskToMove, destinationColumnId, safeInsertIndex);
+        const reorderedDestinationTasks = [...destinationTasks];
+        reorderedDestinationTasks.splice(safeInsertIndex, 0, movedTask);
+
+        const normalizedDestinationTasks = reorderedDestinationTasks.map((task, nextIndex) => (
+            normalizeBoardDropTask(task, destinationColumnId, nextIndex)
+        ));
+
+        const sourceTasks = taskIsBoardTask
+            ? sortBoardTasks(
+                tasksRef.current.filter(task => (
+                    String(task.board_column_id) === sourceColumnId && String(task.id) !== String(taskId)
+                ))
+            ).map((task, nextIndex) => normalizeBoardDropTask(task, sourceColumnId, nextIndex))
+            : [];
+
+        const unaffectedTasks = tasksRef.current.filter(task => {
+            const taskColumnId = String(task.board_column_id || "");
+            if (!taskIsBoardTask) return taskColumnId !== destinationColumnId;
+            if (sourceColumnId === destinationColumnId) return taskColumnId !== destinationColumnId;
+            return taskColumnId !== sourceColumnId && taskColumnId !== destinationColumnId;
+        });
+
+        const nextTasks = sortBoardTasks([
+            ...unaffectedTasks,
+            ...(sourceColumnId === destinationColumnId ? [] : sourceTasks),
+            ...normalizedDestinationTasks,
+        ]);
+
+        applyTasks(nextTasks);
+
+        try {
+            const affectedColumnIds = sourceColumnId === destinationColumnId
+                ? [destinationColumnId]
+                : [sourceColumnId, destinationColumnId];
+            const affectedTasks = await persistBoardTaskOrdering(affectedColumnIds);
+            const persistedMovedTask = (affectedTasks || []).find(task => String(task.id) === String(taskId));
+
+            if (persistedMovedTask) {
+                dispatchTaskUpdatedLocal(taskId, {
+                    is_board_task: true,
+                    board_column_id: persistedMovedTask.board_column_id,
+                    board_order: persistedMovedTask.board_order,
+                });
+            }
+
+            return {
+                operation: taskIsBoardTask
+                    ? (sourceColumnId === destinationColumnId ? "reorder same container" : "move board → board")
+                    : "move week → board",
+                payload: {
+                    taskId: String(taskId),
+                    sourceContainerId: taskIsBoardTask ? `board:${sourceColumnId}` : "week:external",
+                    targetContainerId: `board:${destinationColumnId}`,
+                    targetIndex: safeInsertIndex,
+                    persistedTask: persistedMovedTask || movedTask,
+                },
+            };
+        } catch {
+            await reloadTasks();
+            return null;
+        }
+    }
+
+    async function commitTaskDrop({ activeId, target }) {
+        const destinationColumnId = String(target?.columnId || "");
+        if (!destinationColumnId) return null;
+
+        const targetIndex = getSafeBoardInsertIndex(
+            getColumnTasks(destinationColumnId).filter(task => String(task.id) !== String(activeId)),
+            target?.index
+        );
+
+        return assignTaskToColumn(activeId, destinationColumnId, targetIndex);
+    }
+
+    useEffect(() => {
+        if (!onRegisterDndApi) return;
+
+        onRegisterDndApi({
+            commitDrop: args => commitTaskDrop(args),
+            getRenderedTaskContainers: taskId => getRenderedTaskContainers(taskId),
+        });
+
+        return () => {
+            onRegisterDndApi(null);
+        };
+    }, [onRegisterDndApi, columns.length, tasks.length, agendaId]);
+
     if (loading || !minLoadingDone) {
         return null;
     }
 
     return (
-        <div className="w-full padding-x py-4 lg:mt-0 lg:pt-10 dark:bg-black dark:text-white">
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-4">
-                {columns.map((column, index) => (
-                    <BoardColumn
-                        key={column.id}
-                        column={column}
-                        index={index}
-                        language={language}
-                        tasks={getColumnTasks(column.id)}
-                        canDelete={columns.length > 1}
-                        canMoveLeft={index > 0}
-                        canMoveRight={index < columns.length - 1}
-                        onRenameColumn={renameColumn}
-                        onMoveLeft={() => reorderColumn(column.id, -1)}
-                        onMoveRight={() => reorderColumn(column.id, 1)}
-                        onDeleteColumn={deleteColumn}
-                        onAddColumn={addColumnAfter}
-                        onCreateTask={createTaskInColumn}
-                        onAssignTask={assignTaskToColumn}
-                        onToggleTaskDone={toggleTaskDone}
-                    />
-                ))}
+        <>
+            <div className="w-full padding-x py-4 lg:mt-0 lg:pt-10 dark:bg-black dark:text-white">
+                <div className="flex flex-col gap-6 lg:grid lg:grid-cols-4">
+                    {columns.map((column, index) => (
+                        <BoardColumn
+                            key={column.id}
+                            column={column}
+                            index={index}
+                            language={language}
+                            tasks={getColumnTasks(column.id)}
+                            canDelete={columns.length > 1}
+                            canMoveLeft={index > 0}
+                            canMoveRight={index < columns.length - 1}
+                            onRenameColumn={renameColumn}
+                            onMoveLeft={() => reorderColumn(column.id, -1)}
+                            onMoveRight={() => reorderColumn(column.id, 1)}
+                            onDeleteColumn={deleteColumn}
+                            onAddColumn={addColumnAfter}
+                            onCreateTask={createTaskInColumn}
+                            onAssignTask={assignTaskToColumn}
+                            onToggleTaskDone={toggleTaskDone}
+                            dndEnabled={dndEnabled}
+                            activeTaskId={activeTaskId}
+                        />
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

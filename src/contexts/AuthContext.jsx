@@ -721,18 +721,20 @@ function AuthProvider({ children }) {
         }
 
         try {
-            const { sortCompletedTasks = true, relatedLinksEnabled = true } = options;
+            const { sortCompletedTasks = true, relatedLinksEnabled = true, holidaysEnabled = true } = options;
             const agenda = await createAgendaApi(currentUser.uid, name, {
                 setAsCurrent: true,
                 avatar,
                 color,
                 sortCompletedTasks,
                 relatedLinksEnabled,
+                holidaysEnabled,
             });
             const normalizedAgenda = {
                 ...agenda,
                 sort_completed_tasks: agenda?.sort_completed_tasks ?? sortCompletedTasks,
                 related_links_enabled: agenda?.related_links_enabled ?? relatedLinksEnabled,
+                holidays_enabled: agenda?.holidays_enabled ?? holidaysEnabled,
                 role: agenda?.role || 'owner',
             };
             const nextAgendas = [...agendas, normalizedAgenda];
@@ -761,18 +763,19 @@ function AuthProvider({ children }) {
         }));
     }
 
-    async function renameAgenda(agendaId, name, avatar = "", color = "var(--color-brand-accent)", sortCompletedTasks = null, relatedLinksEnabled = null) {
+    async function renameAgenda(agendaId, name, avatar = "", color = "var(--color-brand-accent)", sortCompletedTasks = null, relatedLinksEnabled = null, holidaysEnabled = null) {
         if (!currentUser?.uid || !agendaId) {
             return { type: 'error', errorMessage: 'Agenda not found.' };
         }
 
         try {
             const existingAgenda = agendas.find(agenda => String(agenda.id) === String(agendaId));
-            const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks, relatedLinksEnabled);
+            const updated = await updateAgendaNameApi(currentUser.uid, agendaId, name, avatar, color, sortCompletedTasks, relatedLinksEnabled, holidaysEnabled);
             const normalizedUpdated = {
                 ...updated,
                 ...(sortCompletedTasks !== null ? { sort_completed_tasks: sortCompletedTasks } : {}),
                 ...(relatedLinksEnabled !== null ? { related_links_enabled: relatedLinksEnabled } : {}),
+                ...(holidaysEnabled !== null ? { holidays_enabled: holidaysEnabled } : {}),
                 role: existingAgenda?.role || updated?.role || 'owner',
             };
             setAgendas(prev => prev.map(agenda => (

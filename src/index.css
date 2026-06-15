@@ -429,6 +429,34 @@ body[data-scroll-locked="true"],
         border-radius: var(--radius-xl);
     }
 
+    .animated-option-menu {
+        transform-origin: top left;
+        transition:
+            opacity 0.14s ease,
+            transform 0.14s ease;
+        will-change: opacity, transform;
+    }
+
+    .animated-option-menu[data-state="open"] {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+
+    .animated-option-menu[data-state="closed"] {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+        pointer-events: none;
+    }
+
+    .profile-menu.animated-option-menu[data-state="open"] {
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+
+    .profile-menu.animated-option-menu[data-state="closed"] {
+        transform: translateX(-50%) translateY(-6px) scale(0.98);
+    }
+
     .option-select-surface {
         border: 1px solid var(--color-border-default);
         border-radius: var(--radius-xl);
@@ -1109,6 +1137,13 @@ body[data-scroll-locked="true"],
         cursor: text;
     }
 
+    .task-menu-editor .bn-editor [data-content-type="table"],
+    .task-menu-editor .bn-editor [data-content-type="table"] *,
+    .task-menu-editor .bn-editor [data-content-type="table"] .bn-inline-content,
+    .task-menu-editor .bn-editor [data-content-type="table"] .bn-inline-content * {
+        cursor: auto !important;
+    }
+
     .task-menu-editor .bn-editor a,
     .task-menu-editor .bn-editor a *,
     .task-menu-editor .bn-inline-content a,
@@ -1116,6 +1151,37 @@ body[data-scroll-locked="true"],
     .task-menu-editor .task-mention,
     .task-menu-editor .task-mention * {
         cursor: pointer !important;
+    }
+
+    .task-menu-editor .bn-editor.resize-cursor,
+    .task-menu-editor .bn-editor.resize-cursor *,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor *,
+    .task-menu-editor .bn-editor.resize-cursor table,
+    .task-menu-editor .bn-editor.resize-cursor col,
+    .task-menu-editor .bn-editor.resize-cursor tbody,
+    .task-menu-editor .bn-editor.resize-cursor tr,
+    .task-menu-editor .bn-editor.resize-cursor th,
+    .task-menu-editor .bn-editor.resize-cursor td,
+    .task-menu-editor .bn-editor.resize-cursor th *,
+    .task-menu-editor .bn-editor.resize-cursor td *,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor table,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor col,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor tbody,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor tr,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor th,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor td,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor th *,
+    .task-menu-editor .bn-editor.ProseMirror.resize-cursor td *,
+    .task-menu-editor .bn-editor .ProseMirror .column-resize-handle,
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-columns,
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-columns * {
+        cursor: col-resize !important;
+    }
+
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-rows,
+    .task-menu-editor .bn-mantine .bn-extend-button-add-remove-rows * {
+        cursor: row-resize !important;
     }
 
     .task-menu-editor .bn-editor a[href^="#task:"],
@@ -1157,9 +1223,13 @@ body[data-scroll-locked="true"],
         margin-bottom: 1rem;
     }
 
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="heading"])+.bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"]) {
+        margin-top: -1rem;
+    }
+
     .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"]),
     .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer:has(> .bn-block > [data-file-block]) {
-        margin-bottom: 1.25rem;
+        margin-bottom: 0.3rem;
     }
 
     .task-menu-editor .bn-block-content {
@@ -1194,6 +1264,33 @@ body[data-scroll-locked="true"],
 
     .task-menu-editor .bn-editor .ProseMirror {
         background: transparent !important;
+    }
+
+    .task-menu-editor .bn-editor .bn-block-group .bn-block-group > .bn-block-outer::before,
+    .task-menu-editor .bn-editor .bn-block:not(:has(.bn-toggle-wrapper)) .bn-block-group .bn-block-outer::before {
+        border-left: 0 !important;
+        content: none !important;
+    }
+
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer > .bn-block > .bn-block-content[data-content-type="bulletListItem"]::before,
+    .task-menu-editor[data-note-format="blocknote"] .bn-editor > .bn-block-group > .bn-block-outer > .bn-block > .bn-block-content[data-content-type="numberedListItem"]::before {
+        min-width: 0 !important;
+        padding-right: 0.5rem !important;
+        justify-content: flex-start !important;
+    }
+
+    .task-menu-editor .bn-editor .bn-block-content[data-content-type="bulletListItem"]::before,
+    .task-menu-editor .bn-editor .bn-block-outer[data-prev-type="bulletListItem"] > .bn-block > .bn-block-content::before,
+    .task-menu-editor .bn-editor .bn-block-outer[data-prev-type="bulletListItem"] > .bn-block > div[data-type="modification"] > .bn-block-content::before {
+        content: "\2022" !important;
+        font-size: 1.1em !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+        min-width: 0.875rem !important;
+        padding-right: 0.5rem !important;
+        justify-content: center !important;
+        align-items: flex-start !important;
+        padding-top: 0.18em !important;
     }
 
     .task-menu-editor .bn-editor [data-content-type="checkListItem"] input[type="checkbox"] {
@@ -1252,7 +1349,7 @@ body[data-scroll-locked="true"],
         width: max-content;
         max-width: 100%;
         overflow: visible;
-        padding: var(--bn-table-handle-size) var(--bn-table-widget-size) var(--bn-table-widget-size) var(--bn-table-handle-size);
+        padding: var(--bn-table-handle-size) var(--bn-table-widget-size) var(--bn-table-widget-size) 0;
     }
 
     .task-menu-editor .bn-mantine .bn-table-handle,
@@ -1754,16 +1851,16 @@ body[data-scroll-locked="true"],
     .task-menu-editor .bn-editor h1,
     .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"] h1,
     .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"] .bn-inline-content {
-        font-size: var(--type-h4-font-size) !important;
-        line-height: var(--type-h4-line-height) !important;
-        letter-spacing: var(--type-h4-letter-spacing) !important;
+        font-size: var(--type-body-lg-font-size) !important;
+        line-height: var(--type-body-lg-line-height) !important;
+        letter-spacing: var(--type-body-lg-letter-spacing) !important;
         font-weight: var(--type-h4-font-weight) !important;
     }
 
     .task-menu-editor .bn-editor .bn-block-content[data-content-type="heading"]:has(.ProseMirror-trailingBreak:only-child):not([data-is-empty-and-focused])::after {
-        font-size: var(--type-h4-font-size) !important;
-        line-height: var(--type-h4-line-height) !important;
-        letter-spacing: var(--type-h4-letter-spacing) !important;
+        font-size: var(--type-body-lg-font-size) !important;
+        line-height: var(--type-body-lg-line-height) !important;
+        letter-spacing: var(--type-body-lg-letter-spacing) !important;
         font-weight: var(--type-h4-font-weight) !important;
     }
 
@@ -2483,6 +2580,45 @@ body[data-scroll-locked="true"],
 
     .sortable-ghost {
         @apply opacity-0;
+    }
+
+    .planner-task-list--drop-active {
+        transition: box-shadow 150ms ease;
+    }
+
+    .planner-task-shell {
+        transform-origin: center;
+        transition:
+            opacity 160ms ease,
+            box-shadow 160ms ease,
+            border-color 160ms ease;
+        will-change: transform, opacity;
+    }
+
+    .planner-task-shell--dragging {
+        opacity: 0;
+        box-shadow: none;
+        pointer-events: none;
+    }
+
+    .planner-task-shell--overlay {
+        opacity: 1;
+        border-radius: var(--radius-sm);
+        background-color: var(--color-bg-surface);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .planner-task-overlay {
+        width: fit-content;
+        max-width: min(100%, 100vw);
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        pointer-events: none;
+        z-index: 80;
+    }
+
+    .planner-task-overlay .planner-task-shell {
+        width: 100%;
     }
 
     /* Public Share Page Styles (Mobile only) */
