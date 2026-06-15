@@ -213,7 +213,7 @@ const TaskList = ({
     }
     for (let i = 0; i < emptyRows; ++i) {
         emptyComponents.push(
-            <div className="empty-task task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black"
+            <div className="empty-task task-row-border h-[41px] w-full border-b bg-transparent"
                  key={i}
                  onClick={handleClick}>
                 <p className="opacity-0 cursor-default" onClick={handleClick}>sdasdfsdlk</p>
@@ -227,17 +227,17 @@ const TaskList = ({
              onKeyDown={handleKeyDown}>
             <div
                 className={`flex justify-between items-center py-3 border-b-2
-                ${active ? "agenda-accent-border" : "border-black dark:border-white"}`}
+                ${active ? "agenda-accent-border" : "border-ds-text-default"}`}
                 style={active ? { borderColor: 'var(--agenda-accent)' } : undefined}
             >
                 <h2
-                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black dark:text-white"}`}
+                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-ds-text-default"}`}
                     style={active ? { color: 'var(--agenda-accent)' } : undefined}
                 >
                     {getDate(date)}
                 </h2>
                 <h3
-                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black dark:text-white opacity-20"}`}
+                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`}
                     style={active ? { color: 'var(--agenda-accent)' } : undefined}
                 >
                     {day}
@@ -245,7 +245,7 @@ const TaskList = ({
             </div>
 
             {holidayName && (
-                <div className="task-row-border h-[41px] w-full border-b bg-white dark:border-gray-700 dark:bg-black">
+                <div className="task-row-border h-[41px] w-full border-b bg-transparent">
                     <p className="task-holiday-item">
                         <span className="task-holiday-badge gap-1">
                             <Umbrella03 className="h-4 w-4 shrink-0" />
@@ -271,7 +271,7 @@ const TaskList = ({
                 <input type="text"
                        name="add-task-name"
                        id="add-task-name"
-                     className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-black outline-none transition-colors duration-150 dark:bg-transparent dark:text-white lg:text-[14px] lg:leading-[41px]"
+                     className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-ds-text-default outline-none transition-colors duration-150 lg:text-[14px] lg:leading-[41px]"
                        aria-label={`${addTaskLabel} ${getDate(date)}`}
                        onBlur={handleFocusOut}
                 />

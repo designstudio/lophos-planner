@@ -638,7 +638,7 @@ const TaskListContainer = ({
 
     if (loading || !minLoadingDone) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-black">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-ds-background-page text-ds-text-default">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
@@ -646,7 +646,7 @@ const TaskListContainer = ({
 
     return (
         <>
-            <div className="w-full padding-x flex flex-col gap-6 py-4 lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10 dark:bg-black dark:text-white">
+            <div className="w-full padding-x flex flex-col gap-6 py-4 text-ds-text-default lg:mt-0 lg:grid lg:grid-cols-6 lg:gap-6 lg:pt-10">
                 {dates.slice(0, 5).map((date, index) => (
                     <TaskList
                         date={date}

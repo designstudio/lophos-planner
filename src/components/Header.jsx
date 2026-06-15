@@ -410,19 +410,19 @@ const Header = ({ onOpenAbout = () => {} }) => {
             onClick: openExtrasMenu,
         },
         {
-            textColor: "text-ds-text-inverse",
-            iconColor: "var(--color-text-inverse)",
-            bgColor: "bg-ds-text-default",
-            backgroundColor: "var(--color-text-default)",
+            textColor: "text-ds-text-default",
+            iconColor: "var(--color-text-default)",
+            bgColor: "bg-ds-background-surface-muted",
+            backgroundColor: "var(--color-bg-surface-muted)",
             icon: ChevronLeft,
             onClick: toPrevWeek,
             className: "ml-4",
         },
         {
-            textColor: "text-ds-text-inverse",
-            iconColor: "var(--color-text-inverse)",
-            bgColor: "bg-ds-text-default",
-            backgroundColor: "var(--color-text-default)",
+            textColor: "text-ds-text-default",
+            iconColor: "var(--color-text-default)",
+            bgColor: "bg-ds-background-surface-muted",
+            backgroundColor: "var(--color-bg-surface-muted)",
             icon: ChevronRight,
             onClick: toNextWeek,
         },
@@ -432,7 +432,7 @@ const Header = ({ onOpenAbout = () => {} }) => {
     return (
         <header
             className="max-container flex justify-between items-center w-full gap-6 padding-x py-4 pb-3 lg:py-5 lg:pb-3 max-lg:py-6 max-lg:pb-3 max-lg:sticky max-lg:top-0 z-50
-            bg-ds-background-surface text-ds-text-default">
+            bg-ds-background-page text-ds-text-default">
             <div className="relative" ref={calendarRef}>
                 <button
                     type="button"
