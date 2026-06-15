@@ -26,7 +26,7 @@ const SearchTaskForm = React.lazy(() => import("./components/forms/SearchTaskFor
 
 function AppLoadingScreen({ fixed = false }) {
     return (
-        <div className={`${fixed ? "fixed inset-0 z-50" : "min-w-screen min-h-screen"} bg-ds-background-page text-ds-text-default`}>
+        <div className={`${fixed ? "fixed inset-0 z-50" : "min-w-screen min-h-screen"} bg-white text-black dark:bg-ds-background-page dark:text-ds-text-default`}>
             <div className="flex min-h-screen items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 84, height: 84 }} />
             </div>
@@ -296,7 +296,7 @@ function HomePage() {
     }
 
     return (
-        <div className="min-w-screen min-h-screen bg-ds-background-page text-ds-text-default">
+        <div className="min-w-screen min-h-screen bg-white text-black dark:bg-ds-background-page dark:text-ds-text-default">
             <main className="max-container">
                 <Header onOpenAbout={() => setIsAboutOpen(true)} />
                 <Suspense fallback={<SurfaceFallback />}>

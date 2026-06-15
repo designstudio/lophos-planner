@@ -673,7 +673,7 @@ export default function PublicSharePage() {
 
     if (loading || !minLoadingDone) {
         return (
-            <div className="min-h-screen bg-ds-background-page flex items-center justify-center">
+            <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
@@ -681,7 +681,7 @@ export default function PublicSharePage() {
 
     if (!owner) {
         return (
-            <div className="min-h-screen bg-ds-background-page px-6 py-8 ds-type-h4 text-ds-text-default">
+            <div className="min-h-screen bg-white px-6 py-8 ds-type-h4 text-ds-text-default dark:bg-ds-background-page">
                 {t(language, "publicAgendaUnavailable")}
             </div>
         );
@@ -691,13 +691,13 @@ export default function PublicSharePage() {
 
     return (
         <div
-            className="public-share-page min-w-screen min-h-screen bg-ds-background-page text-ds-text-default"
+            className="public-share-page min-w-screen min-h-screen bg-white text-ds-text-default dark:bg-ds-background-page"
             style={{
                 '--agenda-accent': agendaAccent,
                 '--agenda-accent-soft': /^#([0-9a-fA-F]{6})$/.test(agendaAccent) ? `${agendaAccent}22` : 'var(--color-brand-accent-subtle)',
             }}
         >
-            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-ds-background-page px-6 py-4 pb-3 max-lg:py-6 max-lg:pb-3 lg:px-6 lg:py-5 lg:pb-3">
+            <header className="max-container max-lg:sticky max-lg:top-0 max-lg:z-50 flex items-center justify-between gap-6 bg-white px-6 py-4 pb-3 max-lg:py-6 max-lg:pb-3 lg:px-6 lg:py-5 lg:pb-3 dark:bg-ds-background-page">
                 <div className="relative">
                     <button
                         type="button"
@@ -850,16 +850,14 @@ export default function PublicSharePage() {
                     </div>
                     <button
                         type="button"
-                        className="app-button-hover header-menu-btn ml-4 inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-background-surface-muted text-ds-text-default"
-                        style={{ backgroundColor: "var(--color-bg-surface-muted)", color: "var(--color-text-default)" }}
+                        className="app-button-hover header-menu-btn ml-4 inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse dark:bg-ds-background-surface-muted dark:text-ds-text-default"
                         onClick={() => moveWeek(-1)}
                     >
                         <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
                     </button>
                     <button
                         type="button"
-                        className="app-button-hover header-menu-btn inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-background-surface-muted text-ds-text-default"
-                        style={{ backgroundColor: "var(--color-bg-surface-muted)", color: "var(--color-text-default)" }}
+                        className="app-button-hover header-menu-btn inline-flex h-10 w-10 items-center justify-center rounded-ds-full bg-ds-text-default text-ds-text-inverse dark:bg-ds-background-surface-muted dark:text-ds-text-default"
                         onClick={() => moveWeek(1)}
                     >
                         <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />

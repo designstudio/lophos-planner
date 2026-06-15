@@ -366,7 +366,7 @@ function BoardColumn({
         <div ref={setDroppableRef}
             className={`task-list flex w-full min-w-0 flex-col rounded-[20px] bg-transparent ${isDropActive ? "planner-task-list--drop-active" : ""}`}>
             <div className="relative" ref={menuRef}>
-                <div className="group flex items-start justify-between gap-3 py-3 border-b-2 border-ds-text-default/30">
+                <div className="group flex items-start justify-between gap-3 py-3 border-b-2 border-black/30 dark:border-ds-text-default/30">
                     <input
                         type="text"
                         value={draftTitle}
@@ -387,7 +387,7 @@ function BoardColumn({
                                 ev.currentTarget.blur();
                             }
                         }}
-                        className="min-w-0 flex-1 bg-transparent text-[18px] font-bold leading-[28px] tracking-[-0.5px] text-ds-text-default/30 outline-none lg:text-[21px]"
+                        className="min-w-0 flex-1 bg-transparent text-[18px] font-bold leading-[28px] tracking-[-0.5px] text-black/30 dark:text-ds-text-default/30 outline-none lg:text-[21px]"
                         aria-label="Título da coluna"
                     />
                     <div className="relative group/board-column-actions">
@@ -500,14 +500,14 @@ function BoardColumn({
                         onBlur={handleFocusOut}
                         onKeyDown={handleKeyDown}
                         placeholder=""
-                        className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-ds-text-default outline-none transition-colors duration-150 lg:text-[14px] lg:leading-[41px]"
+                        className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-black dark:text-ds-text-default outline-none transition-colors duration-150 lg:text-[14px] lg:leading-[41px]"
                         aria-label="Adicionar tarefa na coluna"
                     />
                 </form>
 
                 {Array.from({ length: Math.max(0, 6 - tasks.length) }, (_, emptyIndex) => (
                     <div
-                        className="task-row-border h-[41px] w-full border-b bg-transparent"
+                        className="task-row-border h-[41px] w-full border-b bg-white dark:bg-transparent"
                         key={`${column.id}-empty-${emptyIndex}`}
                         onClick={() => inputRef.current?.focus?.()}
                     >
@@ -1226,7 +1226,7 @@ export default function BoardViewContainer({
 
     return (
         <>
-            <div className="w-full padding-x py-4 text-ds-text-default lg:mt-0 lg:pt-10">
+            <div className="w-full padding-x py-4 text-black dark:text-ds-text-default lg:mt-0 lg:pt-10">
                 <div className="flex flex-col gap-6 lg:grid lg:grid-cols-4">
                     {columns.map((column, index) => (
                         <BoardColumn
