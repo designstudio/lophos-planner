@@ -1,5 +1,5 @@
 import React from 'react';
-import { supabase } from '../scripts/supabase.js';
+import { probeSupabaseAuthHealth, supabase } from '../scripts/supabase.js';
 import { detectBrowserLanguage } from '../scripts/i18n.js';
 import {
     createUser,
@@ -548,8 +548,44 @@ function AuthProvider({ children }) {
 
             return { type: 'success', data: resolvedUser };
         } catch (err) {
+            const errorMessage = err?.message || '';
+            const isFetchFailure =
+                /Failed to fetch/i.test(errorMessage)
+                || /NetworkError/i.test(err?.name || '')
+                || /Load failed/i.test(errorMessage);
+
+            if (isFetchFailure) {
+                const probe = await probeSupabaseAuthHealth();
+                const likelyCause =
+                    !probe.hasUrl || !probe.urlValid
+                        ? 'missing_or_invalid_url'
+                        : !probe.hasAnonKey
+                            ? 'missing_anon_key'
+                            : probe.reachable === false
+                                ? 'network_or_cors'
+                                : probe.ok === false && (probe.status === 401 || probe.status === 403)
+                                    ? 'invalid_anon_key_or_unauthorized'
+                                    : 'request_failed_before_auth_response';
+
+                if (import.meta.env.DEV) {
+                    console.warn('[AUTH_DIAG]', JSON.stringify({
+                        scope: 'login',
+                        navigatorOnline: typeof navigator !== 'undefined' ? navigator.onLine : null,
+                        hasUrl: probe.hasUrl,
+                        urlValid: probe.urlValid,
+                        hasAnonKey: probe.hasAnonKey,
+                        hostname: probe.hostname,
+                        probeReachable: probe.reachable,
+                        probeStatus: probe.status ?? null,
+                        likelyCause,
+                        errorName: err?.name || null,
+                        errorMessage,
+                    }));
+                }
+            }
+
             console.error('[AUTH] login error', err);
-            return { type: 'error', errorMessage: err.message };
+            return { type: 'error', errorMessage };
         }
     }
 
