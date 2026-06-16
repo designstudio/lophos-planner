@@ -2,10 +2,10 @@ import React from "react";
 import Lottie from "lottie-react";
 import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03 } from "@untitledui/icons";
+import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03, CheckSquareBroken } from "@untitledui/icons";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "./scripts/holidays.js";
-import { formatDayMonth, getLocale, t } from "./scripts/i18n.js";
+import { formatDayMonth, formatTaskDetailDate, getLocale, t } from "./scripts/i18n.js";
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
@@ -49,6 +49,15 @@ function normalizeSearchText(text) {
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
+}
+
+function MeetingIcon(props) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+            <path d="M13 3.5V6.2C13 7.88016 13 8.72024 13.327 9.36197C13.6146 9.92646 14.0735 10.3854 14.638 10.673C15.2798 11 16.1198 11 17.8 11H20.5M21 12.9882V16.2C21 17.8802 21 18.7202 20.673 19.362C20.3854 19.9265 19.9265 20.3854 19.362 20.673C18.7202 21 17.8802 21 16.2 21H7.8C6.11984 21 5.27976 21 4.63803 20.673C4.07354 20.3854 3.6146 19.9265 3.32698 19.362C3 18.7202 3 17.8802 3 16.2V7.8C3 6.11984 3 5.27976 3.32698 4.63803C3.6146 4.07354 4.07354 3.6146 4.63803 3.32698C5.27976 3 6.11984 3 7.8 3H11.0118C11.7455 3 12.1124 3 12.4577 3.08289C12.7638 3.15638 13.0564 3.27759 13.3249 3.44208C13.6276 3.6276 13.887 3.88703 14.4059 4.40589L19.5941 9.59411C20.113 10.113 20.3724 10.3724 20.5579 10.6751C20.7224 10.9436 20.8436 11.2362 20.9171 11.5423C21 11.8876 21 12.2545 21 12.9882Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M9 16H7M11 12H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
 }
 
 function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
@@ -662,14 +671,9 @@ export default function PublicSharePage() {
     const hasSelectedDescription = hasTaskNoteContent(selectedTask);
     const selectedRelatedLinks = selectedTask && relatedLinksEnabled ? normalizeRelatedLinks(selectedTask) : [];
     const hasSelectedRelatedLinks = selectedRelatedLinks.length > 0;
-    const previewDateText = activeTaskDate
-        ? new Intl.DateTimeFormat(getLocale(language), {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        }).format(activeTaskDate).replaceAll(".", "")
-        : t(language, "taskMenuDateFallback");
+    const previewDateText = formatTaskDetailDate(activeTaskDate, language);
+    const selectedTaskType = selectedTask?.task_type === "meeting" ? "meeting" : "task";
+    const SelectedTaskTypeIcon = selectedTaskType === "meeting" ? MeetingIcon : CheckSquareBroken;
 
     if (loading || !minLoadingDone) {
         return (
@@ -1032,13 +1036,21 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden px-6 py-7 text-ds-text-muted transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden px-6 py-6 text-ds-text-muted transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
-                        <div className="mb-6 flex w-full items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-ds-text-default">
-                                <Calendar className="h-4 w-4" />
-                                <p>{previewDateText}</p>
+                        <div className="task-menu-header">
+                            <div className="task-menu-header-meta">
+                                <div className="task-menu-date-trigger">
+                                    <Calendar className="h-4 w-4 shrink-0" />
+                                    <p>{previewDateText}</p>
+                                </div>
+                                <div className="task-menu-type-trigger">
+                                    <span className="inline-flex min-w-0 items-center gap-2">
+                                        <SelectedTaskTypeIcon className="h-4 w-4 shrink-0" />
+                                        <span>{selectedTaskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}</span>
+                                    </span>
+                                </div>
                             </div>
                             <div className="relative group/public-close">
                                 <button
@@ -1055,13 +1067,15 @@ export default function PublicSharePage() {
                             </div>
                         </div>
 
-                        <h3 className={`task-menu-title w-full border-b border-ds-border-default pb-4 pr-10 ds-type-h3 text-ds-text-default ${selectedTask.done ? "text-black/40" : ""}`}>
+                        <h3 className={`task-menu-title w-full pb-2 pr-10 ds-type-h3 text-ds-text-default ${selectedTask.done ? "text-black/40" : ""}`}>
                             {selectedTask.name}
                         </h3>
 
+                        <div className="task-menu-content-divider" aria-hidden="true" />
+
                         {hasSelectedDescription && (
                             <TaskNoteEditor
-                                className="task-menu-editor mt-5"
+                                className="task-menu-editor"
                                 task={selectedTask}
                                 language={language}
                                 readOnly

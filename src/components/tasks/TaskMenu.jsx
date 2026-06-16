@@ -17,7 +17,7 @@ import { deleteTask, tryCatchDecorator } from "../../scripts/api.js";
 import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
 import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import { getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
+import { formatTaskDetailDate, getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
 import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
 import { normalizeTaskNote } from "../../scripts/taskNotes.js";
 import TaskNoteEditor from "./TaskNoteEditor.jsx";
@@ -89,19 +89,6 @@ function normalizeLinkUrl(url) {
 
 function getTaskTypeIcon(taskType) {
     return taskType === "meeting" ? MeetingIcon : CheckSquareBroken;
-}
-
-function formatTaskMenuDate(date, locale, language) {
-    if (!date) return t(language, "taskMenuDateFallback");
-
-    return new Intl.DateTimeFormat(locale, {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-    })
-        .format(date)
-        .replace(/\./g, "");
 }
 
 export default function TaskMenu() {
@@ -453,7 +440,7 @@ export default function TaskMenu() {
     return (
         <Blur type="task-menu">
             <div
-                className="task-menu task-menu-panel relative z-20 mb-6 w-[32rem] max-w-full rounded-[28px] border-0 outline-none ring-0 px-6 py-7 shadow-none"
+                className="task-menu task-menu-panel relative z-20 mb-6 w-[32rem] max-w-full rounded-[28px] border-0 outline-none ring-0 px-6 py-6 shadow-none"
                 style={{
                     backgroundColor: "var(--color-bg-surface)",
                     color: "var(--color-text-muted)",
@@ -463,65 +450,104 @@ export default function TaskMenu() {
                 }}
             >
                 <form className="task-menu-form">
-                    <div className="mb-4 flex w-full items-center justify-between text-sm">
-                        <div ref={datePickerRef} className="relative">
-                            <button
-                                type="button"
-                                className="task-menu-date-trigger"
-                                onClick={() => setIsDatePickerOpen(prev => !prev)}
-                                aria-expanded={isDatePickerOpen}
-                            >
-                                <Calendar className="h-4 w-4" />
-                                <p>{formatTaskMenuDate(selectedTaskDate, locale, language)}</p>
-                            </button>
-                            {isDatePickerMounted && (
-                                <div className="task-menu-calendar animated-option-menu option-menu-surface" data-state={isDatePickerVisible ? "open" : "closed"}>
-                                    <div className="task-menu-calendar-header">
+                    <div className="task-menu-header">
+                        <div className="task-menu-header-meta">
+                            <div ref={datePickerRef} className="relative">
+                                <button
+                                    type="button"
+                                    className="task-menu-date-trigger"
+                                    onClick={() => setIsDatePickerOpen(prev => !prev)}
+                                    aria-expanded={isDatePickerOpen}
+                                >
+                                    <Calendar className="h-4 w-4 shrink-0" />
+                                    <p>{formatTaskDetailDate(selectedTaskDate, language)}</p>
+                                </button>
+                                {isDatePickerMounted && (
+                                    <div className="task-menu-calendar animated-option-menu option-menu-surface" data-state={isDatePickerVisible ? "open" : "closed"}>
+                                        <div className="task-menu-calendar-header">
+                                            <button
+                                                type="button"
+                                                className="task-menu-calendar-nav"
+                                                aria-label={t(language, "previousMonth")}
+                                                onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                                            >
+                                                <ChevronLeft className="h-4 w-4" />
+                                            </button>
+                                            <p className="task-menu-calendar-title capitalize">{calendarTitle}</p>
+                                            <button
+                                                type="button"
+                                                className="task-menu-calendar-nav"
+                                                aria-label={t(language, "nextMonth")}
+                                                onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                                            >
+                                                <ChevronRight className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                        <div className="task-menu-calendar-weekdays">
+                                            {Array.from({ length: 7 }).map((_, index) => {
+                                                const baseDate = new Date(2026, 0, weekStartsOn === "Sunday" ? index + 4 : index + 5);
+                                                return (
+                                                    <span key={index}>{weekdayFormatter.format(baseDate).replace(/\./g, "")}</span>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="task-menu-calendar-grid">
+                                            {calendarDays.map(({ date: calendarDate, inMonth }) => {
+                                                const isSelected = selectedTaskDate ? isSameDay(calendarDate, selectedTaskDate) : false;
+                                                return (
+                                                    <button
+                                                        key={calendarDate.toISOString()}
+                                                        type="button"
+                                                        className={`task-menu-calendar-day ${isSelected ? "is-selected" : ""} ${inMonth ? "" : "is-outside-month"}`}
+                                                        onClick={() => handleDateSelect(calendarDate)}
+                                                    >
+                                                        {calendarDate.getDate()}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div ref={taskTypeMenuRef} className="relative">
+                                <button
+                                    type="button"
+                                    className="task-menu-type-trigger"
+                                    onClick={() => setIsTaskTypeMenuOpen(prev => !prev)}
+                                    aria-expanded={isTaskTypeMenuOpen}
+                                >
+                                    <span className="inline-flex min-w-0 items-center gap-2">
+                                        <TaskTypeIcon className="h-4 w-4 shrink-0" />
+                                        <span>{selectedTaskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}</span>
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 shrink-0" />
+                                </button>
+                                {isTaskTypeMenuMounted && (
+                                    <div className="task-menu-type-menu animated-option-menu option-menu-surface" data-state={isTaskTypeMenuVisible ? "open" : "closed"}>
                                         <button
                                             type="button"
-                                            className="task-menu-calendar-nav"
-                                            aria-label={t(language, "previousMonth")}
-                                            onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                                            className={`task-menu-type-option ${selectedTaskType === "task" ? "is-active" : ""}`}
+                                            onClick={() => handleTaskTypeSelect("task")}
                                         >
-                                            <ChevronLeft className="h-4 w-4" />
+                                            <span className="inline-flex items-center gap-2">
+                                                <CheckSquareBroken className="h-4 w-4 shrink-0" />
+                                                <span>{t(language, "taskTypeTask")}</span>
+                                            </span>
                                         </button>
-                                        <p className="task-menu-calendar-title capitalize">{calendarTitle}</p>
                                         <button
                                             type="button"
-                                            className="task-menu-calendar-nav"
-                                            aria-label={t(language, "nextMonth")}
-                                            onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                                            className={`task-menu-type-option ${selectedTaskType === "meeting" ? "is-active" : ""}`}
+                                            onClick={() => handleTaskTypeSelect("meeting")}
                                         >
-                                            <ChevronRight className="h-4 w-4" />
+                                            <span className="inline-flex items-center gap-2">
+                                                <MeetingIcon className="h-4 w-4 shrink-0" />
+                                                <span>{t(language, "taskTypeMeeting")}</span>
+                                            </span>
                                         </button>
                                     </div>
-                                    <div className="task-menu-calendar-weekdays">
-                                        {Array.from({ length: 7 }).map((_, index) => {
-                                            const baseDate = new Date(2026, 0, weekStartsOn === "Sunday" ? index + 4 : index + 5);
-                                            return (
-                                                <span key={index}>{weekdayFormatter.format(baseDate).replace(/\./g, "")}</span>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="task-menu-calendar-grid">
-                                        {calendarDays.map(({ date: calendarDate, inMonth }) => {
-                                            const isSelected = selectedTaskDate ? isSameDay(calendarDate, selectedTaskDate) : false;
-                                            return (
-                                                <button
-                                                    key={calendarDate.toISOString()}
-                                                    type="button"
-                                                    className={`task-menu-calendar-day ${isSelected ? "is-selected" : ""} ${inMonth ? "" : "is-outside-month"}`}
-                                                    onClick={() => handleDateSelect(calendarDate)}
-                                                >
-                                                    {calendarDate.getDate()}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
-
                         <TaskMenuBtn
                             icon={Trash03}
                             onClick={handleDeleteTask}
@@ -538,7 +564,7 @@ export default function TaskMenu() {
                             defaultValue={name}
                             onInput={autoResizeTitle}
                             rows={1}
-                            className={"task-menu-title w-full resize-none overflow-y-hidden pt-0 pb-4 text-[24px] leading-[1.3] bg-transparent focus:outline-none "
+                            className={"task-menu-title w-full resize-none overflow-y-hidden pt-0 pb-2 text-[24px] leading-[1.3] bg-transparent focus:outline-none "
                                 + (selectedTaskType !== "meeting" ? "pr-12 " : "")
                                 + ((isTaskDone && "opacity-40") || "")}
                             style={{ color: "var(--color-text-strong)" }}
@@ -564,53 +590,11 @@ export default function TaskMenu() {
                         )}
                     </div>
 
-                    <div className="task-menu-toolbar task-menu-metadata-row">
-                        <span className="task-menu-field-label">
-                            {t(language, "taskType")}
-                        </span>
-                        <div ref={taskTypeMenuRef} className="relative">
-                            <button
-                                type="button"
-                                className="task-menu-type-trigger"
-                                onClick={() => setIsTaskTypeMenuOpen(prev => !prev)}
-                                aria-expanded={isTaskTypeMenuOpen}
-                            >
-                                <span className="inline-flex items-center gap-2">
-                                    <TaskTypeIcon className="h-4 w-4 shrink-0" />
-                                    <span>{selectedTaskType === "meeting" ? t(language, "taskTypeMeeting") : t(language, "taskTypeTask")}</span>
-                                </span>
-                                <ChevronDown className="h-4 w-4 shrink-0" />
-                            </button>
-                            {isTaskTypeMenuMounted && (
-                                <div className="task-menu-type-menu animated-option-menu option-menu-surface" data-state={isTaskTypeMenuVisible ? "open" : "closed"}>
-                                    <button
-                                        type="button"
-                                        className={`task-menu-type-option ${selectedTaskType === "task" ? "is-active" : ""}`}
-                                        onClick={() => handleTaskTypeSelect("task")}
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            <CheckSquareBroken className="h-4 w-4 shrink-0" />
-                                            <span>{t(language, "taskTypeTask")}</span>
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`task-menu-type-option ${selectedTaskType === "meeting" ? "is-active" : ""}`}
-                                        onClick={() => handleTaskTypeSelect("meeting")}
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            <MeetingIcon className="h-4 w-4 shrink-0" />
-                                            <span>{t(language, "taskTypeMeeting")}</span>
-                                        </span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <div className="task-menu-content-divider" aria-hidden="true" />
 
                     <TaskNoteEditor
                         ref={noteEditorRef}
-                        className="task-menu-editor mt-4"
+                        className="task-menu-editor"
                         task={{
                             id: taskId,
                             description,

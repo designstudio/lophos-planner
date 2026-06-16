@@ -489,3 +489,20 @@ export function formatDayMonth(date, language, dateFormat) {
 
     return dateFormat === "MM-DD" ? `${month} ${day}` : `${day} ${month}`;
 }
+
+export function formatTaskDetailDate(date, language) {
+    if (!date) return t(language, "taskMenuDateFallback");
+
+    const locale = getLocale(language);
+    const parts = new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+    }).formatToParts(date);
+
+    const day = parts.find(part => part.type === "day")?.value || "";
+    const month = (parts.find(part => part.type === "month")?.value || "").replace(/\./g, "");
+    const year = parts.find(part => part.type === "year")?.value || "";
+
+    return `${day} ${month}, ${year}`.trim();
+}
