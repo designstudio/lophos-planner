@@ -39,9 +39,77 @@ export function normalizeTaskNote(task) {
     };
 }
 
+function blockHasMeaningfulTextContent(block) {
+    const content = block?.content;
+
+    if (typeof content === "string") {
+        return content.trim().length > 0;
+    }
+
+    if (Array.isArray(content)) {
+        return content.some(item => {
+            if (typeof item === "string") {
+                return item.trim().length > 0;
+            }
+
+            if (item && typeof item === "object") {
+                if (typeof item.text === "string" && item.text.trim().length > 0) {
+                    return true;
+                }
+
+                if (Array.isArray(item.content)) {
+                    return item.content.some(child => typeof child === "string" && child.trim().length > 0);
+                }
+            }
+
+            return false;
+        });
+    }
+
+    if (content && typeof content === "object") {
+        if (typeof content.text === "string" && content.text.trim().length > 0) {
+            return true;
+        }
+
+        if (Array.isArray(content.rows) && content.rows.length > 0) {
+            return content.rows.some(row => {
+                const cells = Array.isArray(row?.cells) ? row.cells : [];
+                return cells.some(cell => {
+                    const cellContent = Array.isArray(cell) ? cell : Array.isArray(cell?.content) ? cell.content : [];
+                    return cellContent.some(childBlock => blockHasMeaningfulContent(childBlock));
+                });
+            });
+        }
+    }
+
+    return false;
+}
+
+function blockHasMeaningfulContent(block) {
+    if (!block || typeof block !== "object") return false;
+
+    if (blockHasMeaningfulTextContent(block)) {
+        return true;
+    }
+
+    if (Array.isArray(block.children) && block.children.some(child => blockHasMeaningfulContent(child))) {
+        return true;
+    }
+
+    return false;
+}
+
+function blocksHaveMeaningfulContent(blocks) {
+    return Array.isArray(blocks) && blocks.some(block => blockHasMeaningfulContent(block));
+}
+
 export function hasTaskNoteContent(task) {
     const note = normalizeTaskNote(task);
-    return Boolean(note.markdown.trim() || (Array.isArray(note.blocks) && note.blocks.length > 0));
+    return Boolean(
+        note.markdown.trim()
+        || note.plainText.trim()
+        || blocksHaveMeaningfulContent(note.blocks)
+    );
 }
 
 export function hasLegacyOnlyTaskNote(task) {
