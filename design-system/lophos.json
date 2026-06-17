@@ -737,7 +737,7 @@
           "type": "fontFamilies"
         },
         "fontSize": {
-          "value": "14px",
+          "value": "16px",
           "type": "fontSizes"
         },
         "fontWeight": {
@@ -779,13 +779,61 @@
         "role": "caption",
         "usage": "Metadata, timestamps, legal notes and compact supporting labels."
       },
+      "plannerColumnTitle": {
+        "fontFamily": {
+          "value": "{typography.fontFamilies.sans}",
+          "type": "fontFamilies"
+        },
+        "fontSize": {
+          "value": "21px",
+          "type": "fontSizes"
+        },
+        "fontWeight": {
+          "value": "700",
+          "type": "fontWeights"
+        },
+        "lineHeight": {
+          "value": "28px",
+          "type": "lineHeights"
+        },
+        "letterSpacing": {
+          "value": "-0.5px",
+          "type": "letterSpacing"
+        },
+        "role": "planner-column-title",
+        "usage": "Week-view dates and board column titles in the logged-in planner."
+      },
+      "plannerColumnDay": {
+        "fontFamily": {
+          "value": "{typography.fontFamilies.sans}",
+          "type": "fontFamilies"
+        },
+        "fontSize": {
+          "value": "21px",
+          "type": "fontSizes"
+        },
+        "fontWeight": {
+          "value": "400",
+          "type": "fontWeights"
+        },
+        "lineHeight": {
+          "value": "28px",
+          "type": "lineHeights"
+        },
+        "letterSpacing": {
+          "value": "-0.5px",
+          "type": "letterSpacing"
+        },
+        "role": "planner-column-day",
+        "usage": "Week-view day names paired with planner column titles."
+      },
       "label": {
         "fontFamily": {
           "value": "{typography.fontFamilies.sans}",
           "type": "fontFamilies"
         },
         "fontSize": {
-          "value": "14px",
+          "value": "16px",
           "type": "fontSizes"
         },
         "fontWeight": {

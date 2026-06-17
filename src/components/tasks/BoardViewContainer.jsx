@@ -388,7 +388,7 @@ function BoardColumn({
                                 ev.currentTarget.blur();
                             }
                         }}
-                        className="min-w-0 flex-1 bg-transparent text-[18px] font-bold leading-[28px] tracking-[-0.5px] text-black/30 dark:text-ds-text-default/30 outline-none lg:text-[21px]"
+                        className="ds-type-planner-column-title min-w-0 flex-1 bg-transparent text-black/30 dark:text-ds-text-default/30 outline-none"
                         aria-label="Título da coluna"
                     />
                     <div className="relative group/board-column-actions">
@@ -501,7 +501,7 @@ function BoardColumn({
                         onBlur={handleFocusOut}
                         onKeyDown={handleKeyDown}
                         placeholder=""
-                        className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-black dark:text-ds-text-default outline-none transition-colors duration-150 lg:text-[14px] lg:leading-[41px]"
+                        className="ds-type-body-sm task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-black dark:text-ds-text-default outline-none transition-colors duration-150"
                         aria-label="Adicionar tarefa na coluna"
                     />
                 </form>

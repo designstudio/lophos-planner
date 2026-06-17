@@ -188,6 +188,16 @@
         --type-caption-letter-spacing: 0.12px;
         --type-caption-font-weight: 400;
 
+        --type-planner-column-title-font-size: 21px;
+        --type-planner-column-title-line-height: 28px;
+        --type-planner-column-title-letter-spacing: -0.5px;
+        --type-planner-column-title-font-weight: 700;
+
+        --type-planner-column-day-font-size: 21px;
+        --type-planner-column-day-line-height: 28px;
+        --type-planner-column-day-letter-spacing: -0.5px;
+        --type-planner-column-day-font-weight: 400;
+
         --type-label-font-size: 16px;
         --type-label-line-height: 20px;
         --type-label-letter-spacing: normal;
@@ -260,6 +270,8 @@ html.dark {
 .ds-type-body,
 .ds-type-body-sm,
 .ds-type-caption,
+.ds-type-planner-column-title,
+.ds-type-planner-column-day,
 .ds-type-label,
 .ds-type-button {
     font-family: var(--font-family-sans);
@@ -326,6 +338,20 @@ html.dark {
     line-height: var(--type-caption-line-height);
     letter-spacing: var(--type-caption-letter-spacing);
     font-weight: var(--type-caption-font-weight);
+}
+
+.ds-type-planner-column-title {
+    font-size: var(--type-planner-column-title-font-size);
+    line-height: var(--type-planner-column-title-line-height);
+    letter-spacing: var(--type-planner-column-title-letter-spacing);
+    font-weight: var(--type-planner-column-title-font-weight);
+}
+
+.ds-type-planner-column-day {
+    font-size: var(--type-planner-column-day-font-size);
+    line-height: var(--type-planner-column-day-line-height);
+    letter-spacing: var(--type-planner-column-day-letter-spacing);
+    font-weight: var(--type-planner-column-day-font-weight);
 }
 
 .ds-type-label {

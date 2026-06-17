@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e:login": "playwright test tests/e2e/login.smoke.spec.js",
+    "test:e2e:real": "playwright test tests/e2e/login.smoke.spec.js",
+    "test:e2e:ui": "playwright test tests/e2e/ui --pass-with-no-tests"
   },
   "dependencies": {
     "@blocknote/core": "^0.51.4",
@@ -34,6 +37,7 @@
   "devDependencies": {
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
+    "@playwright/test": "^1.54.1",
     "@vitejs/plugin-react": "^4.0.3",
     "autoprefixer": "^10.4.15",
     "eslint": "^8.45.0",

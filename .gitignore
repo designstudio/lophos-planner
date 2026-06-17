@@ -1,5 +1,11 @@
 node_modules
 dist
 .env
+.env.local
+.env.test
 .aider*
 supabase/.temp
+test-results/
+playwright-report/
+tests/artifacts/
+playwright-login-result.json

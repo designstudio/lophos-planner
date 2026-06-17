@@ -18,8 +18,8 @@ import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
 import useAnimatedPresence from "../../hooks/useAnimatedPresence.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { formatTaskDetailDate, getAppLanguage, getLocale, t } from "../../scripts/i18n.js";
-import { openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
-import { normalizeTaskNote } from "../../scripts/taskNotes.js";
+import { clearTaskFromUrl, closeForm, openForm, parseDateOnly, toShortId } from "../../scripts/utils.js";
+import { hasTaskNoteContent, normalizeTaskNote } from "../../scripts/taskNotes.js";
 import TaskNoteEditor from "./TaskNoteEditor.jsx";
 import CompletedTaskCheckIcon from "./CompletedTaskCheckIcon.jsx";
 
@@ -92,7 +92,7 @@ function getTaskTypeIcon(taskType) {
 }
 
 export default function TaskMenu() {
-    const { taskData } = useTaskMenu();
+    const { taskData, setTaskData } = useTaskMenu();
     const [searchParams, setSearchParams] = useSearchParams();
     const { currentUser, agendas } = useAuth();
     const {
@@ -153,6 +153,9 @@ export default function TaskMenu() {
     const noteBlocksFieldRef = React.useRef(null);
     const notePlainTextFieldRef = React.useRef(null);
     const noteMigratedAtFieldRef = React.useRef(null);
+    const deleteModalRef = React.useRef(null);
+    const deleteConfirmButtonRef = React.useRef(null);
+    const deleteCancelButtonRef = React.useRef(null);
 
     const [isTaskTypeMenuOpen, setIsTaskTypeMenuOpen] = React.useState(false);
     const { isMounted: isTaskTypeMenuMounted, isVisible: isTaskTypeMenuVisible } = useAnimatedPresence(isTaskTypeMenuOpen);
@@ -163,6 +166,10 @@ export default function TaskMenu() {
     const [newRelatedLinkName, setNewRelatedLinkName] = React.useState("");
     const [newRelatedLinkUrl, setNewRelatedLinkUrl] = React.useState("");
     const [editingRelatedLinkIndex, setEditingRelatedLinkIndex] = React.useState(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [isDeletingTask, setIsDeletingTask] = React.useState(false);
+    const [deleteTaskError, setDeleteTaskError] = React.useState("");
+    const [shouldRestoreTaskMenu, setShouldRestoreTaskMenu] = React.useState(false);
     const [selectedTaskType, setSelectedTaskType] = React.useState(taskType);
     const [selectedTaskDate, setSelectedTaskDate] = React.useState(selectedDate);
     const [isTaskDone, setIsTaskDone] = React.useState(taskType === "meeting" ? false : Boolean(done));
@@ -259,9 +266,64 @@ export default function TaskMenu() {
     }, [openedTaskId]);
 
     React.useEffect(() => {
+        if (!isDeleteModalOpen || !deleteModalRef.current) return;
+
+        const modalEl = deleteModalRef.current;
+        modalEl.style.transition = "none";
+        modalEl.style.transform = "translateY(24px)";
+        modalEl.style.opacity = "0";
+
+        requestAnimationFrame(() => {
+            modalEl.style.transition = "transform 160ms ease, opacity 160ms ease";
+            modalEl.style.transform = "translateY(0)";
+            modalEl.style.opacity = "1";
+            deleteCancelButtonRef.current?.focus?.();
+        });
+    }, [isDeleteModalOpen]);
+
+    React.useEffect(() => {
+        function handleKeyDown(ev) {
+            if (!isDeleteModalOpen) return;
+
+            if (ev.key === "Escape") {
+                if (isDeletingTask) return;
+                ev.preventDefault();
+                closeDeleteTaskModal();
+                return;
+            }
+
+            if (ev.key !== "Tab") return;
+
+            const focusableElements = [
+                deleteConfirmButtonRef.current,
+                deleteCancelButtonRef.current,
+            ].filter(Boolean);
+
+            if (focusableElements.length === 0) return;
+
+            const currentIndex = focusableElements.indexOf(document.activeElement);
+            const nextIndex = ev.shiftKey
+                ? (currentIndex <= 0 ? focusableElements.length - 1 : currentIndex - 1)
+                : (currentIndex === -1 || currentIndex === focusableElements.length - 1 ? 0 : currentIndex + 1);
+
+            ev.preventDefault();
+            focusableElements[nextIndex]?.focus?.();
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDeleteModalOpen, isDeletingTask]);
+
+    React.useEffect(() => {
         if (!openedTaskId) return;
         openForm("task-menu");
     }, [openedTaskId]);
+
+    React.useEffect(() => {
+        if (isDeleteModalOpen || !shouldRestoreTaskMenu) return;
+        openForm("task-menu");
+        setShouldRestoreTaskMenu(false);
+    }, [isDeleteModalOpen, shouldRestoreTaskMenu]);
 
     React.useEffect(() => {
         if (!openedTaskId || !titleInputRef.current) return;
@@ -321,20 +383,59 @@ export default function TaskMenu() {
         titleEl.style.height = `${Math.max(titleEl.scrollHeight + 4, 52)}px`;
     }
 
+    function openDeleteTaskModal() {
+        setDeleteTaskError("");
+        setShouldRestoreTaskMenu(false);
+        closeForm("task-menu");
+        setIsDeleteModalOpen(true);
+    }
+
+    function closeDeleteTaskModal() {
+        if (isDeletingTask) return;
+        setShouldRestoreTaskMenu(true);
+        setIsDeleteModalOpen(false);
+        setDeleteTaskError("");
+    }
+
     async function handleDeleteTask() {
+        if (!taskId) return;
+
+        setIsDeletingTask(true);
+        setDeleteTaskError("");
         const result = await tryCatchDecorator(deleteTask)(taskId);
-        if (!result.success) return;
+        if (!result.success) {
+            setDeleteTaskError(result.message || t(language, "taskDeleteError"));
+            setIsDeletingTask(false);
+            return;
+        }
 
         window.dispatchEvent(new CustomEvent("task-deleted", {
             detail: { taskId },
         }));
 
+        setTaskData(prev => ({
+            ...prev,
+            id: null,
+            name: "",
+            description: "",
+            note_format: "markdown",
+            note_blocks: null,
+            note_plain_text: "",
+            note_migrated_at: null,
+            relatedLinks: [],
+        }));
+
+        clearTaskFromUrl();
+        await closeForm("task-menu");
         setSearchParams(prevParams => {
             const next = new URLSearchParams(prevParams);
             next.delete("task");
             next.delete("openedTask");
             return next;
         });
+        setShouldRestoreTaskMenu(false);
+        setIsDeleteModalOpen(false);
+        setIsDeletingTask(false);
     }
 
     function handleTaskTypeSelect(nextType) {
@@ -367,6 +468,17 @@ export default function TaskMenu() {
             return next;
         });
     }
+
+    const taskHasNotes = React.useMemo(() => (
+        hasTaskNoteContent({
+            ...taskData,
+            description: noteDraft.description,
+            note_format: noteDraft.note_format,
+            note_blocks: noteDraft.note_blocks,
+            note_plain_text: noteDraft.note_plain_text,
+            note_migrated_at: noteDraft.note_migrated_at,
+        })
+    ), [noteDraft.description, noteDraft.note_blocks, noteDraft.note_format, noteDraft.note_migrated_at, noteDraft.note_plain_text, taskData]);
 
     function addOrUpdateRelatedLink() {
         const normalizedUrl = (newRelatedLinkUrl || "").trim();
@@ -438,18 +550,20 @@ export default function TaskMenu() {
     const showDoneButton = selectedTaskType !== "meeting";
 
     return (
-        <Blur type="task-menu">
-            <div
-                className="task-menu task-menu-panel relative z-20 mb-6 w-[32rem] max-w-full rounded-[28px] border-0 outline-none ring-0 px-6 py-6 shadow-none"
-                style={{
-                    backgroundColor: "var(--color-bg-surface)",
-                    color: "var(--color-text-muted)",
-                }}
-                onClick={event => {
-                    event.stopPropagation();
-                }}
-            >
-                <form className="task-menu-form">
+        <>
+            {!isDeleteModalOpen && (
+                <Blur type="task-menu">
+                    <div
+                        className="task-menu task-menu-panel relative z-20 mb-6 w-[32rem] max-w-full rounded-[28px] border-0 outline-none ring-0 px-6 py-6 shadow-none"
+                        style={{
+                            backgroundColor: "var(--color-bg-surface)",
+                            color: "var(--color-text-muted)",
+                        }}
+                        onClick={event => {
+                            event.stopPropagation();
+                        }}
+                    >
+                        <form className="task-menu-form">
                     <div className="task-menu-header">
                         <div className="task-menu-header-meta">
                             <div ref={datePickerRef} className="relative">
@@ -550,7 +664,7 @@ export default function TaskMenu() {
                         </div>
                         <TaskMenuBtn
                             icon={Trash03}
-                            onClick={handleDeleteTask}
+                            onClick={openDeleteTaskModal}
                             tooltip={t(language, "taskMenuDelete")}
                             buttonClassName="task-menu-delete-btn"
                         />
@@ -733,8 +847,58 @@ export default function TaskMenu() {
                     <input type="hidden" id="task-date" name="task-date" value={selectedTaskDate ? toInputDate(selectedTaskDate) : ""} readOnly />
                     <input type="text" id="task-color" name="task-color" value={color || "none"} className="hidden" readOnly />
                     <input type="text" id="task-id" name="task-id" value={taskId || "none"} className="hidden" readOnly />
-                </form>
-            </div>
-        </Blur>
+                        </form>
+                    </div>
+                </Blur>
+            )}
+
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 ds-overlay" onClick={closeDeleteTaskModal}>
+                    <div
+                        ref={deleteModalRef}
+                        className="ds-modal-shell relative mb-6 w-[32rem] max-w-full px-6 py-7"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-task-modal-title"
+                        aria-describedby="delete-task-modal-description"
+                        onClick={ev => ev.stopPropagation()}
+                    >
+                        <h4 id="delete-task-modal-title" className="ds-type-h4 text-ds-text-default">
+                            {t(language, "taskDeleteConfirmTitle")}
+                        </h4>
+                        <p id="delete-task-modal-description" className="ds-type-body mt-3 text-ds-text-default">
+                            {t(language, taskHasNotes ? "taskDeleteConfirmMessageWithNotes" : "taskDeleteConfirmMessage")}
+                        </p>
+
+                        {deleteTaskError && (
+                            <p className="ds-alert ds-alert-danger mt-3">
+                                {deleteTaskError}
+                            </p>
+                        )}
+
+                        <div className="mt-5 flex items-center gap-3">
+                            <button
+                                ref={deleteConfirmButtonRef}
+                                type="button"
+                                disabled={isDeletingTask}
+                                onClick={handleDeleteTask}
+                                className="app-button-hover ds-button-danger bg-ds-danger-solid text-ds-text-inverse ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            >
+                                {isDeletingTask ? `${t(language, "confirmDeleteTask")}...` : t(language, "confirmDeleteTask")}
+                            </button>
+                            <button
+                                ref={deleteCancelButtonRef}
+                                type="button"
+                                disabled={isDeletingTask}
+                                onClick={closeDeleteTaskModal}
+                                className="app-button-hover ds-button-secondary ds-type-body rounded-full px-6 py-2 font-bold disabled:opacity-20"
+                            >
+                                {t(language, "cancel")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }

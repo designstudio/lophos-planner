@@ -568,7 +568,7 @@ const Header = ({ onOpenAbout = () => {} }) => {
                         {isImageAvatar(currentUser?.avatar) ? (
                             <img src={currentUser.avatar} alt={currentUser?.name || "Profile"} className="h-full w-full object-cover" />
                         ) : (
-                            <h2 className="text-sm font-semibold leading-none">{getUserInitials(currentUser)}</h2>
+                            <h2 className="ds-type-caption leading-none">{getUserInitials(currentUser)}</h2>
                         )}
                         </span>
                         <p className="absolute left-1/2 -translate-x-[50%] top-[120%]

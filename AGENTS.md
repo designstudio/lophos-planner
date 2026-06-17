@@ -66,3 +66,19 @@ Ao final de cada alteração:
 - não deve haver nova tipografia fora de `typography.textStyles`;
 - componentes alterados devem preservar comportamento e layout;
 - rodar lint/build/test se existirem.
+
+## Test login
+
+Use environment variables for the test user:
+
+- E2E_BASE_URL
+- E2E_USER_EMAIL
+- E2E_USER_PASSWORD
+
+The real login smoke test depends on network access from the test browser to the configured Supabase domain used by `VITE_SUPABASE_URL`.
+
+Use `test:e2e:real` for the network-dependent Supabase login smoke test.
+Use `test:e2e:ui` for mockado/future UI-only Playwright tests that should not depend on external network.
+
+Never ask for or use production credentials.
+Do not commit `.env.local`, `.env.test`, or Playwright auth state files.

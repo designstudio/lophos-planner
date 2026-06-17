@@ -231,13 +231,13 @@ const TaskList = ({
                 style={active ? { borderColor: 'var(--agenda-accent)' } : undefined}
             >
                 <h2
-                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] ${active ? "agenda-accent-text" : "text-black dark:text-ds-text-default"}`}
+                    className={`ds-type-planner-column-title ${active ? "agenda-accent-text" : "text-black dark:text-ds-text-default"}`}
                     style={active ? { color: 'var(--agenda-accent)' } : undefined}
                 >
                     {getDate(date)}
                 </h2>
                 <h3
-                    className={`text-[18px] font-bold leading-[28px] tracking-[-0.5px] lg:text-[21px] lg:font-normal ${active ? "agenda-accent-text opacity-50" : "text-black dark:text-ds-text-default opacity-20"}`}
+                    className={`ds-type-planner-column-day ${active ? "agenda-accent-text opacity-50" : "text-black dark:text-ds-text-default opacity-20"}`}
                     style={active ? { color: 'var(--agenda-accent)' } : undefined}
                 >
                     {day}
@@ -271,7 +271,7 @@ const TaskList = ({
                 <input type="text"
                        name="add-task-name"
                        id="add-task-name"
-                     className="task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-[16px] leading-[22px] text-black dark:text-ds-text-default outline-none transition-colors duration-150 lg:text-[14px] lg:leading-[41px]"
+                     className="ds-type-body-sm task-field-border-bottom task-row-border relative z-10 h-[41px] w-full bg-transparent p-0 text-black dark:text-ds-text-default outline-none transition-colors duration-150"
                        aria-label={`${addTaskLabel} ${getDate(date)}`}
                        onBlur={handleFocusOut}
                 />
