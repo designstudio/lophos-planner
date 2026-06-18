@@ -11,8 +11,6 @@ import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
 
-const TaskNoteEditor = React.lazy(() => import("./components/tasks/TaskNoteEditor.jsx"));
-
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -128,6 +126,256 @@ function logPublicShare(stage, details) {
     } catch {
         // Ignore logging failures in constrained browsers.
     }
+}
+
+function getPublicNoteInlineText(value) {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map(item => getPublicNoteInlineText(item))
+            .filter(Boolean)
+            .join("");
+    }
+
+    if (!value || typeof value !== "object") {
+        return "";
+    }
+
+    if (typeof value.text === "string") {
+        return value.text;
+    }
+
+    return getPublicNoteInlineText(value.content);
+}
+
+function extractPublicNoteBlocks(blocks, depth = 0) {
+    if (!Array.isArray(blocks)) return [];
+
+    return blocks.flatMap((block, index) => {
+        if (!block || typeof block !== "object") return [];
+
+        const type = (block.type || "paragraph").toString();
+        const text = getPublicNoteInlineText(block.content).trim();
+        const rows = Array.isArray(block.content?.rows) ? block.content.rows : [];
+        const items = [];
+
+        if (rows.length > 0) {
+            rows.forEach((row, rowIndex) => {
+                const cells = Array.isArray(row?.cells) ? row.cells : [];
+                const rowText = cells
+                    .map(cell => getPublicNoteInlineText(Array.isArray(cell) ? cell : cell?.content).trim())
+                    .filter(Boolean)
+                    .join(" | ");
+
+                if (rowText) {
+                    items.push({
+                        key: `${depth}-${index}-row-${rowIndex}`,
+                        kind: "paragraph",
+                        text: rowText,
+                    });
+                }
+            });
+        } else if (text) {
+            items.push({
+                key: `${depth}-${index}`,
+                kind: type,
+                text,
+                checked: block.props?.checked === true,
+            });
+        }
+
+        const children = extractPublicNoteBlocks(block.children, depth + 1);
+        return items.concat(children);
+    });
+}
+
+function renderPublicMarkdownLines(source) {
+    const lines = (source || "")
+        .split(/\r?\n/)
+        .map(line => line.trimEnd());
+    const rendered = [];
+    let paragraphBuffer = [];
+    let listBuffer = null;
+
+    function flushParagraph() {
+        if (paragraphBuffer.length === 0) return;
+        rendered.push({
+            key: `p-${rendered.length}`,
+            kind: "paragraph",
+            text: paragraphBuffer.join(" ").trim(),
+        });
+        paragraphBuffer = [];
+    }
+
+    function flushList() {
+        if (!listBuffer || listBuffer.items.length === 0) {
+            listBuffer = null;
+            return;
+        }
+
+        rendered.push({
+            key: `l-${rendered.length}`,
+            kind: listBuffer.kind,
+            items: [...listBuffer.items],
+        });
+        listBuffer = null;
+    }
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+            flushParagraph();
+            flushList();
+            continue;
+        }
+
+        const unorderedMatch = trimmed.match(/^[-*+]\s+(.*)$/);
+        if (unorderedMatch) {
+            flushParagraph();
+            if (!listBuffer || listBuffer.kind !== "unordered") {
+                flushList();
+                listBuffer = { kind: "unordered", items: [] };
+            }
+            listBuffer.items.push(unorderedMatch[1].trim());
+            continue;
+        }
+
+        const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+        if (orderedMatch) {
+            flushParagraph();
+            if (!listBuffer || listBuffer.kind !== "ordered") {
+                flushList();
+                listBuffer = { kind: "ordered", items: [] };
+            }
+            listBuffer.items.push(orderedMatch[1].trim());
+            continue;
+        }
+
+        flushList();
+
+        const headingMatch = trimmed.match(/^#{1,6}\s+(.*)$/);
+        if (headingMatch) {
+            flushParagraph();
+            rendered.push({
+                key: `h-${rendered.length}`,
+                kind: "heading",
+                text: headingMatch[1].trim(),
+            });
+            continue;
+        }
+
+        const quoteMatch = trimmed.match(/^>\s?(.*)$/);
+        if (quoteMatch) {
+            flushParagraph();
+            rendered.push({
+                key: `q-${rendered.length}`,
+                kind: "quote",
+                text: quoteMatch[1].trim(),
+            });
+            continue;
+        }
+
+        paragraphBuffer.push(trimmed);
+    }
+
+    flushParagraph();
+    flushList();
+    return rendered.filter(item => {
+        if (item.kind === "unordered" || item.kind === "ordered") {
+            return item.items.length > 0;
+        }
+
+        return Boolean(item.text);
+    });
+}
+
+function PublicTaskNoteContent({ task, language }) {
+    const note = React.useMemo(() => normalizeTaskNote(task), [task]);
+
+    const sections = React.useMemo(() => {
+        const blockSections = extractPublicNoteBlocks(note.blocks);
+        if (blockSections.length > 0) return blockSections;
+
+        const markdownSource = (note.markdown || note.plainText || "").trim();
+        if (markdownSource) {
+            return renderPublicMarkdownLines(markdownSource);
+        }
+
+        return [];
+    }, [note.blocks, note.markdown, note.plainText]);
+
+    if (sections.length === 0) {
+        return (
+            <div className="task-menu-editor ds-type-body-sm text-ds-text-muted">
+                {t(language, "emptyStateNoDescription")}
+            </div>
+        );
+    }
+
+    return (
+        <div className="task-menu-editor space-y-3 text-ds-text-default">
+            {sections.map(section => {
+                if (section.kind === "unordered") {
+                    return (
+                        <ul key={section.key} className="list-disc space-y-2 pl-5">
+                            {section.items.map((item, index) => (
+                                <li key={`${section.key}-${index}`} className="ds-type-body-sm text-ds-text-default">
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    );
+                }
+
+                if (section.kind === "ordered") {
+                    return (
+                        <ol key={section.key} className="list-decimal space-y-2 pl-5">
+                            {section.items.map((item, index) => (
+                                <li key={`${section.key}-${index}`} className="ds-type-body-sm text-ds-text-default">
+                                    {item}
+                                </li>
+                            ))}
+                        </ol>
+                    );
+                }
+
+                if (section.kind === "heading") {
+                    return (
+                        <h4 key={section.key} className="text-sm font-semibold text-ds-text-default">
+                            {section.text}
+                        </h4>
+                    );
+                }
+
+                if (section.kind === "quote") {
+                    return (
+                        <blockquote key={section.key} className="border-l-2 border-ds-border-default pl-3 ds-type-body-sm text-ds-text-muted">
+                            {section.text}
+                        </blockquote>
+                    );
+                }
+
+                if (section.kind === "checkListItem") {
+                    return (
+                        <p key={section.key} className="ds-type-body-sm text-ds-text-default">
+                            {section.checked ? "[x] " : "[ ] "}
+                            {section.text}
+                        </p>
+                    );
+                }
+
+                return (
+                    <p key={section.key} className="ds-type-body-sm text-ds-text-default whitespace-pre-wrap break-words">
+                        {section.text}
+                    </p>
+                );
+            })}
+        </div>
+    );
 }
 
 export default function PublicSharePage() {
@@ -737,7 +985,6 @@ export default function PublicSharePage() {
     }, [searchQuery, tasks, relatedLinksEnabled]);
 
     const activeTaskDate = selectedTask?.date ? new Date(selectedTask.date) : null;
-    const hasSelectedDescription = hasTaskNoteContent(selectedTask);
     const selectedRelatedLinks = selectedTask && relatedLinksEnabled ? normalizeRelatedLinks(selectedTask) : [];
     const hasSelectedRelatedLinks = selectedRelatedLinks.length > 0;
     const previewDateText = formatTaskDetailDate(activeTaskDate, language);
@@ -1184,26 +1431,13 @@ export default function PublicSharePage() {
 
                         <div className="task-menu-content-divider" aria-hidden="true" />
 
-                        {hasSelectedDescription && (
-                            <React.Suspense
-                                fallback={(
-                                    <div className="task-menu-editor" aria-busy="true">
-                                        {t(language, "loadingShort")}
-                                    </div>
-                                )}
-                            >
-                                <TaskNoteEditor
-                                    className="task-menu-editor"
-                                    task={selectedTask}
-                                    language={language}
-                                    readOnly
-                                    onTaskMentionClick={openReferencedTask}
-                                />
-                            </React.Suspense>
-                        )}
+                        <PublicTaskNoteContent
+                            task={selectedTask}
+                            language={language}
+                        />
 
                         {hasSelectedRelatedLinks && (
-                            <section className={`pt-4 ${hasSelectedDescription ? "mt-5 border-t border-ds-border-default" : "mt-3"}`}>
+                            <section className="mt-5 border-t border-ds-border-default pt-4">
                                 <h4 className="ds-type-body-sm font-semibold text-ds-text-default">{t(language, "relatedLinks")}</h4>
                                 <ul className="mt-4 max-h-32 space-y-2 overflow-auto pr-1">
                                     {selectedRelatedLinks.map((link, index) => (
