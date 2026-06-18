@@ -2706,7 +2706,7 @@ body[data-scroll-locked="true"],
             box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
         }
 
-        .blur-bg[data-id="search-form"] > .search-form-sheet {
+        .search-form-sheet {
             height: 85dvh;
         }
 
