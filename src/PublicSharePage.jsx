@@ -10,7 +10,7 @@ import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
-import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
+import TaskNoteEditor from "./components/tasks/TaskNoteEditor.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -115,39 +115,6 @@ function isImageAvatar(value) {
 
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
-
-function PublicTaskNoteContent({ task, className = "", onTaskMentionClick }) {
-    const note = React.useMemo(() => normalizeTaskNote(task), [task]);
-    const html = React.useMemo(() => renderTaskMarkdown(note.markdown || ""), [note.markdown]);
-
-    const handleClickCapture = React.useCallback(event => {
-        if (!onTaskMentionClick) return;
-
-        const eventTarget = event.target;
-        if (!(eventTarget instanceof Element)) return;
-
-        const mentionLink = eventTarget.closest('a[href^="#task:"]');
-        if (!mentionLink) return;
-
-        const href = mentionLink.getAttribute("href") || "";
-        const taskId = href.replace(/^#task:/, "").trim();
-        if (!taskId) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        onTaskMentionClick(taskId);
-    }, [onTaskMentionClick]);
-
-    return (
-        <div
-            className={className}
-            data-note-format="legacy-markdown"
-            data-note-read-only="true"
-            onClickCapture={handleClickCapture}
-            dangerouslySetInnerHTML={{ __html: html }}
-        />
-    );
-}
 
 export default function PublicSharePage() {
     const { shareToken } = useParams();
@@ -1107,9 +1074,11 @@ export default function PublicSharePage() {
                         <div className="task-menu-content-divider" aria-hidden="true" />
 
                         {hasSelectedDescription && (
-                            <PublicTaskNoteContent
+                            <TaskNoteEditor
                                 className="task-menu-editor"
                                 task={selectedTask}
+                                language={language}
+                                readOnly
                                 onTaskMentionClick={openReferencedTask}
                             />
                         )}
