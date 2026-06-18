@@ -1,14 +1,13 @@
 import React, { Suspense, useEffect } from 'react';
 import { closestCorners, DndContext, DragOverlay, KeyboardSensor, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import Lottie from "lottie-react";
-import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
 import { getAppLanguage, getLocale } from "./scripts/i18n.js";
 import { closeForm, openForm, parseDateOnly } from "./scripts/utils.js";
 import Task from "./components/tasks/Task.jsx";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
+import LoadingIndicator from "./components/LoadingIndicator.jsx";
 
 const TaskListContainer = React.lazy(() => import("./components/tasks/TaskListContainer"));
 const BoardViewContainer = React.lazy(() => import("./components/tasks/BoardViewContainer.jsx"));
@@ -28,7 +27,7 @@ function AppLoadingScreen({ fixed = false }) {
     return (
         <div className={`${fixed ? "fixed inset-0 z-50" : "min-w-screen min-h-screen"} bg-white text-black dark:bg-ds-background-page dark:text-ds-text-default`}>
             <div className="flex min-h-screen items-center justify-center">
-                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 84, height: 84 }} />
+                <LoadingIndicator size={84} />
             </div>
         </div>
     );
