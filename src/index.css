@@ -310,6 +310,7 @@ body[data-scroll-locked="true"],
         border-radius: var(--radius-full);
         background-color: var(--color-border-strong);
         opacity: 0.7;
+        touch-action: none;
     }
 
     .task-menu-form {
@@ -441,28 +442,6 @@ body[data-scroll-locked="true"],
         align-items: center;
         gap: 0.5rem;
         flex-shrink: 0;
-    }
-
-    .task-menu-close-btn {
-        display: none;
-        align-items: center;
-        justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        border: 0;
-        border-radius: var(--radius-full);
-        background-color: transparent;
-        color: var(--color-text-default);
-        transition: background-color 0.15s ease, opacity 0.15s ease;
-    }
-
-    .task-menu-close-btn:hover {
-        background-color: var(--color-bg-surface-muted);
-    }
-
-    .task-menu-close-btn:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-text-strong) 12%, transparent);
     }
 
     .task-menu-content-divider {
@@ -2692,9 +2671,6 @@ body[data-scroll-locked="true"],
             padding-bottom: 0.125rem;
         }
 
-        .task-menu-close-btn {
-            display: inline-flex;
-        }
     }
 
     .invite.active > .invite-page {

@@ -158,6 +158,7 @@ function hardResetBlurState(blurEl, blurId) {
     blurEl.style.opacity = "";
 
     if (panel) {
+        panel.dataset.closeTranslateY = "";
         panel.style.transform = "";
         panel.style.opacity = "";
         panel.style.top = "";
@@ -314,6 +315,9 @@ export function closeForm(formBlurId) {
     fromForm.dataset.closeStartedAt = String(Date.now());
 
     const formElement = fromForm.querySelector(`.${formBlurId}`);
+    const closeTranslateY = formElement?.dataset?.closeTranslateY?.trim()
+        ? `translateY(${formElement.dataset.closeTranslateY.trim()})`
+        : `translateY(${MODAL_TRANSLATE_Y_PX}px)`;
     let finalized = false;
 
     const finalizeClose = () => {
@@ -336,6 +340,7 @@ export function closeForm(formBlurId) {
         fromForm.scrollTop = 0;
         if (formElement) {
             formElement.scrollTop = 0;
+            formElement.dataset.closeTranslateY = "";
             formElement.style.transform = "";
             formElement.style.opacity = "";
             formElement.style.top = "";
@@ -355,7 +360,7 @@ export function closeForm(formBlurId) {
     if (formElement) {
         formElement.getAnimations().forEach(animation => animation.cancel());
         formElement.style.transition = `transform ${MODAL_CLOSE_DURATION_MS}ms ease, opacity ${MODAL_CLOSE_DURATION_MS}ms ease`;
-        formElement.style.transform = `translateY(${MODAL_TRANSLATE_Y_PX}px)`;
+        formElement.style.transform = closeTranslateY;
         formElement.style.opacity = "0";
         formElement.style.willChange = "transform, opacity";
     }

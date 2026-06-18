@@ -11,7 +11,6 @@ import {
     ChevronRight,
     Edit02,
     Trash03,
-    X,
 } from "@untitledui/icons";
 import { deleteTask, tryCatchDecorator } from "../../scripts/api.js";
 import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
@@ -145,6 +144,8 @@ export default function TaskMenu() {
 
     const titleInputRef = React.useRef(null);
     const noteEditorRef = React.useRef(null);
+    const panelRef = React.useRef(null);
+    const handleRef = React.useRef(null);
     const datePickerRef = React.useRef(null);
     const taskTypeMenuRef = React.useRef(null);
     const descriptionFieldRef = React.useRef(null);
@@ -156,6 +157,13 @@ export default function TaskMenu() {
     const deleteModalRef = React.useRef(null);
     const deleteConfirmButtonRef = React.useRef(null);
     const deleteCancelButtonRef = React.useRef(null);
+    const dragStateRef = React.useRef({
+        active: false,
+        pointerId: null,
+        startY: 0,
+        currentY: 0,
+    });
+    const dragResetTimeoutRef = React.useRef(null);
 
     const [isTaskTypeMenuOpen, setIsTaskTypeMenuOpen] = React.useState(false);
     const { isMounted: isTaskTypeMenuMounted, isVisible: isTaskTypeMenuVisible } = useAnimatedPresence(isTaskTypeMenuOpen);
@@ -259,6 +267,129 @@ export default function TaskMenu() {
         window.addEventListener("task-note-flush-request", handleFlushRequest);
         return () => window.removeEventListener("task-note-flush-request", handleFlushRequest);
     }, []);
+
+    React.useEffect(() => {
+        const handleEl = handleRef.current;
+        const panelEl = panelRef.current;
+        if (!handleEl || !panelEl || typeof window === "undefined" || !("PointerEvent" in window)) {
+            return undefined;
+        }
+
+        const mobileQuery = window.matchMedia("(max-width: 767px)");
+        const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+        function clearResetTimer() {
+            if (dragResetTimeoutRef.current) {
+                window.clearTimeout(dragResetTimeoutRef.current);
+                dragResetTimeoutRef.current = null;
+            }
+        }
+
+        function resetPanelPosition(shouldAnimate) {
+            clearResetTimer();
+            panelEl.dataset.closeTranslateY = "";
+
+            if (!shouldAnimate || reducedMotionQuery.matches) {
+                panelEl.style.transition = "";
+                panelEl.style.transform = "";
+                panelEl.style.willChange = "";
+                return;
+            }
+
+            panelEl.style.transition = "transform 180ms ease";
+            panelEl.style.transform = "translateY(0)";
+            panelEl.style.willChange = "transform";
+            dragResetTimeoutRef.current = window.setTimeout(() => {
+                panelEl.style.transition = "";
+                panelEl.style.transform = "";
+                panelEl.style.willChange = "";
+                dragResetTimeoutRef.current = null;
+            }, 180);
+        }
+
+        function requestTaskMenuClose() {
+            window.dispatchEvent(new CustomEvent("modal-close-request", {
+                detail: { type: "task-menu" },
+            }));
+        }
+
+        function stopDragging(shouldClose) {
+            const dragState = dragStateRef.current;
+            if (!dragState.active) return;
+
+            dragState.active = false;
+
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerCancel);
+
+            if (shouldClose) {
+                panelEl.dataset.closeTranslateY = "calc(100% + env(safe-area-inset-bottom))";
+                requestTaskMenuClose();
+                return;
+            }
+
+            resetPanelPosition(true);
+        }
+
+        function handlePointerMove(event) {
+            const dragState = dragStateRef.current;
+            if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+            const nextY = Math.max(0, event.clientY - dragState.startY);
+            dragState.currentY = nextY;
+            panelEl.style.transition = "none";
+            panelEl.style.transform = `translateY(${nextY}px)`;
+            panelEl.style.willChange = "transform";
+            panelEl.dataset.closeTranslateY = "calc(100% + env(safe-area-inset-bottom))";
+            event.preventDefault();
+        }
+
+        function handlePointerUp(event) {
+            const dragState = dragStateRef.current;
+            if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+            const threshold = Math.min(120, Math.max(100, panelEl.offsetHeight * 0.28));
+            stopDragging(dragState.currentY >= threshold);
+        }
+
+        function handlePointerCancel(event) {
+            const dragState = dragStateRef.current;
+            if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+            stopDragging(false);
+        }
+
+        function handlePointerDown(event) {
+            if (!mobileQuery.matches) return;
+            if (event.pointerType === "mouse" && event.button !== 0) return;
+
+            clearResetTimer();
+
+            dragStateRef.current.active = true;
+            dragStateRef.current.pointerId = event.pointerId;
+            dragStateRef.current.startY = event.clientY;
+            dragStateRef.current.currentY = 0;
+
+            panelEl.style.transition = "none";
+            panelEl.style.willChange = "transform";
+            handleEl.setPointerCapture?.(event.pointerId);
+
+            window.addEventListener("pointermove", handlePointerMove, { passive: false });
+            window.addEventListener("pointerup", handlePointerUp);
+            window.addEventListener("pointercancel", handlePointerCancel);
+            event.preventDefault();
+        }
+
+        handleEl.addEventListener("pointerdown", handlePointerDown);
+
+        return () => {
+            clearResetTimer();
+            handleEl.removeEventListener("pointerdown", handlePointerDown);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerCancel);
+        };
+    }, [taskId]);
 
     React.useEffect(() => {
         if (!openedTaskId) return;
@@ -458,12 +589,6 @@ export default function TaskMenu() {
         setIsTaskDone(prev => !prev);
     }
 
-    function requestTaskMenuClose() {
-        window.dispatchEvent(new CustomEvent("modal-close-request", {
-            detail: { type: "task-menu" },
-        }));
-    }
-
     function handleOpenReferencedTask(referencedTaskId) {
         if (!referencedTaskId) return;
 
@@ -560,6 +685,7 @@ export default function TaskMenu() {
             {!isDeleteModalOpen && (
                 <Blur type="task-menu">
                     <div
+                        ref={panelRef}
                         className="task-menu task-menu-panel relative z-20 mb-6 w-[32rem] max-w-full rounded-[28px] border-0 outline-none ring-0 px-6 py-6 shadow-none"
                         style={{
                             backgroundColor: "var(--color-bg-surface)",
@@ -569,7 +695,7 @@ export default function TaskMenu() {
                             event.stopPropagation();
                         }}
                     >
-                        <div className="task-menu-sheet-handle" aria-hidden="true" />
+                        <div ref={handleRef} className="task-menu-sheet-handle" aria-hidden="true" />
                         <form className="task-menu-form">
                     <div className="task-menu-header">
                         <div className="task-menu-header-meta">
@@ -670,14 +796,6 @@ export default function TaskMenu() {
                             </div>
                         </div>
                         <div className="task-menu-header-actions">
-                            <button
-                                type="button"
-                                onClick={requestTaskMenuClose}
-                                className="task-menu-close-btn"
-                                aria-label={t(language, "close")}
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
                             <TaskMenuBtn
                                 icon={Trash03}
                                 onClick={openDeleteTaskModal}
