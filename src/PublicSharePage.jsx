@@ -115,19 +115,6 @@ function isImageAvatar(value) {
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
 
-function logPublicShare(stage, details) {
-    try {
-        if (details === undefined) {
-            console.info(`[PublicShare] ${stage}`);
-            return;
-        }
-
-        console.info(`[PublicShare] ${stage}`, details);
-    } catch {
-        // Ignore logging failures in constrained browsers.
-    }
-}
-
 function getPublicNoteInlineText(value) {
     if (typeof value === "string") {
         return value;
@@ -381,10 +368,6 @@ function PublicTaskNoteContent({ task, language }) {
 export default function PublicSharePage() {
     const { shareToken } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
-    const debugFetch = searchParams.get("debugFetch") === "1";
-    const debugData = searchParams.get("debugData") === "1";
-    const debugNoModal = searchParams.get("debugNoModal") === "1";
-    const debugSummaryMode = debugFetch || debugData;
 
     const [loading, setLoading] = React.useState(true);
     const [minLoadingDone, setMinLoadingDone] = React.useState(false);
@@ -401,32 +384,13 @@ export default function PublicSharePage() {
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
-    const [fetchState, setFetchState] = React.useState("idle");
-    const [fetchErrorMessage, setFetchErrorMessage] = React.useState("");
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
-    const didLogInitialRenderRef = React.useRef(false);
-
-    if (!didLogInitialRenderRef.current) {
-        didLogInitialRenderRef.current = true;
-        logPublicShare("initial-render", { shareToken });
-    }
 
     React.useEffect(() => {
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
     }, []);
-
-    React.useEffect(() => {
-        logPublicShare("mount", {
-            shareToken,
-            search: typeof window !== "undefined" ? window.location.search : "",
-        });
-
-        return () => {
-            logPublicShare("unmount", { shareToken });
-        };
-    }, [shareToken]);
 
     React.useEffect(() => () => {
         if (taskPreviewCloseTimeoutRef.current) {
@@ -448,25 +412,17 @@ export default function PublicSharePage() {
         async function refreshPublicAgenda(showLoading = false) {
             if (showLoading) {
                 setLoading(true);
-                setFetchState("start");
-                setFetchErrorMessage("");
             }
 
             try {
-                if (showLoading) {
-                    logPublicShare("fetch-start", { shareToken });
-                }
-
                 const data = await getPublicAgendaByShareToken(shareToken);
                 if (!mounted) return;
 
                 if (!data) {
-                    logPublicShare("fetch-empty", { shareToken });
                     setOwner(null);
                     setAgenda(null);
                     setTasks([]);
                     setBoardColumns([]);
-                    setFetchState("empty");
                     return;
                 }
 
@@ -474,21 +430,8 @@ export default function PublicSharePage() {
                 setAgenda(data.agenda || null);
                 setTasks(Array.isArray(data.tasks) ? data.tasks : []);
                 setBoardColumns(Array.isArray(data.boardColumns) ? data.boardColumns : []);
-                setFetchState("success");
-                if (showLoading) {
-                    logPublicShare("fetch-success", {
-                        shareToken,
-                        tasks: Array.isArray(data.tasks) ? data.tasks.length : 0,
-                    });
-                }
             } catch (error) {
-                logPublicShare("fetch-error", {
-                    shareToken,
-                    message: error?.message || "unknown",
-                });
                 if (!mounted) return;
-                setFetchState("error");
-                setFetchErrorMessage(error?.message || "unknown");
                 setOwner(null);
                 setAgenda(null);
                 setTasks([]);
@@ -501,7 +444,6 @@ export default function PublicSharePage() {
         }
 
         function startPolling() {
-            if (debugSummaryMode) return;
             if (intervalId !== null || document.visibilityState !== "visible") return;
 
             intervalId = window.setInterval(() => {
@@ -529,7 +471,6 @@ export default function PublicSharePage() {
         }
 
         function handleWindowFocus() {
-            if (debugSummaryMode) return;
             refreshPublicAgenda(false);
             startPolling();
         }
@@ -543,7 +484,7 @@ export default function PublicSharePage() {
             window.removeEventListener("focus", handleWindowFocus);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
-    }, [debugSummaryMode, shareToken]);
+    }, [shareToken]);
 
     React.useEffect(() => {
         setPageScrollLocked(isTaskPreviewOpen || isSearchOpen || isCalendarOpen);
@@ -681,8 +622,6 @@ export default function PublicSharePage() {
     }
 
     function openTaskPreview(task) {
-        if (debugNoModal) return;
-
         if (taskPreviewCloseTimeoutRef.current) {
             clearTimeout(taskPreviewCloseTimeoutRef.current);
             taskPreviewCloseTimeoutRef.current = null;
@@ -695,8 +634,6 @@ export default function PublicSharePage() {
     }
 
     function closeTaskPreview() {
-        if (debugNoModal) return;
-
         setIsTaskPreviewVisible(false);
         clearOpenedTaskInUrl();
 
@@ -711,7 +648,6 @@ export default function PublicSharePage() {
     }
 
     function openReferencedTask(taskId) {
-        if (debugNoModal) return;
         if (!taskId) return;
 
         const referencedTask = tasks.find(item => String(item.id) === String(taskId));
@@ -729,7 +665,6 @@ export default function PublicSharePage() {
     }
 
     function openSearchModal() {
-        if (debugNoModal) return;
         if (searchCloseTimeoutRef.current) {
             clearTimeout(searchCloseTimeoutRef.current);
             searchCloseTimeoutRef.current = null;
@@ -740,7 +675,6 @@ export default function PublicSharePage() {
     }
 
     function closeSearchModal() {
-        if (debugNoModal) return;
         setIsSearchVisible(false);
 
         if (searchCloseTimeoutRef.current) {
@@ -754,8 +688,6 @@ export default function PublicSharePage() {
     }
 
     React.useEffect(() => {
-        if (debugNoModal) return;
-
         if (!openedTaskId) {
             if (selectedTask) {
                 setIsTaskPreviewVisible(false);
@@ -785,7 +717,7 @@ export default function PublicSharePage() {
             setIsTaskPreviewOpen(true);
             requestAnimationFrame(() => setIsTaskPreviewVisible(true));
         }
-    }, [debugNoModal, openedTaskId, tasks]);
+    }, [openedTaskId, tasks]);
 
     React.useEffect(() => {
         function handleKeyDown(ev) {
@@ -990,54 +922,12 @@ export default function PublicSharePage() {
     const previewDateText = formatTaskDetailDate(activeTaskDate, language);
     const selectedTaskType = selectedTask?.task_type === "meeting" ? "meeting" : "task";
     const SelectedTaskTypeIcon = selectedTaskType === "meeting" ? MeetingIcon : CheckSquareBroken;
-    const weeklyTaskCount = tasks.filter(task => !task?.is_board_task).length;
-    const boardTaskCount = tasks.filter(task => task?.is_board_task).length;
 
     if (loading || !minLoadingDone) {
         return (
             <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
-        );
-    }
-
-    if (debugFetch) {
-        return (
-            <main className="min-h-screen bg-white px-6 py-8 text-ds-text-default dark:bg-ds-background-page">
-                <h1 className="ds-type-h3 text-ds-text-default">Share debug fetch</h1>
-                <p className="mt-3 ds-type-body-sm text-ds-text-default">fetch state: {fetchState}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">agenda: {agenda?.name || "-"}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">tasks: {tasks.length}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">weekly tasks: {weeklyTaskCount}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">board tasks: {boardTaskCount}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">board columns: {boardColumns.length}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">calendar weeks: {calendarWeeks.length}</p>
-                {fetchErrorMessage ? (
-                    <p className="mt-2 ds-type-body-sm text-ds-text-default">fetch error: {fetchErrorMessage}</p>
-                ) : null}
-            </main>
-        );
-    }
-
-    if (debugData) {
-        return (
-            <main className="min-h-screen bg-white px-6 py-8 text-ds-text-default dark:bg-ds-background-page">
-                <h1 className="ds-type-h3 text-ds-text-default">Share debug data</h1>
-                <p className="mt-3 ds-type-body-sm text-ds-text-default">fetch state: {fetchState}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">agenda: {agenda?.name || "-"}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">owner: {owner?.name || "-"}</p>
-                <p className="mt-2 ds-type-body-sm text-ds-text-default">tasks: {tasks.length}</p>
-                <div className="mt-4 space-y-2">
-                    {tasks.slice(0, 5).map(task => (
-                        <p key={task.id} className="ds-type-body-sm text-ds-text-default">
-                            {task.name || "(sem titulo)"}
-                        </p>
-                    ))}
-                </div>
-                {fetchErrorMessage ? (
-                    <p className="mt-3 ds-type-body-sm text-ds-text-default">fetch error: {fetchErrorMessage}</p>
-                ) : null}
-            </main>
         );
     }
 
@@ -1383,7 +1273,7 @@ export default function PublicSharePage() {
                 </section>
             )}
 
-            {!debugNoModal && isTaskPreviewOpen && selectedTask && (
+            {isTaskPreviewOpen && selectedTask && (
                 <div
                     className={`fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
@@ -1466,7 +1356,7 @@ export default function PublicSharePage() {
                 </div>
             )}
 
-            {!debugNoModal && isSearchOpen && (
+            {isSearchOpen && (
                 <div
                     className={`fixed inset-0 z-[70] flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{

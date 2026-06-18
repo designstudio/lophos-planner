@@ -75,26 +75,11 @@ function App() {
     return <RouterProvider router={router} />;
 }
 
-function PublicShareDebugPage() {
-    return (
-        <main className="min-h-screen bg-white px-6 py-8 text-ds-text-default dark:bg-ds-background-page">
-            <h1 className="ds-type-h3 text-ds-text-default">Share debug</h1>
-            <p className="mt-3 ds-type-body-sm text-ds-text-default">PublicSharePage mounted</p>
-        </main>
-    );
-}
-
 function PublicShareApp() {
-    const isDebugStatic = typeof window !== "undefined"
-        && new URLSearchParams(window.location.search).get("debugStatic") === "1";
-    const shareElement = isDebugStatic
-        ? <PublicShareDebugPage />
-        : <LazyPage><PublicSharePage /></LazyPage>;
-
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/share/:shareToken" element={shareElement} />
+                <Route path="/share/:shareToken" element={<LazyPage><PublicSharePage /></LazyPage>} />
                 <Route path="*" element={<LazyPage><NotFound /></LazyPage>} />
             </Routes>
         </BrowserRouter>
