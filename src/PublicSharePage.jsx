@@ -1,4 +1,6 @@
 import React from "react";
+import Lottie from "lottie-react";
+import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03, CheckSquareBroken } from "@untitledui/icons";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
@@ -9,7 +11,6 @@ import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
 import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
-import BrandedLoadingIndicator from "./components/BrandedLoadingIndicator.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -115,6 +116,7 @@ function isImageAvatar(value) {
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
 const PUBLIC_FETCH_TIMEOUT_MS = 10000;
+const PUBLIC_LOADING_FAILSAFE_MS = 12000;
 
 function withTimeout(promise, timeoutMs) {
     return new Promise((resolve, reject) => {
@@ -186,6 +188,7 @@ export default function PublicSharePage() {
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
+    const [loadingExpired, setLoadingExpired] = React.useState(false);
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
 
@@ -193,6 +196,16 @@ export default function PublicSharePage() {
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
     }, []);
+
+    React.useEffect(() => {
+        setLoadingExpired(false);
+        const timer = window.setTimeout(() => {
+            setLoadingExpired(true);
+            setLoading(false);
+        }, PUBLIC_LOADING_FAILSAFE_MS);
+
+        return () => clearTimeout(timer);
+    }, [shareToken]);
 
     React.useEffect(() => () => {
         if (taskPreviewCloseTimeoutRef.current) {
@@ -729,10 +742,10 @@ export default function PublicSharePage() {
     const selectedTaskType = selectedTask?.task_type === "meeting" ? "meeting" : "task";
     const SelectedTaskTypeIcon = selectedTaskType === "meeting" ? MeetingIcon : CheckSquareBroken;
 
-    if (loading || !minLoadingDone) {
+    if ((loading && !loadingExpired) || !minLoadingDone) {
         return (
             <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
-                <BrandedLoadingIndicator size={80} />
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
     }
