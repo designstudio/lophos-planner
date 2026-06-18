@@ -136,11 +136,48 @@ function withTimeout(promise, timeoutMs, timeoutMessage) {
     });
 }
 
+function getPublicTaskNoteTextContent(value) {
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map(item => getPublicTaskNoteTextContent(item))
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    if (!value || typeof value !== "object") {
+        return "";
+    }
+
+    const contentText = getPublicTaskNoteTextContent(value.content);
+    const childrenText = Array.isArray(value.children)
+        ? value.children.map(child => getPublicTaskNoteTextContent(child)).filter(Boolean).join("\n")
+        : "";
+    const rowsText = Array.isArray(value.rows)
+        ? value.rows
+            .map(row => {
+                const cells = Array.isArray(row?.cells) ? row.cells : [];
+                return cells
+                    .map(cell => getPublicTaskNoteTextContent(Array.isArray(cell) ? cell : cell?.content))
+                    .filter(Boolean)
+                    .join(" | ");
+            })
+            .filter(Boolean)
+            .join("\n")
+        : "";
+
+    return [contentText, rowsText, childrenText].filter(Boolean).join("\n");
+}
+
 function renderPublicTaskNoteHtml(task) {
     const note = normalizeTaskNote(task);
     const markdown = (note.markdown || "").trim();
     const plainText = (note.plainText || "").trim();
-    const source = markdown || plainText;
+    const blocksText = (getPublicTaskNoteTextContent(note.blocks) || "").trim();
+    const source = markdown || plainText || blocksText;
 
     return renderTaskMarkdown(source);
 }
@@ -271,10 +308,6 @@ export default function PublicSharePage() {
                 setLoadError("");
             } catch {
                 if (!mounted) return;
-                setOwner(null);
-                setAgenda(null);
-                setTasks([]);
-                setBoardColumns([]);
                 setLoadError("Public share request failed.");
             } finally {
                 if (!mounted) return;
