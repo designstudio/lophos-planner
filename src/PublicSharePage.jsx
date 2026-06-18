@@ -51,57 +51,6 @@ function normalizeSearchText(text) {
         .trim();
 }
 
-function getTaskNoteTextFromBlocks(blocks) {
-    if (!Array.isArray(blocks)) return "";
-
-    const lines = [];
-
-    function visitBlock(block) {
-        if (!block || typeof block !== "object") return;
-
-        const content = block.content;
-
-        if (typeof content === "string" && content.trim()) {
-            lines.push(content.trim());
-        } else if (Array.isArray(content)) {
-            const parts = content.flatMap(item => {
-                if (typeof item === "string") return item;
-                if (item && typeof item.text === "string") return item.text;
-                if (item && Array.isArray(item.content)) {
-                    return item.content.filter(child => typeof child === "string");
-                }
-                return [];
-            }).join("").trim();
-
-            if (parts) {
-                lines.push(parts);
-            }
-        } else if (content && typeof content === "object" && Array.isArray(content.rows)) {
-            content.rows.forEach(row => {
-                const rowText = (Array.isArray(row?.cells) ? row.cells : [])
-                    .map(cell => {
-                        const cellBlocks = Array.isArray(cell) ? cell : Array.isArray(cell?.content) ? cell.content : [];
-                        return getTaskNoteTextFromBlocks(cellBlocks);
-                    })
-                    .filter(Boolean)
-                    .join(" | ")
-                    .trim();
-
-                if (rowText) {
-                    lines.push(rowText);
-                }
-            });
-        }
-
-        if (Array.isArray(block.children)) {
-            block.children.forEach(visitBlock);
-        }
-    }
-
-    blocks.forEach(visitBlock);
-    return lines.join("\n").trim();
-}
-
 function MeetingIcon(props) {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
@@ -189,16 +138,7 @@ function withTimeout(promise, timeoutMs) {
 
 function PublicTaskNoteContent({ task, className = "", onTaskMentionClick }) {
     const note = React.useMemo(() => normalizeTaskNote(task), [task]);
-    const noteSource = React.useMemo(() => {
-        const markdown = (note.markdown || "").trim();
-        if (markdown) return markdown;
-
-        const plainText = (note.plainText || "").trim();
-        if (plainText) return plainText;
-
-        return getTaskNoteTextFromBlocks(note.blocks);
-    }, [note.blocks, note.markdown, note.plainText]);
-    const html = React.useMemo(() => renderTaskMarkdown(noteSource || ""), [noteSource]);
+    const html = React.useMemo(() => renderTaskMarkdown(note.markdown || ""), [note.markdown]);
 
     const handleClickCapture = React.useCallback(event => {
         if (!onTaskMentionClick) return;
