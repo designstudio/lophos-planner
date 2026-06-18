@@ -11,7 +11,7 @@ import { signUpAction } from "./components/forms/signUpAction.js";
 import { resetPasswordAction } from "./components/forms/resetPasswordAction.js";
 import { updateUserAction } from "./components/forms/updateUserAction.js";
 import Error from "./components/Error.jsx";
-import BrandedLoadingIndicator from "./components/BrandedLoadingIndicator.jsx";
+import LoadingIndicator from "./components/LoadingIndicator.jsx";
 
 const HomePage = React.lazy(() => import("./HomePage"));
 const NotFound = React.lazy(() => import("./components/NotFound"));
@@ -22,7 +22,7 @@ function LazyPage({ children }) {
         <React.Suspense
             fallback={(
                 <div className="min-h-screen bg-ds-background-page flex items-center justify-center">
-                    <BrandedLoadingIndicator size={72} />
+                    <LoadingIndicator size={72} />
                 </div>
             )}
         >

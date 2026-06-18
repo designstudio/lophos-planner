@@ -9,7 +9,7 @@ import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
 import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
-import BrandedLoadingIndicator from "./components/BrandedLoadingIndicator.jsx";
+import LoadingIndicator from "./components/LoadingIndicator.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -114,25 +114,6 @@ function isImageAvatar(value) {
 
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
-const PUBLIC_FETCH_TIMEOUT_MS = 10000;
-
-function withTimeout(promise, timeoutMs) {
-    return new Promise((resolve, reject) => {
-        const timeoutId = window.setTimeout(() => {
-            reject(new Error("Public share request timed out."));
-        }, timeoutMs);
-
-        promise
-            .then(value => {
-                clearTimeout(timeoutId);
-                resolve(value);
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                reject(error);
-            });
-    });
-}
 
 function PublicTaskNoteContent({ task, className = "", onTaskMentionClick }) {
     const note = React.useMemo(() => normalizeTaskNote(task), [task]);
@@ -217,10 +198,7 @@ export default function PublicSharePage() {
             }
 
             try {
-                const data = await withTimeout(
-                    getPublicAgendaByShareToken(shareToken),
-                    PUBLIC_FETCH_TIMEOUT_MS
-                );
+                const data = await getPublicAgendaByShareToken(shareToken);
                 if (!mounted) return;
 
                 if (!data) {
@@ -732,7 +710,7 @@ export default function PublicSharePage() {
     if (loading || !minLoadingDone) {
         return (
             <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
-                <BrandedLoadingIndicator size={80} />
+                <LoadingIndicator size={80} />
             </div>
         );
     }
