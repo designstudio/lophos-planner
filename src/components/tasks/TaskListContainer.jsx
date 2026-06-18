@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import Lottie from 'lottie-react';
 import { arrayMove } from "@dnd-kit/sortable";
+import todoLoadingAnimation from '../../assets/todo-loading.json';
 import TaskList from './TaskList.jsx';
 import { supabase } from "../../scripts/supabase.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -7,7 +9,6 @@ import { getTaskById, normalizeTaskRecord, updateTask } from "../../scripts/api.
 import { formDate, getStoredWeekShift, parseDateOnly, syncWeekShiftFromUrl } from "../../scripts/utils.js";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
 import { getCountryCodeForLanguage, getHolidaysByYears } from "../../scripts/holidays.js";
-import LoadingIndicator from '../LoadingIndicator.jsx';
 
 const TaskListContainer = ({
     dndEnabled = false,
@@ -638,7 +639,7 @@ const TaskListContainer = ({
     if (loading || !minLoadingDone) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-white text-black dark:bg-ds-background-page dark:text-ds-text-default">
-                <LoadingIndicator size={80} />
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
     }

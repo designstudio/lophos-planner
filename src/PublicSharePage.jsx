@@ -1,4 +1,6 @@
 import React from "react";
+import Lottie from "lottie-react";
+import todoLoadingAnimation from "./assets/todo-loading.json";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, X, Calendar, StickerSquare, LinkExternal01, SearchMd, XCircle, Attachment02, Umbrella03, CheckSquareBroken } from "@untitledui/icons";
 import { getPublicAgendaByShareToken } from "./scripts/api.js";
@@ -9,7 +11,6 @@ import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
 import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
-import LoadingIndicator from "./components/LoadingIndicator.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -710,7 +711,7 @@ export default function PublicSharePage() {
     if (loading || !minLoadingDone) {
         return (
             <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
-                <LoadingIndicator size={80} />
+                <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
             </div>
         );
     }
