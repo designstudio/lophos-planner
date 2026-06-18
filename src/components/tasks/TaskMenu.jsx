@@ -11,6 +11,7 @@ import {
     ChevronRight,
     Edit02,
     Trash03,
+    XCircle,
 } from "@untitledui/icons";
 import { deleteTask, tryCatchDecorator } from "../../scripts/api.js";
 import { useTaskMenu } from "../../contexts/TaskMenuContext.jsx";
@@ -815,7 +816,7 @@ export default function TaskMenu() {
                                                         style={{ color: "var(--color-text-strong)" }}
                                                         aria-label={t(language, "removeLink")}
                                                     >
-                                                        <X className="h-[14px] w-[14px]" />
+                                                        <XCircle className="h-[14px] w-[14px]" />
                                                     </button>
                                                     <p className="pointer-events-none absolute bottom-[150%] left-1/2 -translate-x-1/2 whitespace-pre rounded-ds-sm tooltip-surface p-1 ds-type-caption opacity-0 transition ease-linear duration-200 group-hover/remove-link:opacity-100">
                                                         {t(language, "removeLink")}
