@@ -2657,7 +2657,7 @@ body[data-scroll-locked="true"],
             border-top-right-radius: var(--radius-2xl) !important;
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
-            height: 75dvh;
+            height: 80dvh;
             max-height: calc(100dvh - 16px);
             padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
             box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
@@ -2670,7 +2670,7 @@ body[data-scroll-locked="true"],
         .task-menu-form {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            max-height: calc(75dvh - 1.5rem - env(safe-area-inset-bottom));
+            max-height: calc(80dvh - 1.5rem - env(safe-area-inset-bottom));
             padding-bottom: 0.125rem;
         }
 
