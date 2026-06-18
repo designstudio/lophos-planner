@@ -10,7 +10,7 @@ import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
-import TaskNoteEditor from "./components/tasks/TaskNoteEditor.jsx";
+import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -115,12 +115,75 @@ function isImageAvatar(value) {
 
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
+const PUBLIC_FETCH_TIMEOUT_MS = 10000;
+const PUBLIC_LOADING_FAILSAFE_MS = 12000;
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+    return new Promise((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+            reject(new Error(timeoutMessage));
+        }, timeoutMs);
+
+        promise
+            .then(result => {
+                clearTimeout(timeoutId);
+                resolve(result);
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                reject(error);
+            });
+    });
+}
+
+function renderPublicTaskNoteHtml(task) {
+    const note = normalizeTaskNote(task);
+    const markdown = (note.markdown || "").trim();
+    const plainText = (note.plainText || "").trim();
+    const source = markdown || plainText;
+
+    return renderTaskMarkdown(source);
+}
+
+function PublicTaskNoteContent({ task, className = "", onTaskMentionClick }) {
+    const html = React.useMemo(() => renderPublicTaskNoteHtml(task), [task]);
+
+    const handleClickCapture = React.useCallback(event => {
+        if (!onTaskMentionClick) return;
+
+        const eventTarget = event.target;
+        if (!(eventTarget instanceof Element)) return;
+
+        const mentionLink = eventTarget.closest('a[href^="#task:"]');
+        if (!mentionLink) return;
+
+        const href = mentionLink.getAttribute("href") || "";
+        const taskId = href.replace(/^#task:/, "").trim();
+        if (!taskId) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        onTaskMentionClick(taskId);
+    }, [onTaskMentionClick]);
+
+    return (
+        <div
+            className={className}
+            data-note-format="legacy-markdown"
+            data-note-read-only="true"
+            onClickCapture={handleClickCapture}
+            dangerouslySetInnerHTML={{ __html: html }}
+        />
+    );
+}
 
 export default function PublicSharePage() {
     const { shareToken } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [loading, setLoading] = React.useState(true);
+    const [isShareLoaded, setIsShareLoaded] = React.useState(false);
+    const [loadError, setLoadError] = React.useState("");
     const [minLoadingDone, setMinLoadingDone] = React.useState(false);
     const [owner, setOwner] = React.useState(null);
     const [agenda, setAgenda] = React.useState(null);
@@ -135,13 +198,31 @@ export default function PublicSharePage() {
     const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
     const [calendarMonth, setCalendarMonth] = React.useState(() => startOfMonth(new Date()));
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
+    const [loadingExpired, setLoadingExpired] = React.useState(false);
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
+    const publicRequestInFlightRef = React.useRef(false);
 
     React.useEffect(() => {
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
     }, []);
+
+    React.useEffect(() => {
+        setLoading(true);
+        setIsShareLoaded(false);
+        setLoadError("");
+        setLoadingExpired(false);
+
+        const timer = window.setTimeout(() => {
+            setLoadingExpired(true);
+            setLoading(false);
+            setIsShareLoaded(true);
+            setLoadError(prev => prev || "Public share load timed out.");
+        }, PUBLIC_LOADING_FAILSAFE_MS);
+
+        return () => clearTimeout(timer);
+    }, [shareToken]);
 
     React.useEffect(() => () => {
         if (taskPreviewCloseTimeoutRef.current) {
@@ -161,12 +242,19 @@ export default function PublicSharePage() {
         let intervalId = null;
 
         async function refreshPublicAgenda(showLoading = false) {
+            if (publicRequestInFlightRef.current) return;
+            publicRequestInFlightRef.current = true;
+
             if (showLoading) {
                 setLoading(true);
             }
 
             try {
-                const data = await getPublicAgendaByShareToken(shareToken);
+                const data = await withTimeout(
+                    getPublicAgendaByShareToken(shareToken),
+                    PUBLIC_FETCH_TIMEOUT_MS,
+                    "Public share request timed out."
+                );
                 if (!mounted) return;
 
                 if (!data) {
@@ -174,23 +262,25 @@ export default function PublicSharePage() {
                     setAgenda(null);
                     setTasks([]);
                     setBoardColumns([]);
-                    return;
+                } else {
+                    setOwner(data.owner || null);
+                    setAgenda(data.agenda || null);
+                    setTasks(Array.isArray(data.tasks) ? data.tasks : []);
+                    setBoardColumns(Array.isArray(data.boardColumns) ? data.boardColumns : []);
                 }
-
-                setOwner(data.owner || null);
-                setAgenda(data.agenda || null);
-                setTasks(Array.isArray(data.tasks) ? data.tasks : []);
-                setBoardColumns(Array.isArray(data.boardColumns) ? data.boardColumns : []);
+                setLoadError("");
             } catch {
                 if (!mounted) return;
                 setOwner(null);
                 setAgenda(null);
                 setTasks([]);
                 setBoardColumns([]);
+                setLoadError("Public share request failed.");
             } finally {
-                if (mounted && showLoading) {
-                    setLoading(false);
-                }
+                if (!mounted) return;
+                publicRequestInFlightRef.current = false;
+                setIsShareLoaded(true);
+                setLoading(false);
             }
         }
 
@@ -220,19 +310,11 @@ export default function PublicSharePage() {
             refreshPublicAgenda(false);
             startPolling();
         }
-
-        function handleWindowFocus() {
-            refreshPublicAgenda(false);
-            startPolling();
-        }
-
-        window.addEventListener("focus", handleWindowFocus);
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
             mounted = false;
             stopPolling();
-            window.removeEventListener("focus", handleWindowFocus);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
         };
     }, [shareToken]);
@@ -372,7 +454,8 @@ export default function PublicSharePage() {
         });
     }
 
-    function openTaskPreview(task) {
+    function openTaskPreview(task, options = {}) {
+        const { syncUrl = true } = options;
         if (taskPreviewCloseTimeoutRef.current) {
             clearTimeout(taskPreviewCloseTimeoutRef.current);
             taskPreviewCloseTimeoutRef.current = null;
@@ -381,7 +464,9 @@ export default function PublicSharePage() {
         setSelectedTask(task);
         setIsTaskPreviewOpen(true);
         requestAnimationFrame(() => setIsTaskPreviewVisible(true));
-        setOpenedTaskInUrl(task.id);
+        if (syncUrl) {
+            setOpenedTaskInUrl(task.id);
+        }
     }
 
     function closeTaskPreview() {
@@ -439,6 +524,8 @@ export default function PublicSharePage() {
     }
 
     React.useEffect(() => {
+        if (!isShareLoaded || loading) return;
+
         if (!openedTaskId) {
             if (selectedTask) {
                 setIsTaskPreviewVisible(false);
@@ -468,7 +555,7 @@ export default function PublicSharePage() {
             setIsTaskPreviewOpen(true);
             requestAnimationFrame(() => setIsTaskPreviewVisible(true));
         }
-    }, [openedTaskId, tasks]);
+    }, [isShareLoaded, loading, openedTaskId, tasks]);
 
     React.useEffect(() => {
         function handleKeyDown(ev) {
@@ -675,7 +762,7 @@ export default function PublicSharePage() {
     const selectedTaskType = selectedTask?.task_type === "meeting" ? "meeting" : "task";
     const SelectedTaskTypeIcon = selectedTaskType === "meeting" ? MeetingIcon : CheckSquareBroken;
 
-    if (loading || !minLoadingDone) {
+    if ((loading && !loadingExpired) || !minLoadingDone) {
         return (
             <div className="min-h-screen bg-white dark:bg-ds-background-page flex items-center justify-center">
                 <Lottie animationData={todoLoadingAnimation} loop style={{ width: 80, height: 80 }} />
@@ -686,7 +773,12 @@ export default function PublicSharePage() {
     if (!owner) {
         return (
             <div className="min-h-screen bg-white px-6 py-8 ds-type-h4 text-ds-text-default dark:bg-ds-background-page">
-                {t(language, "publicAgendaUnavailable")}
+                <div>{t(language, "publicAgendaUnavailable")}</div>
+                {loadError ? (
+                    <p className="mt-3 ds-type-body-sm text-ds-text-muted">
+                        {language === "ptBR" ? "Falha ao carregar a visualização pública." : "Failed to load the public share view."}
+                    </p>
+                ) : null}
             </div>
         );
     }
@@ -1074,11 +1166,9 @@ export default function PublicSharePage() {
                         <div className="task-menu-content-divider" aria-hidden="true" />
 
                         {hasSelectedDescription && (
-                            <TaskNoteEditor
+                            <PublicTaskNoteContent
                                 className="task-menu-editor"
                                 task={selectedTask}
-                                language={language}
-                                readOnly
                                 onTaskMentionClick={openReferencedTask}
                             />
                         )}

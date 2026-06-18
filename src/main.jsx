@@ -1,23 +1,34 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import HomePage from './HomePage';
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import './styles/tokens.css';
 import './index.css';
-import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, createBrowserRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom';
 import AuthProvider, { useAuth } from "./contexts/AuthContext";
 import TaskMenuContext from "./contexts/TaskMenuContext";
 import { signUpAction } from "./components/forms/signUpAction.js";
 import { resetPasswordAction } from "./components/forms/resetPasswordAction.js";
 import { updateUserAction } from "./components/forms/updateUserAction.js";
 import Error from "./components/Error.jsx";
+import LoadingIndicator from "./components/LoadingIndicator.jsx";
+import PublicSharePage from "./PublicSharePage.jsx";
 
+const HomePage = React.lazy(() => import("./HomePage"));
 const NotFound = React.lazy(() => import("./components/NotFound"));
-const PublicSharePage = React.lazy(() => import("./PublicSharePage.jsx"));
 
 function LazyPage({ children }) {
-    return <React.Suspense fallback={null}>{children}</React.Suspense>;
+    return (
+        <React.Suspense
+            fallback={(
+                <div className="min-h-screen bg-ds-background-page flex items-center justify-center">
+                    <LoadingIndicator size={72} />
+                </div>
+            )}
+        >
+            {children}
+        </React.Suspense>
+    );
 }
 
 function App() {
@@ -47,7 +58,7 @@ function App() {
             />
             <Route
                 path="/share/:shareToken"
-                element={<LazyPage><PublicSharePage /></LazyPage>}
+                element={<PublicSharePage />}
                 errorElement={<Error />}
             />
             <Route
@@ -64,10 +75,28 @@ function App() {
     return <RouterProvider router={router} />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-    <AuthProvider>
-        <TaskMenuContext>
-            <App />
-        </TaskMenuContext>
-    </AuthProvider>
-);
+function PublicShareApp() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path="/share/:shareToken" element={<PublicSharePage />} />
+                <Route path="*" element={<LazyPage><NotFound /></LazyPage>} />
+            </Routes>
+        </BrowserRouter>
+    );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+const isPublicShareRoute = typeof window !== "undefined" && window.location.pathname.startsWith("/share/");
+
+if (isPublicShareRoute) {
+    root.render(<PublicShareApp />);
+} else {
+    root.render(
+        <AuthProvider>
+            <TaskMenuContext>
+                <App />
+            </TaskMenuContext>
+        </AuthProvider>
+    );
+}
