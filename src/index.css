@@ -2665,6 +2665,18 @@ body[data-scroll-locked="true"],
             box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
         }
 
+        .blur-bg[data-id="search-form"] > .search-form-sheet {
+            height: 80dvh;
+        }
+
+        .search-form-sheet .search-results {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
         .blur-bg[data-id="task-menu"] {
             padding-top: 1rem;
             padding-right: 0;

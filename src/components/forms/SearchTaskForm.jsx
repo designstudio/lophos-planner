@@ -73,7 +73,7 @@ export default function SearchTaskForm() {
         <Blur bgColor="bg-black" type="search-form" mobileSheet>
             <div
                 ref={modalRef}
-                className="search-form ds-modal-shell ds-mobile-sheet relative z-20 w-[28rem] p-4 transition-all duration-[160ms] ease-linear lg:p-8"
+                className="search-form search-form-sheet ds-modal-shell ds-mobile-sheet relative z-20 flex w-[28rem] flex-col p-4 transition-all duration-[160ms] ease-linear lg:p-8"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="ds-type-h4 text-ds-text-default">{t(language, "search")}</h3>
