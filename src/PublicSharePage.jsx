@@ -1444,16 +1444,18 @@ export default function PublicSharePage() {
 
             {isTaskPreviewOpen && selectedTask && (
                 <div
-                    className={`fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto overscroll-contain px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-[70] flex justify-center overflow-y-auto overscroll-contain transition-opacity duration-[160ms] ${isMobile ? "items-end px-0 pb-0 pt-4" : "items-start px-4 pb-10 pt-16"} ${isTaskPreviewVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
                         backgroundColor: "var(--color-overlay-scrim)",
                         backdropFilter: "blur(2px)",
                         WebkitBackdropFilter: "blur(2px)",
                     }}
+                    role="dialog"
+                    aria-modal="true"
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] border-0 px-6 py-6 text-ds-text-muted outline-none ring-0 transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel ds-modal-shell ds-mobile-sheet relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] border-0 px-6 py-6 text-ds-text-muted outline-none ring-0 transition-all duration-[160ms] ease-in ${isMobile ? "overflow-y-auto overscroll-contain" : ""} ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="task-menu-header">
@@ -1527,16 +1529,18 @@ export default function PublicSharePage() {
 
             {isSearchOpen && (
                 <div
-                    className={`fixed inset-0 z-[70] flex items-start justify-center px-4 pb-10 pt-16 transition-opacity duration-[160ms] ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                    className={`fixed inset-0 z-[70] flex justify-center overflow-y-auto overscroll-contain transition-opacity duration-[160ms] ${isMobile ? "items-end px-0 pb-0 pt-4" : "items-start px-4 pb-10 pt-16"} ${isSearchVisible ? "opacity-100" : "pointer-events-none opacity-0"}`}
                     style={{
                         backgroundColor: "var(--color-overlay-scrim)",
                         backdropFilter: "blur(2px)",
                         WebkitBackdropFilter: "blur(2px)",
                     }}
+                    role="dialog"
+                    aria-modal="true"
                     onClick={closeSearchModal}
                 >
                     <div
-                        className={`search-form ds-modal-shell relative z-[80] w-[28rem] max-w-full p-4 text-ds-text-muted transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`search-form search-form-sheet ds-modal-shell ds-mobile-sheet relative z-[80] flex w-[28rem] max-w-full flex-col p-4 text-ds-text-muted transition-all duration-[160ms] ease-in lg:p-8 ${isSearchVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <h3 className="ds-type-h4 text-ds-text-default">{t(language, "search")}</h3>
