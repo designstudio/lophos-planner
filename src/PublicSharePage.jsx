@@ -10,7 +10,7 @@ import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
-import { renderTaskMarkdown } from "./scripts/taskMarkdown.js";
+import TaskNoteEditor from "./components/tasks/TaskNoteEditor.jsx";
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -49,57 +49,6 @@ function normalizeSearchText(text) {
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
-}
-
-function getTaskNoteTextFromBlocks(blocks) {
-    if (!Array.isArray(blocks)) return "";
-
-    const lines = [];
-
-    function visitBlock(block) {
-        if (!block || typeof block !== "object") return;
-
-        const content = block.content;
-
-        if (typeof content === "string" && content.trim()) {
-            lines.push(content.trim());
-        } else if (Array.isArray(content)) {
-            const parts = content.flatMap(item => {
-                if (typeof item === "string") return item;
-                if (item && typeof item.text === "string") return item.text;
-                if (item && Array.isArray(item.content)) {
-                    return item.content.filter(child => typeof child === "string");
-                }
-                return [];
-            }).join("").trim();
-
-            if (parts) {
-                lines.push(parts);
-            }
-        } else if (content && typeof content === "object" && Array.isArray(content.rows)) {
-            content.rows.forEach(row => {
-                const rowText = (Array.isArray(row?.cells) ? row.cells : [])
-                    .map(cell => {
-                        const cellBlocks = Array.isArray(cell) ? cell : Array.isArray(cell?.content) ? cell.content : [];
-                        return getTaskNoteTextFromBlocks(cellBlocks);
-                    })
-                    .filter(Boolean)
-                    .join(" | ")
-                    .trim();
-
-                if (rowText) {
-                    lines.push(rowText);
-                }
-            });
-        }
-
-        if (Array.isArray(block.children)) {
-            block.children.forEach(visitBlock);
-        }
-    }
-
-    blocks.forEach(visitBlock);
-    return lines.join("\n").trim();
 }
 
 function MeetingIcon(props) {
@@ -187,44 +136,14 @@ function withTimeout(promise, timeoutMs) {
     });
 }
 
-function PublicTaskNoteContent({ task, className = "", onTaskMentionClick }) {
-    const note = React.useMemo(() => normalizeTaskNote(task), [task]);
-    const noteSource = React.useMemo(() => {
-        const markdown = (note.markdown || "").trim();
-        if (markdown) return markdown;
-
-        const plainText = (note.plainText || "").trim();
-        if (plainText) return plainText;
-
-        return getTaskNoteTextFromBlocks(note.blocks);
-    }, [note.blocks, note.markdown, note.plainText]);
-    const html = React.useMemo(() => renderTaskMarkdown(noteSource || ""), [noteSource]);
-
-    const handleClickCapture = React.useCallback(event => {
-        if (!onTaskMentionClick) return;
-
-        const eventTarget = event.target;
-        if (!(eventTarget instanceof Element)) return;
-
-        const mentionLink = eventTarget.closest('a[href^="#task:"]');
-        if (!mentionLink) return;
-
-        const href = mentionLink.getAttribute("href") || "";
-        const taskId = href.replace(/^#task:/, "").trim();
-        if (!taskId) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-        onTaskMentionClick(taskId);
-    }, [onTaskMentionClick]);
-
+function PublicTaskNoteContent({ task, className = "", language, onTaskMentionClick }) {
     return (
-        <div
+        <TaskNoteEditor
             className={className}
-            data-note-format="legacy-markdown"
-            data-note-read-only="true"
-            onClickCapture={handleClickCapture}
-            dangerouslySetInnerHTML={{ __html: html }}
+            task={task}
+            language={language}
+            readOnly
+            onTaskMentionClick={onTaskMentionClick}
         />
     );
 }
@@ -1204,6 +1123,7 @@ export default function PublicSharePage() {
                             <PublicTaskNoteContent
                                 className="task-menu-editor"
                                 task={selectedTask}
+                                language={language}
                                 onTaskMentionClick={openReferencedTask}
                             />
                         )}
