@@ -563,6 +563,7 @@ export default function TaskMenu() {
                             event.stopPropagation();
                         }}
                     >
+                        <div className="task-menu-sheet-handle" aria-hidden="true" />
                         <form className="task-menu-form">
                     <div className="task-menu-header">
                         <div className="task-menu-header-meta">

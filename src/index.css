@@ -299,6 +299,21 @@ body[data-scroll-locked="true"],
         border: 0 !important;
         outline: none !important;
         box-shadow: 0 4px 12px color-mix(in srgb, var(--color-river-bed-950) 10%, transparent) !important;
+        overflow: hidden;
+    }
+
+    .task-menu-sheet-handle {
+        display: none;
+        width: 3rem;
+        height: 0.3125rem;
+        margin: 0 auto 1rem;
+        border-radius: var(--radius-full);
+        background-color: var(--color-border-strong);
+        opacity: 0.7;
+    }
+
+    .task-menu-form {
+        max-height: inherit;
     }
 
     .task-menu-toolbar-sentinel {
@@ -2606,6 +2621,47 @@ body[data-scroll-locked="true"],
 
     .blur-bg[data-closing="true"] {
         pointer-events: none;
+    }
+
+    @media (max-width: 767px) {
+        .blur-bg[data-id="task-menu"] {
+            padding-top: 1rem;
+            padding-right: 0;
+            padding-bottom: 0;
+            padding-left: 0;
+            align-items: flex-end;
+        }
+
+        .blur-bg[data-id="task-menu"] > .task-menu {
+            margin-bottom: 0;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .task-menu-panel {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-top-left-radius: var(--radius-2xl) !important;
+            border-top-right-radius: var(--radius-2xl) !important;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            max-height: calc(100dvh - 16px);
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
+        }
+
+        .task-menu-sheet-handle {
+            display: block;
+        }
+
+        .task-menu-form {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            max-height: calc(100dvh - 16px - 2.8125rem - env(safe-area-inset-bottom));
+            padding-bottom: 0.125rem;
+        }
     }
 
     .invite.active > .invite-page {
