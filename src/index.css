@@ -436,6 +436,35 @@ body[data-scroll-locked="true"],
         min-width: 0;
     }
 
+    .task-menu-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .task-menu-close-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border: 0;
+        border-radius: var(--radius-full);
+        background-color: transparent;
+        color: var(--color-text-default);
+        transition: background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .task-menu-close-btn:hover {
+        background-color: var(--color-bg-surface-muted);
+    }
+
+    .task-menu-close-btn:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-text-strong) 12%, transparent);
+    }
+
     .task-menu-content-divider {
         margin-top: var(--space-xs);
         margin-bottom: var(--space-sm);
@@ -2661,6 +2690,10 @@ body[data-scroll-locked="true"],
             -webkit-overflow-scrolling: touch;
             max-height: calc(100dvh - 16px - 2.8125rem - env(safe-area-inset-bottom));
             padding-bottom: 0.125rem;
+        }
+
+        .task-menu-close-btn {
+            display: inline-flex;
         }
     }
 

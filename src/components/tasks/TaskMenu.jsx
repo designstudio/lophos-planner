@@ -458,6 +458,12 @@ export default function TaskMenu() {
         setIsTaskDone(prev => !prev);
     }
 
+    function requestTaskMenuClose() {
+        window.dispatchEvent(new CustomEvent("modal-close-request", {
+            detail: { type: "task-menu" },
+        }));
+    }
+
     function handleOpenReferencedTask(referencedTaskId) {
         if (!referencedTaskId) return;
 
@@ -663,12 +669,22 @@ export default function TaskMenu() {
                                 )}
                             </div>
                         </div>
-                        <TaskMenuBtn
-                            icon={Trash03}
-                            onClick={openDeleteTaskModal}
-                            tooltip={t(language, "taskMenuDelete")}
-                            buttonClassName="task-menu-delete-btn"
-                        />
+                        <div className="task-menu-header-actions">
+                            <button
+                                type="button"
+                                onClick={requestTaskMenuClose}
+                                className="task-menu-close-btn"
+                                aria-label={t(language, "close")}
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                            <TaskMenuBtn
+                                icon={Trash03}
+                                onClick={openDeleteTaskModal}
+                                tooltip={t(language, "taskMenuDelete")}
+                                buttonClassName="task-menu-delete-btn"
+                            />
+                        </div>
                     </div>
 
                     <div className="relative">

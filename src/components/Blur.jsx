@@ -196,6 +196,20 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [forceActive, type]);
 
+    useEffect(() => {
+        async function handleModalCloseRequest(ev) {
+            if (ev.detail?.type !== type) return;
+
+            const el = blurRef.current;
+            if (!el?.classList.contains("active")) return;
+
+            await closeModal();
+        }
+
+        window.addEventListener("modal-close-request", handleModalCloseRequest);
+        return () => window.removeEventListener("modal-close-request", handleModalCloseRequest);
+    }, [type]);
+
     return (
         <div ref={blurRef} data-id={type} className={`blur-bg ${isActive ? "active" : ""} fixed inset-0 z-[60]
         overflow-y-auto overscroll-contain px-4 ${topSpacingClass} pb-10 transition-all duration-[160ms] ease-linear cursor-default flex justify-center items-start`}
