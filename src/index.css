@@ -303,6 +303,10 @@ body[data-scroll-locked="true"],
         overflow-x: hidden;
     }
 
+    .ds-mobile-sheet {
+        overflow-x: hidden;
+    }
+
     .task-menu-sheet-handle {
         display: none;
         width: 3rem;
@@ -2633,6 +2637,34 @@ body[data-scroll-locked="true"],
     }
 
     @media (max-width: 767px) {
+        .blur-bg[data-mobile-sheet="true"] {
+            padding-top: 1rem;
+            padding-right: 0;
+            padding-bottom: 0;
+            padding-left: 0;
+            align-items: flex-end;
+        }
+
+        .blur-bg[data-mobile-sheet="true"] > .ds-mobile-sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin-bottom: 0;
+            width: 100%;
+            max-width: 100%;
+            max-height: calc(80dvh + env(safe-area-inset-bottom));
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            border-top-left-radius: var(--radius-2xl) !important;
+            border-top-right-radius: var(--radius-2xl) !important;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+            box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
+        }
+
         .blur-bg[data-id="task-menu"] {
             padding-top: 1rem;
             padding-right: 0;

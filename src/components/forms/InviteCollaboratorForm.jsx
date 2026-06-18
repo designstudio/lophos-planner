@@ -96,10 +96,10 @@ export default function InviteCollaboratorForm() {
     }
 
     return (
-        <Blur bgColor="bg-black" type="invite-collaborator-form">
+        <Blur bgColor="bg-black" type="invite-collaborator-form" mobileSheet>
             <div
                 ref={modalRef}
-                className="invite-collaborator-form ds-modal-shell relative z-20 w-[28rem] p-4 transition-all duration-[160ms] ease-linear lg:p-8"
+                className="invite-collaborator-form ds-modal-shell ds-mobile-sheet relative z-20 w-[28rem] p-4 transition-all duration-[160ms] ease-linear lg:p-8"
                 onClick={ev => ev.stopPropagation()}
             >
                 <div>

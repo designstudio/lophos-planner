@@ -208,9 +208,9 @@ export default function UpdateUserForm({ recoveryMode = false }) {
     return (
         <>
         {!isDeleteModalOpen && (
-        <Blur type="update-user-form">
+        <Blur type="update-user-form" mobileSheet>
             <div
-                className="update-user-form ds-modal-shell relative z-20 mb-6 w-[32rem] max-w-full px-6 py-7 transition-all duration-500 ease-linear"
+                className="update-user-form ds-modal-shell ds-mobile-sheet relative z-20 mb-6 w-[32rem] max-w-full px-6 py-7 transition-all duration-500 ease-linear"
                 onClick={ev => ev.stopPropagation()}
             >
                 <h3 className="ds-type-h4 text-ds-text-default">{t(language, "settingsTitle")}</h3>

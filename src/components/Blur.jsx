@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { updateTask, tryCatchDecorator } from "../scripts/api.js";
 import { clearTaskFromUrl, closeForm, hasOpenModals, isModalOpen, registerModal, setPageScrollLocked, subscribeToModalState } from "../scripts/utils.js";
 
-export default function Blur({ children, type, bgColor="bg-white", forceActive = false }) {
+export default function Blur({ children, type, bgColor="bg-white", forceActive = false, mobileSheet = false }) {
     const blurRef = useRef(null);
     const openedAtRef = useRef(0);
     const lastFocusedElementRef = useRef(null);
@@ -211,7 +211,7 @@ export default function Blur({ children, type, bgColor="bg-white", forceActive =
     }, [type]);
 
     return (
-        <div ref={blurRef} data-id={type} className={`blur-bg ${isActive ? "active" : ""} fixed inset-0 z-[60]
+        <div ref={blurRef} data-id={type} data-mobile-sheet={mobileSheet ? "true" : "false"} className={`blur-bg ${isActive ? "active" : ""} fixed inset-0 z-[60]
         overflow-y-auto overscroll-contain px-4 ${topSpacingClass} pb-10 transition-all duration-[160ms] ease-linear cursor-default flex justify-center items-start`}
              style={{
                  backgroundColor: "var(--color-overlay-scrim)",

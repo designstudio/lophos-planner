@@ -165,10 +165,10 @@ export default function StatusGeneratorForm() {
     }
 
     return (
-        <Blur bgColor="bg-black" type="status-generator-form">
+        <Blur bgColor="bg-black" type="status-generator-form" mobileSheet>
             <div
                 ref={modalRef}
-                className="status-generator-form ds-modal-shell relative z-20 mb-6 w-[44rem] max-w-[calc(100vw-2rem)] px-6 py-7"
+                className="status-generator-form ds-modal-shell ds-mobile-sheet relative z-20 mb-6 w-[44rem] max-w-[calc(100vw-2rem)] px-6 py-7"
                 style={{ backgroundColor: "var(--color-bg-page)" }}
                 onClick={ev => ev.stopPropagation()}
             >
