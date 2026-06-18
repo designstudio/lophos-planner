@@ -9,6 +9,7 @@ import { formatDayMonth, formatTaskDetailDate, getLocale, t } from "./scripts/i1
 import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
+import { renderTaskMarkdown, sanitizeTaskHtml } from "./scripts/taskMarkdown.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
 
 function startOfMonth(date) {
@@ -66,7 +67,7 @@ function renderPublicTaskTitle(task, relatedLinkCount, maxLength = 34) {
 
     return (
         <div className={`relative min-w-0 flex-1 ${isTruncated ? "group/task-title" : ""}`}>
-            <h5 className={`public-task-title min-w-0 flex items-center gap-1 text-ds-text-default ${task.done ? "opacity-40 line-through" : ""}`}>
+            <h5 className={`public-task-title task-title min-w-0 flex items-center gap-1 px-0 py-0 text-[16px] font-normal leading-[22px] text-ds-text-default lg:text-[14px] lg:leading-[41px] ${task.done ? "opacity-40 line-through" : ""}`}>
                 {hasTaskNoteContent(task) && <StickerSquare className="h-4 w-4 shrink-0" />}
                 {relatedLinkCount > 0 && <Attachment02 className="h-4 w-4 shrink-0" />}
                 <span className="block min-w-0 truncate">{visibleTaskName}</span>
@@ -114,6 +115,152 @@ function isImageAvatar(value) {
 
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
+
+function escapePublicNoteHtml(value) {
+    return (value || "")
+        .toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function renderPublicNoteInlineContent(value) {
+    if (typeof value === "string") {
+        return escapePublicNoteHtml(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(item => renderPublicNoteInlineContent(item)).join("");
+    }
+
+    if (!value || typeof value !== "object") {
+        return "";
+    }
+
+    const href = typeof value.href === "string" ? normalizeLinkUrl(value.href) : "";
+    const rawText = typeof value.text === "string" ? value.text : "";
+    const rawContent = value.content ?? rawText;
+    let html = renderPublicNoteInlineContent(rawContent);
+
+    if (!html && rawText) {
+        html = escapePublicNoteHtml(rawText);
+    }
+
+    const styles = value.styles && typeof value.styles === "object" ? value.styles : null;
+    if (styles) {
+        if (styles.code) html = `<code>${html}</code>`;
+        if (styles.bold) html = `<strong>${html}</strong>`;
+        if (styles.italic) html = `<em>${html}</em>`;
+        if (styles.underline) html = `<u>${html}</u>`;
+        if (styles.strike) html = `<s>${html}</s>`;
+    }
+
+    if (href) {
+        html = `<a href="${escapePublicNoteHtml(href)}" target="_blank" rel="noreferrer noopener">${html || escapePublicNoteHtml(href)}</a>`;
+    }
+
+    return html;
+}
+
+function renderPublicNoteTableRows(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return "";
+
+    const bodyHtml = rows
+        .map(row => {
+            const cells = Array.isArray(row?.cells) ? row.cells : [];
+            const cellsHtml = cells
+                .map(cell => {
+                    const content = Array.isArray(cell) ? cell : cell?.content;
+                    return `<td>${renderPublicNoteInlineContent(content)}</td>`;
+                })
+                .join("");
+
+            return cellsHtml ? `<tr>${cellsHtml}</tr>` : "";
+        })
+        .filter(Boolean)
+        .join("");
+
+    return bodyHtml ? `<div class="task-table-shell"><table><tbody>${bodyHtml}</tbody></table></div>` : "";
+}
+
+function getPublicNoteListType(blockType) {
+    if (blockType === "bulletListItem") return "unordered";
+    if (blockType === "numberedListItem") return "ordered";
+    if (blockType === "checkListItem") return "check";
+    return null;
+}
+
+function renderPublicNoteBlock(block) {
+    if (!block || typeof block !== "object") return "";
+
+    const type = (block.type || "paragraph").toString();
+    const rows = Array.isArray(block.content?.rows) ? block.content.rows : [];
+    const inlineHtml = renderPublicNoteInlineContent(block.content);
+    const childrenHtml = renderPublicNoteBlocksHtml(block.children);
+
+    if (rows.length > 0) {
+        return renderPublicNoteTableRows(rows);
+    }
+
+    if (type === "heading") {
+        const level = Number(block.props?.level || 3);
+        const safeLevel = level >= 1 && level <= 3 ? level : 3;
+        return `<h${safeLevel}>${inlineHtml}</h${safeLevel}>${childrenHtml}`;
+    }
+
+    if (type === "quote") {
+        return `<blockquote><p>${inlineHtml}</p></blockquote>${childrenHtml}`;
+    }
+
+    if (type === "paragraph") {
+        return inlineHtml ? `<p>${inlineHtml}</p>${childrenHtml}` : childrenHtml;
+    }
+
+    return inlineHtml ? `<p>${inlineHtml}</p>${childrenHtml}` : childrenHtml;
+}
+
+function renderPublicNoteListItem(block) {
+    const inlineHtml = renderPublicNoteInlineContent(block?.content);
+    const childrenHtml = renderPublicNoteBlocksHtml(block?.children);
+    const isChecked = block?.props?.checked === true;
+
+    if (block?.type === "checkListItem") {
+        return `<li><label><input type="checkbox" disabled ${isChecked ? "checked" : ""} /><span>${inlineHtml}</span></label>${childrenHtml}</li>`;
+    }
+
+    return `<li>${inlineHtml}${childrenHtml}</li>`;
+}
+
+function renderPublicNoteBlocksHtml(blocks) {
+    if (!Array.isArray(blocks) || blocks.length === 0) return "";
+
+    let html = "";
+
+    for (let index = 0; index < blocks.length; index += 1) {
+        const block = blocks[index];
+        const listType = getPublicNoteListType(block?.type);
+
+        if (listType) {
+            const tagName = listType === "ordered" ? "ol" : "ul";
+            const items = [];
+
+            while (index < blocks.length && getPublicNoteListType(blocks[index]?.type) === listType) {
+                items.push(renderPublicNoteListItem(blocks[index]));
+                index += 1;
+            }
+
+            html += `<${tagName}>${items.join("")}</${tagName}>`;
+            index -= 1;
+            continue;
+        }
+
+        html += renderPublicNoteBlock(block);
+    }
+
+    return html;
+}
 
 function getPublicNoteInlineText(value) {
     if (typeof value === "string") {
@@ -282,35 +429,57 @@ function renderPublicMarkdownLines(source) {
 
 function PublicTaskNoteContent({ task, language }) {
     const note = React.useMemo(() => normalizeTaskNote(task), [task]);
+    const blocksHtml = React.useMemo(() => {
+        const rawHtml = renderPublicNoteBlocksHtml(note.blocks);
+        return rawHtml ? sanitizeTaskHtml(rawHtml) : "";
+    }, [note.blocks]);
+    const markdownSource = React.useMemo(
+        () => (note.markdown || note.plainText || "").trim(),
+        [note.markdown, note.plainText]
+    );
+    const renderedMarkdownHtml = React.useMemo(
+        () => (markdownSource ? renderTaskMarkdown(markdownSource) : ""),
+        [markdownSource]
+    );
 
-    const sections = React.useMemo(() => {
-        const blockSections = extractPublicNoteBlocks(note.blocks);
-        if (blockSections.length > 0) return blockSections;
+    if (blocksHtml) {
+        return (
+            <div
+                className="task-menu-editor public-task-note-content text-ds-text-default"
+                data-note-format="legacy-markdown"
+                dangerouslySetInnerHTML={{ __html: blocksHtml }}
+            />
+        );
+    }
 
-        const markdownSource = (note.markdown || note.plainText || "").trim();
-        if (markdownSource) {
-            return renderPublicMarkdownLines(markdownSource);
-        }
+    if (renderedMarkdownHtml) {
+        return (
+            <div
+                className="task-menu-editor public-task-note-content text-ds-text-default"
+                data-note-format="legacy-markdown"
+                dangerouslySetInnerHTML={{ __html: renderedMarkdownHtml }}
+            />
+        );
+    }
 
-        return [];
-    }, [note.blocks, note.markdown, note.plainText]);
+    const sections = renderPublicMarkdownLines(markdownSource);
 
     if (sections.length === 0) {
         return (
-            <div className="task-menu-editor ds-type-body-sm text-ds-text-muted">
+            <div className="task-menu-editor public-task-note-content ds-type-body-sm text-ds-text-muted" data-note-format="legacy-markdown">
                 {t(language, "emptyStateNoDescription")}
             </div>
         );
     }
 
     return (
-        <div className="task-menu-editor space-y-3 text-ds-text-default">
+        <div className="task-menu-editor public-task-note-content text-ds-text-default" data-note-format="legacy-markdown">
             {sections.map(section => {
                 if (section.kind === "unordered") {
                     return (
-                        <ul key={section.key} className="list-disc space-y-2 pl-5">
+                        <ul key={section.key}>
                             {section.items.map((item, index) => (
-                                <li key={`${section.key}-${index}`} className="ds-type-body-sm text-ds-text-default">
+                                <li key={`${section.key}-${index}`}>
                                     {item}
                                 </li>
                             ))}
@@ -320,9 +489,9 @@ function PublicTaskNoteContent({ task, language }) {
 
                 if (section.kind === "ordered") {
                     return (
-                        <ol key={section.key} className="list-decimal space-y-2 pl-5">
+                        <ol key={section.key}>
                             {section.items.map((item, index) => (
-                                <li key={`${section.key}-${index}`} className="ds-type-body-sm text-ds-text-default">
+                                <li key={`${section.key}-${index}`}>
                                     {item}
                                 </li>
                             ))}
@@ -332,9 +501,9 @@ function PublicTaskNoteContent({ task, language }) {
 
                 if (section.kind === "heading") {
                     return (
-                        <h4 key={section.key} className="text-sm font-semibold text-ds-text-default">
+                        <h3 key={section.key} className="text-ds-text-default">
                             {section.text}
-                        </h4>
+                        </h3>
                     );
                 }
 
@@ -348,7 +517,7 @@ function PublicTaskNoteContent({ task, language }) {
 
                 if (section.kind === "checkListItem") {
                     return (
-                        <p key={section.key} className="ds-type-body-sm text-ds-text-default">
+                        <p key={section.key}>
                             {section.checked ? "[x] " : "[ ] "}
                             {section.text}
                         </p>
@@ -356,7 +525,7 @@ function PublicTaskNoteContent({ task, language }) {
                 }
 
                 return (
-                    <p key={section.key} className="ds-type-body-sm text-ds-text-default whitespace-pre-wrap break-words">
+                    <p key={section.key} className="whitespace-pre-wrap break-words">
                         {section.text}
                     </p>
                 );
@@ -1130,10 +1299,10 @@ export default function PublicSharePage() {
                     return (
                         <div className="public-day-block min-w-0 flex flex-col" key={`${dateKey}-${index}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-ds-text-default"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label ds-type-planner-column-title ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label ds-type-planner-column-day ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
@@ -1186,10 +1355,10 @@ export default function PublicSharePage() {
                         return (
                             <div className="public-day-block min-w-0 flex flex-1 flex-col" key={`${dateKey}-${index + 5}`}>
                             <div className={`flex items-center justify-between border-b-2 py-3 ${active ? "agenda-accent-border" : "border-ds-text-default"}`} style={active ? { borderColor: agendaAccent } : undefined}>
-                                <h2 className={`public-date-label ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h2 className={`public-date-label ds-type-planner-column-title ${active ? "agenda-accent-text" : "text-ds-text-default"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {formatDayMonth(date, language, dateFormat)}
                                 </h2>
-                                <h3 className={`public-weekday-label ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
+                                <h3 className={`public-weekday-label ds-type-planner-column-day ${active ? "agenda-accent-text opacity-50" : "text-ds-text-default opacity-20"}`} style={active ? { color: agendaAccent } : undefined}>
                                     {label}
                                 </h3>
                             </div>
@@ -1241,10 +1410,10 @@ export default function PublicSharePage() {
                             return (
                                 <div className="min-w-0 flex flex-col" key={column.id}>
                                     <div className={`flex items-start justify-between border-b-2 py-3 ${index === 0 && isColumnBlankTitle ? "opacity-40" : ""}`}>
-                                        <h2 className={`public-date-label min-w-0 ${isColumnBlankTitle ? "opacity-30" : "text-ds-text-default"}`}>
+                                        <h2 className={`public-date-label ds-type-planner-column-title min-w-0 ${isColumnBlankTitle ? "opacity-30" : "text-ds-text-default"}`}>
                                             {column.title || ""}
                                         </h2>
-                                        <h3 className="public-weekday-label text-ds-text-default opacity-20">{""}</h3>
+                                        <h3 className="public-weekday-label ds-type-planner-column-day text-ds-text-default opacity-20">{""}</h3>
                                     </div>
 
                                     {columnTasks.map(task => (
@@ -1284,7 +1453,7 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden px-6 py-6 text-ds-text-muted transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel ds-modal-shell relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] border-0 px-6 py-6 text-ds-text-muted outline-none ring-0 transition-all duration-[160ms] ease-in ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="task-menu-header">
@@ -1315,7 +1484,7 @@ export default function PublicSharePage() {
                             </div>
                         </div>
 
-                        <h3 className={`task-menu-title w-full pb-2 pr-10 ds-type-h3 text-ds-text-default ${selectedTask.done ? "text-black/40" : ""}`}>
+                        <h3 className={`task-menu-title m-0 w-full pb-2 pr-10 text-[24px] leading-[1.3] font-normal text-ds-text-default ${selectedTask.done ? "opacity-40" : ""}`}>
                             {selectedTask.name}
                         </h3>
 

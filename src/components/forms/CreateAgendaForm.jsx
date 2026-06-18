@@ -3,7 +3,7 @@ import Blur from "../Blur.jsx";
 import { closeForm } from "../../scripts/utils.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import { getAppLanguage, t } from "../../scripts/i18n.js";
-import { Camera01, MagicWand01, Check } from "@untitledui/icons";
+import { Camera01, MagicWand01, Check, Link01, Umbrella03 } from "@untitledui/icons";
 import { AGENDA_COLORS, DEFAULT_AGENDA_COLOR } from "./agendaColorOptions.js";
 import AgendaColorHexInput from "../ui/AgendaColorHexInput.jsx";
 
@@ -17,6 +17,8 @@ export default function CreateAgendaForm() {
     const [avatar, setAvatar] = React.useState("");
     const [color, setColor] = React.useState(DEFAULT_AGENDA_COLOR);
     const [sortCompletedTasks, setSortCompletedTasks] = React.useState(true);
+    const [relatedLinksEnabled, setRelatedLinksEnabled] = React.useState(true);
+    const [holidaysEnabled, setHolidaysEnabled] = React.useState(true);
     const [loading, setLoading] = React.useState(false);
     const [errorMessage, setErrorMessage] = React.useState("");
     const [avatarLoading, setAvatarLoading] = React.useState(false);
@@ -55,7 +57,11 @@ export default function CreateAgendaForm() {
         setLoading(true);
         setErrorMessage("");
 
-        const result = await createAgenda(name.trim(), avatar.trim(), color.trim() || DEFAULT_AGENDA_COLOR, { sortCompletedTasks });
+        const result = await createAgenda(name.trim(), avatar.trim(), color.trim() || DEFAULT_AGENDA_COLOR, {
+            sortCompletedTasks,
+            relatedLinksEnabled,
+            holidaysEnabled,
+        });
         if (result?.type === "error") {
             setErrorMessage(result.errorMessage || t(language, "agendaCreateError"));
             setLoading(false);
@@ -66,6 +72,8 @@ export default function CreateAgendaForm() {
         setAvatar("");
         setColor(DEFAULT_AGENDA_COLOR);
         setSortCompletedTasks(true);
+        setRelatedLinksEnabled(true);
+        setHolidaysEnabled(true);
         setLoading(false);
         closeForm("create-agenda-form");
     }
@@ -154,6 +162,78 @@ export default function CreateAgendaForm() {
                                         : "translate-x-0 bg-ds-text-default"
                                 }`}>
                                     {sortCompletedTasks && (
+                                        <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Link01 className="h-4 w-4 text-ds-text-default" />
+                                <span className="ds-type-body text-ds-text-default">{t(language, "relatedLinksFeatureLabel")}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setRelatedLinksEnabled(!relatedLinksEnabled)}
+                                className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${
+                                    relatedLinksEnabled
+                                        ? "border-ds-text-default bg-ds-text-default"
+                                        : "border-ds-text-default bg-ds-background-surface"
+                                }`}
+                                aria-pressed={relatedLinksEnabled}
+                                aria-label={t(language, "relatedLinksFeatureLabel")}
+                                style={{
+                                    backgroundColor: relatedLinksEnabled ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderColor: "var(--color-text-default)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
+                            >
+                                <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
+                                    relatedLinksEnabled
+                                        ? "translate-x-[20px] bg-ds-background-surface"
+                                        : "translate-x-0 bg-ds-text-default"
+                                }`}
+                                    style={{
+                                        backgroundColor: relatedLinksEnabled ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}>
+                                    {relatedLinksEnabled && (
+                                        <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
+                                    )}
+                                </div>
+                            </button>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Umbrella03 className="h-4 w-4 text-ds-text-default" />
+                                <span className="ds-type-body text-ds-text-default">{t(language, "holidaysFeatureLabel")}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setHolidaysEnabled(!holidaysEnabled)}
+                                className={`relative box-border h-6 w-11 appearance-none rounded-full border-2 shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ds-border-default focus-visible:ring-offset-2 ${
+                                    holidaysEnabled
+                                        ? "border-ds-text-default bg-ds-text-default"
+                                        : "border-ds-text-default bg-ds-background-surface"
+                                }`}
+                                aria-pressed={holidaysEnabled}
+                                aria-label={t(language, "holidaysFeatureLabel")}
+                                style={{
+                                    backgroundColor: holidaysEnabled ? "var(--color-text-default)" : "var(--color-bg-surface)",
+                                    borderColor: "var(--color-text-default)",
+                                    borderRadius: "var(--radius-full)",
+                                }}
+                            >
+                                <div className={`h-4 w-4 absolute left-0.5 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center transition-all transform ${
+                                    holidaysEnabled
+                                        ? "translate-x-[20px] bg-ds-background-surface"
+                                        : "translate-x-0 bg-ds-text-default"
+                                }`}
+                                    style={{
+                                        backgroundColor: holidaysEnabled ? "var(--color-bg-surface)" : "var(--color-text-default)",
+                                        borderRadius: "var(--radius-full)",
+                                    }}>
+                                    {holidaysEnabled && (
                                         <Check className="h-3 w-3 text-ds-text-default" strokeWidth={3} />
                                     )}
                                 </div>
