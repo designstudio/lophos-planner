@@ -1455,7 +1455,7 @@ export default function PublicSharePage() {
                     onClick={closeTaskPreview}
                 >
                     <div
-                        className={`task-menu task-menu-panel ds-modal-shell ds-mobile-sheet relative z-[80] mb-6 w-[32rem] max-w-full overflow-x-hidden rounded-[28px] border-0 px-6 py-6 text-ds-text-muted outline-none ring-0 transition-all duration-[160ms] ease-in ${isMobile ? "overflow-y-auto overscroll-contain" : ""} ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+                        className={`task-menu task-menu-panel ds-modal-shell ds-mobile-sheet relative z-[80] w-[32rem] max-w-full overflow-x-hidden rounded-[28px] border-0 px-6 py-6 text-ds-text-muted outline-none ring-0 transition-all duration-[160ms] ease-in ${isMobile ? "mb-0 overflow-y-auto overscroll-contain" : "mb-6"} ${isTaskPreviewVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
                         onClick={ev => ev.stopPropagation()}
                     >
                         <div className="task-menu-header">
