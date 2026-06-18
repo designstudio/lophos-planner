@@ -2694,7 +2694,7 @@ body[data-scroll-locked="true"],
             margin-bottom: 0;
             width: 100%;
             max-width: 100%;
-            max-height: calc(80dvh + env(safe-area-inset-bottom));
+            max-height: calc(85dvh + env(safe-area-inset-bottom));
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
@@ -2707,7 +2707,7 @@ body[data-scroll-locked="true"],
         }
 
         .blur-bg[data-id="search-form"] > .search-form-sheet {
-            height: 80dvh;
+            height: 85dvh;
         }
 
         .search-form-sheet .search-results {
@@ -2742,7 +2742,7 @@ body[data-scroll-locked="true"],
             border-top-right-radius: var(--radius-2xl) !important;
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
-            height: 80dvh;
+            height: 85dvh;
             max-height: calc(100dvh - 16px);
             padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
             box-shadow: 0 -8px 24px color-mix(in srgb, var(--color-river-bed-950) 12%, transparent) !important;
@@ -2755,7 +2755,7 @@ body[data-scroll-locked="true"],
         .task-menu-form {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            max-height: calc(80dvh - 1.5rem - env(safe-area-inset-bottom));
+            max-height: calc(85dvh - 1.5rem - env(safe-area-inset-bottom));
             padding-bottom: 0.125rem;
         }
 
