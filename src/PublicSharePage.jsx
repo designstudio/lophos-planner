@@ -10,7 +10,8 @@ import { setPageScrollLocked } from "./scripts/utils.js";
 import { formDate, matchesShortId, toShortId } from "./scripts/utils.js";
 import useIsMobileViewport from "./hooks/useIsMobileViewport.js";
 import { hasTaskNoteContent, normalizeTaskNote } from "./scripts/taskNotes.js";
-import TaskNoteEditor from "./components/tasks/TaskNoteEditor.jsx";
+
+const TaskNoteEditor = React.lazy(() => import("./components/tasks/TaskNoteEditor.jsx"));
 
 function startOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -116,6 +117,19 @@ function isImageAvatar(value) {
 const MODAL_EXIT_DURATION_MS = 140;
 const PUBLIC_REFRESH_INTERVAL_MS = 30000;
 
+function logPublicShare(stage, details) {
+    try {
+        if (details === undefined) {
+            console.info(`[PublicShare] ${stage}`);
+            return;
+        }
+
+        console.info(`[PublicShare] ${stage}`, details);
+    } catch {
+        // Ignore logging failures in constrained browsers.
+    }
+}
+
 export default function PublicSharePage() {
     const { shareToken } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -137,11 +151,28 @@ export default function PublicSharePage() {
     const [holidayNamesByDate, setHolidayNamesByDate] = React.useState(() => ({}));
     const taskPreviewCloseTimeoutRef = React.useRef(null);
     const searchCloseTimeoutRef = React.useRef(null);
+    const didLogInitialRenderRef = React.useRef(false);
+
+    if (!didLogInitialRenderRef.current) {
+        didLogInitialRenderRef.current = true;
+        logPublicShare("initial-render", { shareToken });
+    }
 
     React.useEffect(() => {
         const timer = setTimeout(() => setMinLoadingDone(true), 700);
         return () => clearTimeout(timer);
     }, []);
+
+    React.useEffect(() => {
+        logPublicShare("mount", {
+            shareToken,
+            search: typeof window !== "undefined" ? window.location.search : "",
+        });
+
+        return () => {
+            logPublicShare("unmount", { shareToken });
+        };
+    }, [shareToken]);
 
     React.useEffect(() => () => {
         if (taskPreviewCloseTimeoutRef.current) {
@@ -166,10 +197,15 @@ export default function PublicSharePage() {
             }
 
             try {
+                if (showLoading) {
+                    logPublicShare("fetch-start", { shareToken });
+                }
+
                 const data = await getPublicAgendaByShareToken(shareToken);
                 if (!mounted) return;
 
                 if (!data) {
+                    logPublicShare("fetch-empty", { shareToken });
                     setOwner(null);
                     setAgenda(null);
                     setTasks([]);
@@ -181,7 +217,17 @@ export default function PublicSharePage() {
                 setAgenda(data.agenda || null);
                 setTasks(Array.isArray(data.tasks) ? data.tasks : []);
                 setBoardColumns(Array.isArray(data.boardColumns) ? data.boardColumns : []);
-            } catch {
+                if (showLoading) {
+                    logPublicShare("fetch-success", {
+                        shareToken,
+                        tasks: Array.isArray(data.tasks) ? data.tasks.length : 0,
+                    });
+                }
+            } catch (error) {
+                logPublicShare("fetch-error", {
+                    shareToken,
+                    message: error?.message || "unknown",
+                });
                 if (!mounted) return;
                 setOwner(null);
                 setAgenda(null);
@@ -1074,13 +1120,21 @@ export default function PublicSharePage() {
                         <div className="task-menu-content-divider" aria-hidden="true" />
 
                         {hasSelectedDescription && (
-                            <TaskNoteEditor
-                                className="task-menu-editor"
-                                task={selectedTask}
-                                language={language}
-                                readOnly
-                                onTaskMentionClick={openReferencedTask}
-                            />
+                            <React.Suspense
+                                fallback={(
+                                    <div className="task-menu-editor" aria-busy="true">
+                                        {t(language, "loadingShort")}
+                                    </div>
+                                )}
+                            >
+                                <TaskNoteEditor
+                                    className="task-menu-editor"
+                                    task={selectedTask}
+                                    language={language}
+                                    readOnly
+                                    onTaskMentionClick={openReferencedTask}
+                                />
+                            </React.Suspense>
                         )}
 
                         {hasSelectedRelatedLinks && (
